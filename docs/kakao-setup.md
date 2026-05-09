@@ -149,6 +149,24 @@ Invoke-RestMethod `
   -Body $body
 ```
 
+401 오류가 나오면 PowerShell이 카카오의 상세 에러 본문을 숨긴 상태일 수 있습니다.
+아래 명령으로 실제 오류 내용을 확인하세요.
+출력에 REST API 키, 인증 코드, Client Secret 원문이 나오지 않도록 그대로 실행하는 것을 권장합니다.
+
+```powershell
+try {
+  Invoke-RestMethod `
+    -Uri "https://kauth.kakao.com/oauth/token" `
+    -Method Post `
+    -ContentType "application/x-www-form-urlencoded;charset=utf-8" `
+    -Body $body
+} catch {
+  $stream = $_.Exception.Response.GetResponseStream()
+  $reader = [System.IO.StreamReader]::new($stream)
+  $reader.ReadToEnd()
+}
+```
+
 성공하면 응답에 `access_token`, `refresh_token`, `expires_in` 같은 값이 나옵니다.
 GitHub에는 `refresh_token`을 저장합니다.
 `access_token`은 짧게 만료되므로 저장하지 않아도 됩니다.
@@ -195,6 +213,27 @@ Remove-Item Env:\KAKAO_CLIENT_SECRET -ErrorAction SilentlyContinue
 `KOE010`, `client_secret`, `invalid_client` 관련 오류가 나옵니다.
 Client Secret이 `ON`인데 토큰 요청에 빠졌거나 값이 틀렸을 가능성이 큽니다.
 `KAKAO_CLIENT_SECRET` 값을 다시 확인하세요.
+
+토큰 요청에서 401 오류가 나옵니다.
+대부분 아래 중 하나입니다.
+
+- `$restApiKey`가 비어 있거나 다른 앱의 REST API 키입니다.
+- `$authCode`가 비어 있거나 이미 한 번 사용한 인증 코드입니다.
+- 인증 코드를 받은 앱과 토큰 요청의 REST API 키가 서로 다른 앱입니다.
+- Redirect URI가 인증 코드 받을 때와 토큰 받을 때 정확히 같지 않습니다.
+- Client Secret이 `ON`인데 `$clientSecret`을 비워 두었거나 값이 틀렸습니다.
+- Client Secret이 `OFF`인데 예전에 복사한 잘못된 값을 `$clientSecret`에 넣었습니다.
+
+값이 들어갔는지만 확인하려면 아래처럼 길이만 확인하세요.
+원문 값은 터미널이나 채팅에 출력하지 않는 편이 안전합니다.
+
+```powershell
+[pscustomobject]@{
+  RestApiKeyLength = $restApiKey.Length
+  AuthCodeLength = $authCode.Length
+  ClientSecretLength = $clientSecret.Length
+}
+```
 
 `talk_message` 동의 또는 권한 관련 오류가 나옵니다.
 동의항목에서 `카카오톡 메시지 전송(talk_message)`이 사용 가능하게 되어 있는지 확인하고, 인증 코드 받기 주소에 `scope=talk_message`가 들어 있는지 확인하세요.
