@@ -37,3 +37,10 @@
 - PowerShell은 기본 오류 출력에서 카카오의 JSON 에러 본문을 숨길 수 있으므로 try/catch로 응답 본문을 읽는 절차를 문서에 추가했다.
 - 토큰 요청 401의 흔한 원인으로 빈 변수, 이미 사용한 인증 코드, 다른 앱의 REST API 키, Redirect URI 불일치, Client Secret 설정 불일치를 정리했다.
 - 카카오 401 오류 안내 보강 커밋을 생성할 예정이다.
+
+## 2026-05-09 로컬 실행 위치 안내 보강
+
+- 사용자가 `C:\Users\asher`에서 `python -m dhlottery_checker ...`를 실행해 `No module named dhlottery_checker` 오류를 받았다.
+- 원인은 현재 작업 위치가 저장소 루트가 아니라 Python이 로컬 패키지를 찾지 못한 것이다.
+- 카카오 설정 문서의 로컬 테스트 절차에 `Set-Location E:\Github\DHLottery` 단계를 추가했다.
+- 로컬 실행 위치 안내 보강 커밋을 생성할 예정이다.
