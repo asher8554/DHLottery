@@ -65,7 +65,10 @@ Client Secret이 `OFF`라면 생략해도 됩니다.
 PowerShell에서는 아래 명령으로 만들 수 있습니다.
 
 ```powershell
-[Convert]::ToBase64String([System.Security.Cryptography.RandomNumberGenerator]::GetBytes(32))
+$bytes = New-Object byte[] 32
+$rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+$rng.GetBytes($bytes)
+[Convert]::ToBase64String($bytes)
 ```
 
 출력된 문자열 전체를 `STATE_HASH_SALT` Secret 값에 넣습니다.
@@ -105,7 +108,10 @@ STATE_HASH_SALT
 값은 아래 PowerShell 명령으로 만든 문자열을 넣으면 됩니다.
 
 ```powershell
-[Convert]::ToBase64String([System.Security.Cryptography.RandomNumberGenerator]::GetBytes(32))
+$bytes = New-Object byte[] 32
+$rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+$rng.GetBytes($bytes)
+[Convert]::ToBase64String($bytes)
 ```
 
 ## 구매번호 입력 요령

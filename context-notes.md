@@ -73,3 +73,10 @@
 - GitHub 설정 문서에 PowerShell 랜덤 문자열 생성 명령과 Secret 추가 절차를 추가했다.
 - 로컬 실제 구매번호 파일 보호를 더 명확히 하기 위해 `.gitignore`에 `data/tickets.yml`과 `data/tickets.*.local.yml`을 추가했다.
 - STATE_HASH_SALT 안내 보강 커밋을 생성할 예정이다.
+
+## 2026-05-09 STATE_HASH_SALT PowerShell 호환성 보강
+
+- 사용자의 PowerShell 환경에서 `[System.Security.Cryptography.RandomNumberGenerator]::GetBytes(32)` 정적 메서드가 없어 명령이 실패했다.
+- 구버전 .NET/Windows PowerShell과 호환되도록 `RandomNumberGenerator.Create()` 인스턴스를 만든 뒤 byte 배열을 채우는 명령으로 문서를 수정했다.
+- 새 PowerShell 난수 생성 명령이 로컬 환경에서 동작하는 것을 확인했다.
+- STATE_HASH_SALT PowerShell 호환성 보강 커밋을 생성할 예정이다.
