@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import json
 from typing import Any
-from urllib import parse, request
+from urllib import error, parse, request
 
 
 USER_AGENT = "DHLotteryChecker/0.1 (+https://github.com/asher8554/DHLottery)"
@@ -43,6 +43,9 @@ def get_text(
         with request.urlopen(req, timeout=timeout) as response:
             charset = response.headers.get_content_charset() or "utf-8"
             return response.read().decode(charset, errors="replace")
+    except error.HTTPError as exc:
+        detail = _http_error_detail(exc)
+        raise HttpError(f"HTTP 요청에 실패했습니다. {target}. {detail}") from exc
     except OSError as exc:
         raise HttpError(f"HTTP 요청에 실패했습니다. {target}") from exc
 
@@ -61,6 +64,9 @@ def post_form(url: str, data: dict[str, Any], headers: dict[str, str] | None = N
         with request.urlopen(req, timeout=timeout) as response:
             charset = response.headers.get_content_charset() or "utf-8"
             text = response.read().decode(charset, errors="replace")
+    except error.HTTPError as exc:
+        detail = _http_error_detail(exc)
+        raise HttpError(f"HTTP POST 요청에 실패했습니다. {url}. {detail}") from exc
     except OSError as exc:
         raise HttpError(f"HTTP POST 요청에 실패했습니다. {url}") from exc
     try:
@@ -87,3 +93,27 @@ def _html_error_message(text: str, url: str) -> str:
         return f"동행복권 접속 대기 또는 차단 페이지가 반환되었습니다. 잠시 후 다시 시도하세요. {url}"
     return f"JSON 대신 HTML 또는 알 수 없는 응답을 받았습니다. {url}"
 
+
+def _http_error_detail(exc: error.HTTPError) -> str:
+    charset = exc.headers.get_content_charset() if exc.headers else None
+    raw = exc.read().decode(charset or "utf-8", errors="replace")
+    if not raw:
+        return f"상태 코드 {exc.code}"
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        return f"상태 코드 {exc.code}, 응답 {raw[:300]}"
+    if not isinstance(data, dict):
+        return f"상태 코드 {exc.code}, 응답 {raw[:300]}"
+
+    error_code = data.get("error_code")
+    error_name = data.get("error")
+    description = data.get("error_description") or data.get("msg") or data.get("message")
+    parts = [f"상태 코드 {exc.code}"]
+    if error_name:
+        parts.append(f"error={error_name}")
+    if error_code:
+        parts.append(f"error_code={error_code}")
+    if description:
+        parts.append(f"description={description}")
+    return ", ".join(parts)

@@ -44,3 +44,13 @@
 - 원인은 현재 작업 위치가 저장소 루트가 아니라 Python이 로컬 패키지를 찾지 못한 것이다.
 - 카카오 설정 문서의 로컬 테스트 절차에 `Set-Location E:\Github\DHLottery` 단계를 추가했다.
 - 로컬 실행 위치 안내 보강 커밋을 생성할 예정이다.
+
+## 2026-05-09 카카오 HTTP 오류 출력 개선
+
+- 사용자가 저장소 루트에서 로컬 알림 테스트를 실행했고 당첨번호 조회와 결과 생성은 성공했다.
+- 카카오 알림 전송 전 `refresh_token`으로 access token을 갱신하는 단계에서 `https://kauth.kakao.com/oauth/token` 401 오류가 발생했다.
+- 기존 HTTP 래퍼가 `urllib.error.HTTPError`의 응답 본문을 버려 카카오의 실제 오류 코드가 보이지 않았다.
+- HTTP 오류 본문이 JSON이면 `error`, `error_code`, `error_description`을 프로그램 오류 메시지에 포함하도록 수정했다.
+- 이전에 토큰 원문이 채팅에 노출된 적이 있으므로 새 refresh token 발급과 환경변수 재설정을 문서화했다.
+- 단위 테스트 9개와 예시 구매번호 dry-run을 다시 실행해 통과를 확인했다.
+- 카카오 HTTP 오류 출력 개선 커밋을 생성할 예정이다.
