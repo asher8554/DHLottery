@@ -64,3 +64,12 @@
 - GitHub Actions 워크플로에도 필수 Secret 사전 확인 단계를 추가해 Python 실행 전 `TICKETS_YAML`, `KAKAO_REST_API_KEY`, `KAKAO_REFRESH_TOKEN`, `STATE_HASH_SALT` 누락을 표시하도록 했다.
 - 단위 테스트 9개와 예시 구매번호 dry-run을 다시 실행해 통과를 확인했다.
 - GitHub Actions TICKETS_YAML 안내 보강 커밋을 생성할 예정이다.
+
+## 2026-05-09 STATE_HASH_SALT 안내 보강
+
+- 사용자가 GitHub Actions에서 `Missing repository secret STATE_HASH_SALT is required.` 오류를 확인했다.
+- 원인은 필수 Secret 중 `STATE_HASH_SALT`가 아직 등록되지 않은 것이다.
+- `STATE_HASH_SALT`는 중복 알림 방지 상태 파일에 구매번호 원문 대신 지문값을 저장할 때 쓰는 임의 문자열이다.
+- GitHub 설정 문서에 PowerShell 랜덤 문자열 생성 명령과 Secret 추가 절차를 추가했다.
+- 로컬 실제 구매번호 파일 보호를 더 명확히 하기 위해 `.gitignore`에 `data/tickets.yml`과 `data/tickets.*.local.yml`을 추가했다.
+- STATE_HASH_SALT 안내 보강 커밋을 생성할 예정이다.
