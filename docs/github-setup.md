@@ -122,6 +122,40 @@ $rng.GetBytes($bytes)
 - 실제 구매 회차를 알고 있다면 `round`에는 `latest` 대신 회차 숫자를 입력합니다.
 - 로컬 테스트용 `tickets.yml`이나 `data/tickets.yml`은 커밋하지 않습니다.
 
+## 로컬 tickets.yml을 TICKETS_YAML로 올리기
+
+GitHub Actions는 내 PC의 `data/tickets.yml`을 직접 읽을 수 없습니다.
+파일을 저장소에 커밋하면 구매번호가 노출될 수 있으므로 권장하지 않습니다.
+대신 로컬 `data/tickets.yml` 내용을 GitHub Secret `TICKETS_YAML`로 업로드하세요.
+
+GitHub CLI 로그인이 되어 있지 않다면 먼저 로그인합니다.
+
+```powershell
+gh auth login
+```
+
+그 다음 저장소 루트에서 아래 스크립트를 실행합니다.
+
+```powershell
+Set-Location E:\Github\DHLottery
+.\scripts\sync-tickets-secret.ps1
+```
+
+다른 파일을 올리고 싶다면 경로를 지정할 수 있습니다.
+
+```powershell
+.\scripts\sync-tickets-secret.ps1 -Path data\tickets.yml
+```
+
+실제 업로드 전 검증만 하려면 `-DryRun`을 붙입니다.
+
+```powershell
+.\scripts\sync-tickets-secret.ps1 -DryRun
+```
+
+이 스크립트는 파일 내용을 화면에 출력하지 않고 GitHub CLI를 통해 Secret으로 업로드합니다.
+구매번호를 바꿀 때마다 이 스크립트를 다시 실행하면 `TICKETS_YAML` Secret이 갱신됩니다.
+
 ## 수동 실행
 
 1. 저장소의 `Actions` 탭으로 이동합니다.

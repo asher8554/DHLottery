@@ -57,3 +57,10 @@
 
 - [x] 구버전 PowerShell에서도 동작하는 난수 생성 명령으로 문서를 수정한다.
 - [x] 변경사항을 커밋한다.
+
+## 2026-05-09 tickets.yml Secret 동기화 보강
+
+- [x] 로컬 `data/tickets.yml`을 `TICKETS_YAML` Secret으로 업로드하는 스크립트를 추가한다.
+- [x] GitHub 설정 문서에 Secret 동기화 절차를 추가한다.
+- [x] 스크립트 dry-run을 실행한다.
+- [x] 변경사항을 커밋한다.

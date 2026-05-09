@@ -44,6 +44,7 @@ GitHub cron은 UTC 기준이라 파일에는 각각 `15 10 * * 4`, `10 12 * * 6`
 
 - GitHub 저장소와 Secret 설정은 [docs/github-setup.md](docs/github-setup.md)를 보세요.
 - 카카오톡 나에게 보내기 설정은 [docs/kakao-setup.md](docs/kakao-setup.md)를 보세요.
+- 로컬 `data/tickets.yml`을 GitHub Secret으로 올릴 때는 `scripts/sync-tickets-secret.ps1`을 사용할 수 있습니다.
 
 ## 테스트
 

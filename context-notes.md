@@ -80,3 +80,12 @@
 - 구버전 .NET/Windows PowerShell과 호환되도록 `RandomNumberGenerator.Create()` 인스턴스를 만든 뒤 byte 배열을 채우는 명령으로 문서를 수정했다.
 - 새 PowerShell 난수 생성 명령이 로컬 환경에서 동작하는 것을 확인했다.
 - STATE_HASH_SALT PowerShell 호환성 보강 커밋을 생성할 예정이다.
+
+## 2026-05-09 tickets.yml Secret 동기화 보강
+
+- 사용자가 `TICKETS_YAML`을 `tickets.yml`에서 자동으로 불러오고 싶다고 요청했다.
+- GitHub Actions가 내 PC의 무시된 `data/tickets.yml`을 직접 읽을 수는 없고, 파일을 커밋하는 방식은 구매번호 노출 위험이 있다.
+- 안전한 방향으로 로컬 `data/tickets.yml` 내용을 GitHub Secret `TICKETS_YAML`로 업로드하는 PowerShell 스크립트를 추가했다.
+- GitHub CLI는 Secret 값을 로컬에서 암호화해 GitHub로 전송하므로 수동 복사보다 실수 가능성이 낮다.
+- `scripts/sync-tickets-secret.ps1 -DryRun`과 단위 테스트 9개를 실행해 통과를 확인했다.
+- tickets.yml Secret 동기화 보강 커밋을 생성할 예정이다.
