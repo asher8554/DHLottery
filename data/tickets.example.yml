@@ -1,0 +1,14 @@
+# 실제 구매번호는 tickets.yml 또는 GitHub Secret TICKETS_YAML에만 넣으세요.
+lotto:
+  tickets:
+    - label: "로또 예시 1"
+      round: 1222
+      numbers: [4, 11, 17, 22, 32, 41]
+
+pension:
+  tickets:
+    - label: "연금복권 예시 1"
+      round: 314
+      group: 2
+      number: "060727"
+
