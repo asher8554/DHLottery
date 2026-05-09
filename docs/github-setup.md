@@ -38,6 +38,11 @@ Kakao Developers 앱의 REST API 키입니다.
 
 카카오 OAuth 토큰 발급 단계에서 받은 refresh token입니다.
 
+`KAKAO_CLIENT_SECRET`
+
+Kakao Developers 앱에서 REST API 키의 Client Secret이 `ON`인 경우에만 추가합니다.
+Client Secret이 `OFF`라면 생략해도 됩니다.
+
 `STATE_HASH_SALT`
 
 중복 알림 방지 상태 파일에 구매번호 원문 대신 지문값을 저장하기 위한 임의 문자열입니다.
@@ -68,4 +73,3 @@ GitHub Actions cron은 UTC 기준입니다.
 ```yaml
 - cron: "20 12 * * 6"
 ```
-

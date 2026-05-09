@@ -12,6 +12,7 @@
 - 실제 구매번호는 `tickets.yml` 또는 GitHub Actions Secret `TICKETS_YAML`에만 둡니다.
 - `tickets.yml`은 `.gitignore`에 포함되어 커밋되지 않습니다.
 - 카카오 토큰은 GitHub Actions Secrets에만 저장합니다.
+- 카카오 Client Secret이 켜져 있다면 `KAKAO_CLIENT_SECRET`도 Secret에 저장합니다.
 - 저장소는 private로 운영하는 것을 전제로 합니다.
 
 ## 로컬 실행
@@ -49,4 +50,3 @@ GitHub cron은 UTC 기준이라 파일에는 각각 `15 10 * * 4`, `10 12 * * 6`
 ```powershell
 python -m unittest discover -s tests
 ```
-

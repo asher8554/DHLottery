@@ -44,16 +44,21 @@ def _access_token() -> str:
 
     rest_api_key = os.environ.get("KAKAO_REST_API_KEY", "").strip()
     refresh_token = os.environ.get("KAKAO_REFRESH_TOKEN", "").strip()
+    client_secret = os.environ.get("KAKAO_CLIENT_SECRET", "").strip()
     if not rest_api_key or not refresh_token:
         raise KakaoConfigError("KAKAO_REST_API_KEY와 KAKAO_REFRESH_TOKEN이 필요합니다.")
 
+    data = {
+        "grant_type": "refresh_token",
+        "client_id": rest_api_key,
+        "refresh_token": refresh_token,
+    }
+    if client_secret:
+        data["client_secret"] = client_secret
+
     response = post_form(
         KAKAO_TOKEN_URL,
-        {
-            "grant_type": "refresh_token",
-            "client_id": rest_api_key,
-            "refresh_token": refresh_token,
-        },
+        data,
     )
     access_token = str(response.get("access_token", "")).strip()
     if not access_token:
@@ -77,4 +82,3 @@ def _split_message(text: str, limit: int = 180) -> Iterable[str]:
         chunk = line
     if chunk:
         yield chunk
-
