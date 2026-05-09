@@ -38,3 +38,11 @@
 - [x] `--notify` 실행 중 토큰 갱신 401이 나는 경우의 조치 방법을 문서화한다.
 - [x] 테스트를 실행한다.
 - [x] 변경사항을 커밋한다.
+
+## 2026-05-09 GitHub Actions TICKETS_YAML 안내 보강
+
+- [x] GitHub Actions에서 구매번호 Secret 누락 시 명확한 오류를 내도록 수정한다.
+- [x] GitHub 설정 가이드에 필수 Secret 목록과 TICKETS_YAML 확인 절차를 추가한다.
+- [x] GitHub Actions에서 필수 Secret 누락을 사전에 확인하는 단계를 추가한다.
+- [x] 테스트를 실행한다.
+- [x] 변경사항을 커밋한다.

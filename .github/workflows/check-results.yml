@@ -48,6 +48,18 @@ jobs:
       - name: Prepare state directory
         run: mkdir -p .state
 
+      - name: Validate required secrets
+        shell: bash
+        run: |
+          missing=0
+          for name in TICKETS_YAML KAKAO_REST_API_KEY KAKAO_REFRESH_TOKEN STATE_HASH_SALT; do
+            if [ -z "${!name}" ]; then
+              echo "::error title=Missing repository secret::$name is required."
+              missing=1
+            fi
+          done
+          exit "$missing"
+
       - name: Check results and send Kakao message
         run: python -m dhlottery_checker check --notify --state .state/sent-results.json
 

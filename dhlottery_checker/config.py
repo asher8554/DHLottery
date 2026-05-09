@@ -51,12 +51,17 @@ class TicketConfig:
 
 
 def load_ticket_config(path: str | Path | None = None) -> TicketConfig:
-    raw_text = os.environ.get("TICKETS_YAML")
+    raw_text = os.environ.get("TICKETS_YAML", "").strip()
     if raw_text:
         source = yaml.safe_load(raw_text) or {}
     else:
         ticket_path = Path(path or "tickets.yml")
         if not ticket_path.exists():
+            if os.environ.get("GITHUB_ACTIONS") == "true":
+                raise ValueError(
+                    "GitHub Actions에서 구매번호를 찾지 못했습니다. "
+                    "Repository secret에 TICKETS_YAML을 추가했는지 확인하세요."
+                )
             raise ValueError(f"구매번호 설정 파일이 없습니다. {ticket_path}")
         source = yaml.safe_load(ticket_path.read_text(encoding="utf-8")) or {}
 
@@ -123,4 +128,3 @@ def _parse_pension_ticket(item: dict[str, Any]) -> PensionTicket:
         number=number,
         label=str(item.get("label", "")).strip(),
     )
-

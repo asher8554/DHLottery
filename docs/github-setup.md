@@ -12,8 +12,23 @@
 ## GitHub Actions Secrets
 
 저장소의 `Settings`에서 `Secrets and variables`, `Actions`, `New repository secret` 순서로 이동해 아래 값을 추가합니다.
+Secret 이름은 대소문자를 포함해 아래와 정확히 같아야 합니다.
+
+필수 Secret입니다.
+
+- `TICKETS_YAML`
+- `KAKAO_REST_API_KEY`
+- `KAKAO_REFRESH_TOKEN`
+- `STATE_HASH_SALT`
+
+조건부 Secret입니다.
+
+- `KAKAO_CLIENT_SECRET`: Kakao Developers 앱에서 Client Secret이 `ON`인 경우에만 추가합니다.
 
 `TICKETS_YAML`
+
+실제 구매번호 전체를 YAML 형식으로 넣습니다.
+GitHub 화면에서는 여러 줄 Secret을 그대로 붙여넣을 수 있습니다.
 
 ```yaml
 lotto:
@@ -47,6 +62,22 @@ Client Secret이 `OFF`라면 생략해도 됩니다.
 
 중복 알림 방지 상태 파일에 구매번호 원문 대신 지문값을 저장하기 위한 임의 문자열입니다.
 예를 들어 긴 랜덤 문장이나 비밀번호 생성기로 만든 값을 넣으면 됩니다.
+
+## TICKETS_YAML 오류가 나는 경우
+
+Actions에서 아래 오류가 나면 `TICKETS_YAML` Secret이 없거나 이름이 틀린 것입니다.
+
+```text
+GitHub Actions에서 구매번호를 찾지 못했습니다. Repository secret에 TICKETS_YAML을 추가했는지 확인하세요.
+```
+
+확인할 항목입니다.
+
+- 저장소 `Settings`, `Secrets and variables`, `Actions`에 들어갔는지 확인합니다.
+- `Repository secrets`에 `TICKETS_YAML`이 있는지 확인합니다.
+- `Environment secrets`가 아니라 `Repository secrets`에 넣었는지 확인합니다.
+- Secret 이름이 `TICKET_YAML`, `TICKETS`, `tickets_yaml`처럼 다르게 들어가지 않았는지 확인합니다.
+- `TICKETS_YAML` 값이 비어 있지 않은지 확인합니다.
 
 ## 구매번호 입력 요령
 

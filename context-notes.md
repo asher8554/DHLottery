@@ -54,3 +54,13 @@
 - 이전에 토큰 원문이 채팅에 노출된 적이 있으므로 새 refresh token 발급과 환경변수 재설정을 문서화했다.
 - 단위 테스트 9개와 예시 구매번호 dry-run을 다시 실행해 통과를 확인했다.
 - 카카오 HTTP 오류 출력 개선 커밋을 생성할 예정이다.
+
+## 2026-05-09 GitHub Actions TICKETS_YAML 안내 보강
+
+- 사용자가 GitHub Actions 수동 실행에서 `구매번호 설정 파일이 없습니다. tickets.yml` 오류를 받았다.
+- 원인은 GitHub Actions에 로컬 `tickets.yml`이 없고 `TICKETS_YAML` Secret도 없거나 비어 있어 설정을 읽지 못한 것이다.
+- GitHub Actions 환경에서는 `TICKETS_YAML` Secret 누락을 직접 안내하는 오류를 내도록 수정했다.
+- GitHub 설정 문서에 필수 Secret 목록과 `TICKETS_YAML` 확인 절차를 추가했다.
+- GitHub Actions 워크플로에도 필수 Secret 사전 확인 단계를 추가해 Python 실행 전 `TICKETS_YAML`, `KAKAO_REST_API_KEY`, `KAKAO_REFRESH_TOKEN`, `STATE_HASH_SALT` 누락을 표시하도록 했다.
+- 단위 테스트 9개와 예시 구매번호 dry-run을 다시 실행해 통과를 확인했다.
+- GitHub Actions TICKETS_YAML 안내 보강 커밋을 생성할 예정이다.
