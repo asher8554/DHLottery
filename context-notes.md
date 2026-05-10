@@ -370,3 +370,21 @@
 - 사용자는 동행복권 결과 반영이 발표 후 최대 1시간 걸릴 수 있다고 확인했고, 자동 카카오 알림도 약 1시간 뒤 확인으로 운영하길 원했다.
 - 연금복권 스케줄은 한국시간 목요일 20시 10분, 로또 스케줄은 토요일 21시 45분으로 조정했다.
 - `python -m unittest discover -s tests` 결과 41개 테스트가 통과했고, workflow YAML 3개와 `scrape-ledger --help` 검증도 통과했다.
+
+## 2026-05-10 스크래퍼 진행 로그와 실패 디버그 보강
+
+- 사용자가 `scrape-ledger.ps1` 실행 중 진행 중인지 알 수 있게 중간마다 가져온 정보를 표시하는 옵션을 요청했다.
+- 같은 실행에서 `구매내역에서 로또 또는 연금복권 티켓 번호를 찾지 못했습니다` 오류가 다시 발생했다.
+- `.browser/debug/ledger-body.txt`에는 로그인 상태와 구매/당첨내역 목록이 정상 표시되어 있었고, 로또 2건과 연금복권 5건의 목록 텍스트가 있었다.
+- 본문 텍스트에는 초록 돋보기 아이콘의 DOM 속성이 나오지 않으므로, 실패 시 후보 버튼 라벨을 `.browser/debug/ledger-candidates.txt`에도 저장하도록 한다.
+- `--verbose`와 PowerShell `-ShowProgress`를 추가해 로그인 페이지 이동, 구매내역 이동, 목록 감지 건수, 상세 버튼 후보 수, 상세 클릭 결과를 터미널에 출력한다.
+- 돋보기 아이콘 후보 판정은 아이콘 자체의 `search`, `detail`, `view`류 라벨과 주변 구매내역 행 텍스트를 함께 확인하도록 바꿨다.
+- `python -m unittest discover -s tests` 결과 43개 테스트가 통과했고, `scrape-ledger --help`, PowerShell 스크립트 문법, workflow YAML 검증도 통과했다.
+
+## 2026-05-10 스크래퍼 상세 팝업 수집 보정
+
+- 실제 구매내역 DOM에서 초록 돋보기 아이콘은 별도 버튼이 아니라 `span.whl-txt.barcd` 요소에 붙은 스타일이었다.
+- `.barcd` 요소의 `data-index`는 0부터 6까지 있었고, 0부터 4는 연금복권 315회, 5와 6은 로또 1224회 구매번호였다.
+- 로또 상세 팝업은 `#Lotto645TicketP`, 연금복권 상세 팝업은 보이는 `.popup-wrap.on`에서 전체 텍스트를 직접 읽는 방식이 안정적이었다.
+- 팝업 닫기 버튼은 텍스트가 없는 `button#btn-pop-close`였으므로 텍스트 `X`를 찾는 방식으로는 닫히지 않았다.
+- 실제 `.\scripts\scrape-ledger.ps1 -MaxTickets 10 -ShowProgress` 실행 결과 로또 5개와 연금복권 5개가 `data/tickets.yml`에 정상 생성되는 것을 확인했다.

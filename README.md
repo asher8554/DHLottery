@@ -112,8 +112,16 @@ DHLOTTERY_PASSWORD=내비밀번호
 .\scripts\scrape-ledger.ps1 -Append
 ```
 
+진행 상황을 터미널에서 보면서 확인하려면 `-ShowProgress`를 붙입니다.
+PowerShell 공통 옵션인 `-Verbose`도 같은 방식으로 동작합니다.
+
+```powershell
+.\scripts\scrape-ledger.ps1 -ShowProgress
+```
+
 로그인 세션을 지우고 싶으면 `.browser` 폴더를 삭제하면 됩니다.
 티켓 번호를 찾지 못하면 현재 화면 텍스트가 `.browser/debug/ledger-body.txt`에 저장됩니다.
+상세 버튼 후보 정보는 `.browser/debug/ledger-candidates.txt`에 저장됩니다.
 화면에 티켓이 보이는데도 실패하면 이 파일에서 `티켓보기`, `복권번호보기`, `A 자동` 같은 문구가 있는지 확인하면 다음 수정 지점을 바로 잡을 수 있습니다.
 
 ## 웹 입력 화면 예시

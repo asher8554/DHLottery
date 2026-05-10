@@ -77,6 +77,7 @@ def main(argv: list[str] | None = None) -> int:
     scrape_parser.add_argument("--max-tickets", type=int, default=30, help="클릭할 티켓 보기 버튼의 최대 개수입니다.")
     scrape_parser.add_argument("--headless", action="store_true", help="브라우저 창을 띄우지 않습니다. 이미 로그인 세션이 있을 때만 사용하세요.")
     scrape_parser.add_argument("--append", action="store_true", help="기존 구매번호를 지우지 않고 새 번호만 추가합니다.")
+    scrape_parser.add_argument("--verbose", action="store_true", help="구매내역 수집 진행 상황을 출력합니다.")
 
     args = parser.parse_args(argv)
     if args.command == "check":
@@ -113,6 +114,7 @@ def _run_scrape_ledger(args: argparse.Namespace) -> int:
             max_tickets=args.max_tickets,
             headless=args.headless,
             append=args.append,
+            verbose=args.verbose,
         )
     except (RuntimeError, ValueError) as exc:
         print(f"구매내역 가져오기 실패. {exc}", file=sys.stderr)

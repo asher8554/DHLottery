@@ -8,7 +8,13 @@ from pathlib import Path
 import re
 from typing import Iterable
 
-from .ticket_import import ImportedTickets, parse_ticket_text, write_imported_tickets
+from .ticket_import import (
+    ImportedLottoTicket,
+    ImportedPensionTicket,
+    ImportedTickets,
+    parse_ticket_text,
+    write_imported_tickets,
+)
 
 
 LEDGER_URL = "https://www.dhlottery.co.kr/mypage/mylotteryledger"
@@ -55,6 +61,7 @@ DETAIL_ICON_PATTERN = re.compile(
     r"(돋보기|조회|search|magnifier|btn[-_ ]?search|ico[-_ ]?search|icon[-_ ]?search|btn[-_ ]?view|detail|popup)",
     re.IGNORECASE,
 )
+BARCODE_BUTTON_PATTERN = re.compile(r"(^|\s)(barcd|col-num)(\s|$)", re.IGNORECASE)
 TICKET_CONTEXT_PATTERN = re.compile(
     r"(로또|Lotto|연금복권|구매번호|구입일자|추첨일자|\d\s*조\s*\d{6}|\d{5}\s+\d{5}\s+\d{5})",
     re.IGNORECASE,
@@ -81,6 +88,7 @@ def scrape_ledger_to_file(
     max_tickets: int = 30,
     headless: bool = False,
     append: bool = False,
+    verbose: bool = False,
 ) -> ScrapeLedgerResult:
     ticket_texts = scrape_ledger_ticket_texts(
         profile_dir=profile_dir,
@@ -89,9 +97,14 @@ def scrape_ledger_to_file(
         ledger_url=ledger_url,
         max_tickets=max_tickets,
         headless=headless,
+        verbose=verbose,
     )
     imported_tickets = _parse_ticket_texts(ticket_texts)
     write_imported_tickets(ticket_path, imported_tickets, replace_all=not append)
+    _log(
+        verbose,
+        f"{ticket_path} 저장 완료. 로또 {len(imported_tickets.lotto)}개, 연금복권 {len(imported_tickets.pension)}개.",
+    )
     return ScrapeLedgerResult(imported_tickets, len(ticket_texts))
 
 
@@ -103,6 +116,7 @@ def scrape_ledger_ticket_texts(
     ledger_url: str = LEDGER_URL,
     max_tickets: int = 30,
     headless: bool = False,
+    verbose: bool = False,
 ) -> list[str]:
     try:
         from playwright.sync_api import Error as PlaywrightError
@@ -118,8 +132,10 @@ def scrape_ledger_ticket_texts(
     profile_path = Path(profile_dir)
     profile_path.mkdir(parents=True, exist_ok=True)
     credentials = load_dhlottery_credentials(env_file)
+    _log(verbose, f"브라우저 프로필 사용. {profile_path}")
 
     with sync_playwright() as playwright:
+        _log(verbose, "브라우저 실행 중.")
         context = playwright.chromium.launch_persistent_context(
             user_data_dir=str(profile_path),
             headless=headless,
@@ -129,26 +145,36 @@ def scrape_ledger_ticket_texts(
         try:
             page = context.pages[0] if context.pages else context.new_page()
             if not headless:
+                _log(verbose, f"로그인 페이지 이동. {login_url}")
                 _goto_with_navigation_retry(page, login_url, PlaywrightError, PlaywrightTimeoutError)
-                _auto_login_if_possible(page, credentials, PlaywrightTimeoutError)
+                if _auto_login_if_possible(page, credentials, PlaywrightTimeoutError):
+                    _log(verbose, "로그인 폼 자동 제출 완료.")
+                else:
+                    _log(verbose, "자동 제출할 로그인 폼을 찾지 못했거나 비밀번호가 없습니다.")
                 _wait_for_page_settle(page, PlaywrightTimeoutError)
+            _log(verbose, f"구매/당첨내역 이동. {ledger_url}")
             _goto_with_navigation_retry(page, ledger_url, PlaywrightError, PlaywrightTimeoutError)
             if _auto_login_if_possible(page, credentials, PlaywrightTimeoutError):
+                _log(verbose, "구매내역 이동 후 로그인 폼을 다시 제출했습니다.")
                 _goto_with_navigation_retry(page, ledger_url, PlaywrightError, PlaywrightTimeoutError)
             if not headless and _page_has_login_form(page):
                 print("자동 로그인이 되지 않았습니다. 브라우저에서 로그인하고 구매/당첨내역 페이지가 보이면 Enter를 누르세요.")
                 input()
                 _wait_for_page_settle(page, PlaywrightTimeoutError)
                 _goto_with_navigation_retry(page, ledger_url, PlaywrightError, PlaywrightTimeoutError)
-            texts = _collect_ticket_texts(context, page, max_tickets, PlaywrightTimeoutError)
+            _log(verbose, _ledger_list_summary(_all_body_texts(page)))
+            texts = _collect_ticket_texts(context, page, max_tickets, PlaywrightTimeoutError, verbose=verbose)
             if not texts:
                 debug_path = _write_debug_snapshot(page, profile_path)
                 raise ValueError(
                     "구매내역에서 로또 또는 연금복권 티켓 번호를 찾지 못했습니다. "
-                    f"현재 화면 텍스트를 {debug_path}에 저장했습니다."
+                    f"현재 화면 텍스트를 {debug_path}에 저장했습니다. "
+                    f"버튼 후보 정보는 {debug_path.with_name('ledger-candidates.txt')}에 저장했습니다."
                 )
+            _log(verbose, f"상세 텍스트 {len(texts)}개 수집 완료.")
             return texts
         finally:
+            _log(verbose, "브라우저 종료.")
             context.close()
 
 
@@ -290,17 +316,30 @@ def _is_navigation_interruption(exc: Exception) -> bool:
     )
 
 
-def _collect_ticket_texts(context, page, max_tickets: int, timeout_error_type: type[Exception]) -> list[str]:
+def _collect_ticket_texts(
+    context,
+    page,
+    max_tickets: int,
+    timeout_error_type: type[Exception],
+    *,
+    verbose: bool = False,
+) -> list[str]:
     texts: list[str] = []
     buttons = _ticket_button_handles(page)
-    for handle in buttons[:max_tickets]:
+    _log(verbose, f"상세 버튼 후보 {len(buttons)}개 발견. 최대 {max_tickets}개 확인.")
+    for index, handle in enumerate(buttons[:max_tickets], start=1):
+        _log(verbose, f"상세 버튼 {index}/{min(len(buttons), max_tickets)} 클릭 중.")
         try:
             text = _text_after_click(context, page, handle, timeout_error_type)
-        except Exception:
+        except Exception as exc:
+            _log(verbose, f"상세 버튼 {index} 클릭 실패. {exc}")
             continue
         normalized = _normalize_text(text)
         if normalized and _looks_like_ticket_text(normalized):
             texts.append(normalized)
+            _log(verbose, f"상세 버튼 {index}에서 티켓 텍스트 감지.")
+        else:
+            _log(verbose, f"상세 버튼 {index}에서 티켓 텍스트를 찾지 못했습니다.")
 
     if not texts:
         for body_text in _all_body_texts(page):
@@ -314,6 +353,8 @@ def _write_debug_snapshot(page, profile_path: Path) -> Path:
     debug_dir.mkdir(parents=True, exist_ok=True)
     text_path = debug_dir / "ledger-body.txt"
     text_path.write_text("\n\n--- frame ---\n\n".join(_all_body_texts(page)), encoding="utf-8")
+    candidate_path = debug_dir / "ledger-candidates.txt"
+    candidate_path.write_text("\n\n".join(_ticket_button_debug_labels(page)), encoding="utf-8")
     try:
         page.screenshot(path=str(debug_dir / "ledger-page.png"), full_page=True)
     except Exception:
@@ -325,47 +366,14 @@ def _ticket_button_handles(page) -> list[object]:
     ticket_handles = []
     for frame in page.frames:
         handles = frame.query_selector_all(
-            "a, button, input[type='button'], input[type='submit'], img, area, [role='button'], [onclick]"
+            "a, button, input[type='button'], input[type='submit'], img, area, .barcd, [role='button'], [onclick]"
         )
         for handle in handles:
             try:
-                label = handle.evaluate(
-                    """
-                    (el) => {
-                      const parent = el.parentElement;
-                      const grandParent = parent?.parentElement;
-                      const row = el.closest?.('li, tr');
-                      const childImageLabels = Array.from(el.querySelectorAll?.('img') ?? [])
-                        .flatMap((img) => [
-                          img.getAttribute('alt'),
-                          img.getAttribute('title'),
-                          img.getAttribute('src')
-                        ]);
-                      return [
-                        el.innerText,
-                        el.textContent,
-                        el.value,
-                        el.getAttribute('aria-label'),
-                        el.getAttribute('title'),
-                        el.getAttribute('alt'),
-                        el.getAttribute('onclick'),
-                        el.getAttribute('href'),
-                        el.id,
-                        el.className,
-                        parent?.innerText,
-                        parent?.className,
-                        grandParent?.innerText,
-                        grandParent?.className,
-                        row?.innerText,
-                        row?.className,
-                        ...childImageLabels
-                      ].filter(Boolean).join(' ');
-                    }
-                    """
-                )
+                label = _ticket_button_label(handle)
             except Exception:
                 continue
-            if is_ticket_button_label(str(label)):
+            if _is_ticket_button_candidate(label.get("own", ""), label.get("context", "")):
                 ticket_handles.append(handle)
     return ticket_handles
 
@@ -381,6 +389,80 @@ def is_ticket_button_label(label: str) -> bool:
     )
 
 
+def _is_ticket_button_candidate(own_label: str, context_label: str) -> bool:
+    own = _normalize_text(own_label)
+    context = _normalize_text(context_label)
+    has_ticket_button_marker = (
+        TICKET_BUTTON_PATTERN.search(own) is not None
+        or DETAIL_ICON_PATTERN.search(own) is not None
+        or BARCODE_BUTTON_PATTERN.search(own) is not None
+    )
+    return has_ticket_button_marker and LEDGER_TICKET_ROW_PATTERN.search(context) is not None
+
+
+def _ticket_button_label(handle) -> dict[str, str]:
+    return handle.evaluate(
+        """
+        (el) => {
+          const ownParts = [];
+          const contextParts = [];
+          const childImageLabels = Array.from(el.querySelectorAll?.('img') ?? [])
+            .flatMap((img) => [
+              img.getAttribute('alt'),
+              img.getAttribute('title'),
+              img.getAttribute('src')
+            ]);
+          ownParts.push(
+            el.innerText,
+            el.textContent,
+            el.value,
+            el.getAttribute('aria-label'),
+            el.getAttribute('title'),
+            el.getAttribute('alt'),
+            el.getAttribute('onclick'),
+            el.getAttribute('href'),
+            el.id,
+            el.className,
+            ...childImageLabels
+          );
+
+          let ancestor = el.parentElement;
+          for (let depth = 0; ancestor && depth < 4; depth += 1) {
+            contextParts.push(ancestor.innerText, ancestor.className, ancestor.id);
+            ancestor = ancestor.parentElement;
+          }
+
+          return {
+            own: ownParts.filter(Boolean).join(' '),
+            context: contextParts.filter(Boolean).join(' ')
+          };
+        }
+        """
+    )
+
+
+def _ticket_button_debug_labels(page) -> list[str]:
+    debug_labels = []
+    for frame_index, frame in enumerate(page.frames):
+        try:
+            handles = frame.query_selector_all(
+                "a, button, input[type='button'], input[type='submit'], img, area, .barcd, [role='button'], [onclick]"
+            )
+        except Exception:
+            continue
+        for index, handle in enumerate(handles):
+            try:
+                label = _ticket_button_label(handle)
+            except Exception as exc:
+                debug_labels.append(f"frame={frame_index} index={index} error={exc}")
+                continue
+            own = _normalize_text(label.get("own", ""))[:500]
+            context = _normalize_text(label.get("context", ""))[:1000]
+            matched = _is_ticket_button_candidate(label.get("own", ""), label.get("context", ""))
+            debug_labels.append(f"frame={frame_index} index={index} matched={matched}\nown={own}\ncontext={context}")
+    return debug_labels
+
+
 def _text_after_click(context, page, handle, timeout_error_type: type[Exception]) -> str:
     popup = None
     before_texts = _all_body_texts(page)
@@ -392,8 +474,10 @@ def _text_after_click(context, page, handle, timeout_error_type: type[Exception]
         return "\n".join(_all_body_texts(popup))
     except timeout_error_type:
         page.wait_for_timeout(1000)
+        text = _visible_ticket_popup_text(page)
         after_texts = _all_body_texts(page)
-        text = _text_added_after_click(before_texts, after_texts)
+        if not text:
+            text = _text_added_after_click(before_texts, after_texts)
         if not _looks_like_ticket_text(text):
             text = "\n".join(after_texts)
         _close_dialog(page)
@@ -427,8 +511,49 @@ def _text_added_after_click(before_texts: Iterable[str], after_texts: Iterable[s
     return "\n".join(added_lines)
 
 
+def _visible_ticket_popup_text(page) -> str:
+    selectors = (
+        "#Lotto645TicketP",
+        "#Pension720TicketP",
+        ".popup-wrap.on",
+        "[id*='TicketP']",
+        "[class*='popup-wrap']",
+    )
+    for frame in page.frames:
+        for selector in selectors:
+            try:
+                locator = frame.locator(selector)
+                count = locator.count()
+            except Exception:
+                continue
+            for index in range(count):
+                candidate = locator.nth(index)
+                try:
+                    if not candidate.is_visible(timeout=500):
+                        continue
+                    text = candidate.inner_text(timeout=1000)
+                except Exception:
+                    continue
+                normalized = _normalize_text(text)
+                if _looks_like_ticket_text(normalized):
+                    return normalized
+    return ""
+
+
 def _split_text_lines(text: str) -> list[str]:
     return [line for line in _normalize_text(text).split("\n") if line.strip()]
+
+
+def _ledger_list_summary(texts: Iterable[str]) -> str:
+    text = "\n".join(texts)
+    pension_count = len(re.findall(r"연금복권720\+\s*\n?\s*\d{1,5}\s*\n?\s*[1-5]\s*조\s*\d{6}", text))
+    lotto_count = len(re.findall(r"로또6/45\s*\n?\s*\d{1,5}\s*\n?\s*\d{5}(?:\s+\d{5}){5}", text))
+    return f"구매내역 목록 감지. 로또 {lotto_count}건, 연금복권 {pension_count}건."
+
+
+def _log(verbose: bool, message: str) -> None:
+    if verbose:
+        print(f"[scrape-ledger] {message}", flush=True)
 
 
 def _close_dialog(page) -> None:
@@ -436,7 +561,17 @@ def _close_dialog(page) -> None:
         page.keyboard.press("Escape")
     except Exception:
         pass
-    for label in ("닫기", "확인", "close", "Close", "X"):
+    for selector in ("#btn-pop-close", ".btn-pop-close", "button[title='닫기']", "[aria-label='닫기']"):
+        try:
+            locator = page.locator(selector)
+            for index in range(locator.count()):
+                candidate = locator.nth(index)
+                if candidate.is_visible(timeout=500):
+                    candidate.click(timeout=500)
+                    return
+        except Exception:
+            continue
+    for label in ("닫기", "확인", "close", "Close", "X", "×"):
         try:
             locator = page.get_by_text(label, exact=True)
             if locator.count() > 0:
@@ -472,7 +607,35 @@ def _parse_ticket_texts(texts: Iterable[str]) -> ImportedTickets:
     if not lotto and not pension:
         detail = f" 마지막 오류. {errors[-1]}" if errors else ""
         raise ValueError(f"구매내역에서 로또 또는 연금복권 티켓 번호를 찾지 못했습니다.{detail}")
-    return ImportedTickets(tuple(lotto), tuple(pension))
+    return ImportedTickets(tuple(_renumber_lotto_slots(lotto)), tuple(_renumber_pension_slots(pension)))
+
+
+def _renumber_lotto_slots(tickets: Iterable[ImportedLottoTicket]) -> list[ImportedLottoTicket]:
+    counters: dict[int, int] = {}
+    renumbered = []
+    for ticket in tickets:
+        index = counters.get(ticket.round, 0)
+        slot = chr(ord("A") + index) if index < 26 else str(index + 1)
+        counters[ticket.round] = index + 1
+        renumbered.append(ImportedLottoTicket(ticket.round, slot, ticket.numbers))
+    return renumbered
+
+
+def _renumber_pension_slots(tickets: Iterable[ImportedPensionTicket]) -> list[ImportedPensionTicket]:
+    counters: dict[int, int] = {}
+    renumbered = []
+    for ticket in tickets:
+        index = counters.get(ticket.round, 0) + 1
+        counters[ticket.round] = index
+        renumbered.append(
+            ImportedPensionTicket(
+                round=ticket.round,
+                slot=str(index),
+                group=ticket.group,
+                number=ticket.number,
+            )
+        )
+    return renumbered
 
 
 def _unique_texts(texts: Iterable[str]) -> list[str]:

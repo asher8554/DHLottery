@@ -7,7 +7,8 @@ param(
     [string]$LoginUrl = "https://www.dhlottery.co.kr/login",
     [int]$MaxTickets = 30,
     [switch]$Append,
-    [switch]$Headless
+    [switch]$Headless,
+    [switch]$ShowProgress
 )
 
 $ErrorActionPreference = "Stop"
@@ -28,6 +29,9 @@ try {
     }
     if ($Headless) {
         $arguments += "--headless"
+    }
+    if ($ShowProgress -or $PSBoundParameters.ContainsKey("Verbose")) {
+        $arguments += "--verbose"
     }
 
     python @arguments

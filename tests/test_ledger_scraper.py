@@ -7,6 +7,8 @@ from dhlottery_checker.ledger_scraper import (
     USERNAME_SELECTORS,
     _first_visible_locator,
     _is_navigation_interruption,
+    _is_ticket_button_candidate,
+    _ledger_list_summary,
     _looks_like_ticket_text,
     _parse_env_text,
     _parse_ticket_texts,
@@ -30,6 +32,14 @@ class LedgerScraperTest(unittest.TestCase):
         self.assertTrue(is_ticket_button_label("연금복권720+ (315) 1조 052414 구입일자 2026-05-10 추첨일자 2026-05-14"))
         self.assertFalse(is_ticket_button_label("조회"))
 
+    def test_detects_search_icon_with_ticket_row_context(self):
+        own = "btn-search ico-search"
+        context = "로또6/45\n1224\n68365 78496 66600 43342 43250 50974\n구입일자\n2026-05-10\n추첨일자\n2026-05-16"
+
+        self.assertTrue(_is_ticket_button_candidate(own, context))
+        self.assertTrue(_is_ticket_button_candidate("68365 78496 66600 43342 43250 50974 whl-txt barcd", context))
+        self.assertFalse(_is_ticket_button_candidate("btn-search", "검색 조건 로또6/45 전체"))
+
     def test_detects_ticket_text(self):
         self.assertTrue(_looks_like_ticket_text("로또6/45 티켓 보기\n1224회\nA 자동 9 12 13 33 35 43"))
         self.assertTrue(_looks_like_ticket_text("연금복권720+\n315회\n1조\n0\n5\n2\n4\n1\n4"))
@@ -47,6 +57,89 @@ class LedgerScraperTest(unittest.TestCase):
         self.assertEqual(imported.lotto[0].numbers, (9, 12, 13, 33, 35, 43))
         self.assertEqual(len(imported.pension), 1)
         self.assertEqual(imported.pension[0].number, "052414")
+
+    def test_renumbers_lotto_slots_across_multiple_purchase_popups(self):
+        imported = _parse_ticket_texts(
+            [
+                """
+로또6/45 티켓 보기
+1224회
+A 자동
+16
+23
+30
+32
+35
+37
+B 자동
+7
+10
+17
+18
+26
+32
+C 자동
+1
+4
+14
+17
+39
+41
+D 자동
+9
+13
+20
+21
+36
+41
+""",
+                """
+로또6/45 티켓 보기
+1224회
+A 자동
+9
+12
+13
+33
+35
+43
+""",
+            ]
+        )
+
+        self.assertEqual([ticket.slot for ticket in imported.lotto], ["A", "B", "C", "D", "E"])
+        self.assertEqual(imported.lotto[-1].numbers, (9, 12, 13, 33, 35, 43))
+
+    def test_renumbers_pension_slots_across_multiple_purchase_popups(self):
+        imported = _parse_ticket_texts(
+            [
+                """
+연금복권720+ 구매번호
+315회
+1조
+0
+5
+2
+4
+1
+4
+""",
+                """
+연금복권720+ 구매번호
+315회
+2조
+0
+5
+2
+4
+1
+4
+""",
+            ]
+        )
+
+        self.assertEqual([ticket.slot for ticket in imported.pension], ["1", "2"])
+        self.assertEqual([ticket.group for ticket in imported.pension], [1, 2])
 
     def test_detects_navigation_interruption(self):
         message = (
@@ -120,6 +213,30 @@ D 자동 9 13 20 21 36 41
 
         self.assertIn("로또6/45 티켓 보기", _text_added_after_click(before, after))
         self.assertNotIn("연금복권720+ (315)", _text_added_after_click(before, after))
+
+    def test_ledger_list_summary_counts_visible_rows(self):
+        summary = _ledger_list_summary(
+            [
+                """
+연금복권720+
+315
+1조 052414
+구입일자
+2026-05-10
+추첨일자
+2026-05-14
+로또6/45
+1224
+68365 78496 66600 43342 43250 50974
+구입일자
+2026-05-10
+추첨일자
+2026-05-16
+"""
+            ]
+        )
+
+        self.assertEqual(summary, "구매내역 목록 감지. 로또 1건, 연금복권 1건.")
 
 class _FakePage:
     def __init__(self, elements_by_selector):
