@@ -87,6 +87,8 @@ python -m playwright install chromium
 .\scripts\scrape-ledger.ps1
 ```
 
+스크립트는 먼저 `https://www.dhlottery.co.kr/login`으로 이동해 로그인 폼을 확인한 뒤, 자동 로그인 후 `https://www.dhlottery.co.kr/mypage/mylotteryledger`로 이동합니다.
+
 비밀번호를 매번 입력하지 않으려면 로컬 `.env`에 아래 값을 넣습니다.
 `.env`는 `.gitignore`에 포함되어 커밋되지 않습니다.
 

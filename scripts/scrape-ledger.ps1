@@ -4,6 +4,7 @@ param(
     [string]$Path = "data/tickets.yml",
     [string]$ProfileDir = ".browser/dhlottery",
     [string]$EnvFile = ".env",
+    [string]$LoginUrl = "https://www.dhlottery.co.kr/login",
     [int]$MaxTickets = 30,
     [switch]$Append,
     [switch]$Headless
@@ -19,6 +20,7 @@ try {
         "--tickets", $Path,
         "--profile-dir", $ProfileDir,
         "--env-file", $EnvFile,
+        "--login-url", $LoginUrl,
         "--max-tickets", [string]$MaxTickets
     )
     if ($Append) {

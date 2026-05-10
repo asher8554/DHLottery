@@ -11,7 +11,30 @@ from .ticket_import import ImportedTickets, parse_ticket_text, write_imported_ti
 
 
 LEDGER_URL = "https://www.dhlottery.co.kr/mypage/mylotteryledger"
-HOME_URL = "https://www.dhlottery.co.kr/"
+LOGIN_URL = "https://www.dhlottery.co.kr/login"
+PASSWORD_SELECTORS = (
+    "input[type='password']",
+    "input[name='password']",
+    "input[name='passwd']",
+    "input[name='userPwd']",
+    "#userPwd",
+    "#password",
+)
+USERNAME_SELECTORS = (
+    "input[name='userId']",
+    "input[name='userID']",
+    "input[name='loginId']",
+    "input[name='id']",
+    "#userId",
+    "#loginId",
+    "input[type='text']",
+)
+LOGIN_SUBMIT_SELECTORS = (
+    "button:has-text('로그인')",
+    "input[type='submit']",
+    "input[type='button'][value*='로그인']",
+    "a:has-text('로그인')",
+)
 TICKET_BUTTON_PATTERN = re.compile(
     r"(티켓\s*보기|티켓보기|복권\s*보기|복권보기|복권\s*번호\s*보기|번호\s*보기|상세\s*보기|상세보기)"
 )
@@ -28,6 +51,7 @@ def scrape_ledger_to_file(
     ticket_path: str | Path = "data/tickets.yml",
     profile_dir: str | Path = ".browser/dhlottery",
     env_file: str | Path = ".env",
+    login_url: str = LOGIN_URL,
     ledger_url: str = LEDGER_URL,
     max_tickets: int = 30,
     headless: bool = False,
@@ -36,6 +60,7 @@ def scrape_ledger_to_file(
     ticket_texts = scrape_ledger_ticket_texts(
         profile_dir=profile_dir,
         env_file=env_file,
+        login_url=login_url,
         ledger_url=ledger_url,
         max_tickets=max_tickets,
         headless=headless,
@@ -49,6 +74,7 @@ def scrape_ledger_ticket_texts(
     *,
     profile_dir: str | Path = ".browser/dhlottery",
     env_file: str | Path = ".env",
+    login_url: str = LOGIN_URL,
     ledger_url: str = LEDGER_URL,
     max_tickets: int = 30,
     headless: bool = False,
@@ -78,14 +104,16 @@ def scrape_ledger_ticket_texts(
         try:
             page = context.pages[0] if context.pages else context.new_page()
             if not headless:
-                page.goto(HOME_URL, wait_until="domcontentloaded")
-                auto_logged_in = _auto_login_if_possible(page, credentials, PlaywrightTimeoutError)
-                if not auto_logged_in:
-                    print("브라우저에서 동행복권에 로그인하고 구매/당첨내역 페이지가 보이면 Enter를 누르세요.")
-                    input()
+                _goto_with_navigation_retry(page, login_url, PlaywrightError, PlaywrightTimeoutError)
+                _auto_login_if_possible(page, credentials, PlaywrightTimeoutError)
                 _wait_for_page_settle(page, PlaywrightTimeoutError)
             _goto_with_navigation_retry(page, ledger_url, PlaywrightError, PlaywrightTimeoutError)
             if _auto_login_if_possible(page, credentials, PlaywrightTimeoutError):
+                _goto_with_navigation_retry(page, ledger_url, PlaywrightError, PlaywrightTimeoutError)
+            if not headless and _page_has_login_form(page):
+                print("자동 로그인이 되지 않았습니다. 브라우저에서 로그인하고 구매/당첨내역 페이지가 보이면 Enter를 누르세요.")
+                input()
+                _wait_for_page_settle(page, PlaywrightTimeoutError)
                 _goto_with_navigation_retry(page, ledger_url, PlaywrightError, PlaywrightTimeoutError)
             texts = _collect_ticket_texts(context, page, max_tickets, PlaywrightTimeoutError)
             if not texts:
@@ -146,38 +174,21 @@ def _auto_login_if_possible(page, credentials: tuple[str, str], timeout_error_ty
     if not password:
         return False
 
-    password_input = _first_visible_locator(
-        page,
-        (
-            "input[type='password']",
-            "input[name='password']",
-            "input[name='passwd']",
-            "input[name='userPwd']",
-            "#userPwd",
-            "#password",
-        ),
-    )
+    password_input = _first_visible_locator(page, PASSWORD_SELECTORS)
     if password_input is None:
         return False
 
-    username_input = _first_visible_locator(
-        page,
-        (
-            "input[name='userId']",
-            "input[name='userID']",
-            "input[name='loginId']",
-            "input[name='id']",
-            "#userId",
-            "#loginId",
-            "input[type='text']",
-        ),
-    )
+    username_input = _first_visible_locator(page, USERNAME_SELECTORS)
     if username and username_input is not None:
         username_input.fill(username, timeout=3000)
     password_input.fill(password, timeout=3000)
     _submit_login_form(page, password_input)
     _wait_for_page_settle(page, timeout_error_type)
     return True
+
+
+def _page_has_login_form(page) -> bool:
+    return _first_visible_locator(page, PASSWORD_SELECTORS) is not None
 
 
 def _first_visible_locator(page, selectors: Iterable[str]):
@@ -192,12 +203,7 @@ def _first_visible_locator(page, selectors: Iterable[str]):
 
 
 def _submit_login_form(page, password_input) -> None:
-    for selector in (
-        "button:has-text('로그인')",
-        "input[type='submit']",
-        "input[type='button'][value*='로그인']",
-        "a:has-text('로그인')",
-    ):
+    for selector in LOGIN_SUBMIT_SELECTORS:
         try:
             locator = page.locator(selector).first
             if locator.count() > 0 and locator.is_visible(timeout=1000):

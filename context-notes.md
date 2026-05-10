@@ -341,3 +341,12 @@
 - 티켓 버튼 탐지는 일반 텍스트 버튼뿐 아니라 iframe 안의 요소, 이미지 `alt`, `title`, `onclick`, `href`까지 확인하도록 넓혔다.
 - 티켓 텍스트를 찾지 못하면 `.browser/debug/ledger-body.txt`에 모든 frame의 화면 텍스트를 저장하고 가능하면 `.browser/debug/ledger-page.png`도 저장한다.
 - `python -m unittest discover -s tests` 결과 37개 테스트가 통과했고, `scrape-ledger --help`와 PowerShell 스크립트 문법 검증도 통과했다.
+
+## 2026-05-10 로그인 페이지 직접 진입
+
+- 사용자가 `.\scripts\scrape-ledger.ps1` 실행 시 스크립트가 직접 `https://www.dhlottery.co.kr/login`에 들어가 로그인하고, 이후 `https://www.dhlottery.co.kr/mypage/mylotteryledger`로 이동하길 요청했다.
+- 기존 흐름은 동행복권 홈으로 들어간 뒤 로그인 폼이 있으면 자동 로그인하는 구조라, 홈 화면에서 로그인 폼이 보이지 않는 경우 자동 로그인이 시작되지 않을 수 있었다.
+- 기본 로그인 URL을 `LOGIN_URL = "https://www.dhlottery.co.kr/login"`으로 추가했다.
+- 비헤드리스 실행에서는 로그인 URL로 먼저 이동해 `.env` credential로 로그인 시도 후 구매/당첨내역 URL로 이동한다.
+- 구매/당첨내역으로 이동했는데 여전히 로그인 폼이 보이면 한 번 더 자동 로그인을 시도하고, 그래도 실패하면 수동 로그인 안내를 유지한다.
+- PowerShell 스크립트와 CLI에 `--login-url` 전달 경로를 추가해 로그인 URL이 바뀌어도 override할 수 있게 했다.

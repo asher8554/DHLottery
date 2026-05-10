@@ -73,6 +73,7 @@ def main(argv: list[str] | None = None) -> int:
     scrape_parser.add_argument("--tickets", default="data/tickets.yml", help="갱신할 구매번호 YAML 파일 경로입니다.")
     scrape_parser.add_argument("--profile-dir", default=".browser/dhlottery", help="로그인 세션을 보관할 로컬 브라우저 프로필 경로입니다.")
     scrape_parser.add_argument("--env-file", default=".env", help="동행복권 로그인용 로컬 env 파일 경로입니다.")
+    scrape_parser.add_argument("--login-url", default="https://www.dhlottery.co.kr/login", help="자동 로그인에 사용할 동행복권 로그인 페이지입니다.")
     scrape_parser.add_argument("--max-tickets", type=int, default=30, help="클릭할 티켓 보기 버튼의 최대 개수입니다.")
     scrape_parser.add_argument("--headless", action="store_true", help="브라우저 창을 띄우지 않습니다. 이미 로그인 세션이 있을 때만 사용하세요.")
     scrape_parser.add_argument("--append", action="store_true", help="기존 구매번호를 지우지 않고 새 번호만 추가합니다.")
@@ -108,6 +109,7 @@ def _run_scrape_ledger(args: argparse.Namespace) -> int:
             ticket_path=args.tickets,
             profile_dir=args.profile_dir,
             env_file=args.env_file,
+            login_url=args.login_url,
             max_tickets=args.max_tickets,
             headless=args.headless,
             append=args.append,
