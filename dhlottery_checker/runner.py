@@ -5,6 +5,7 @@ import argparse
 from dataclasses import dataclass
 import os
 from pathlib import Path
+import sys
 from typing import Iterable
 
 from .config import LottoTicket, PensionTicket, load_ticket_config
@@ -23,6 +24,7 @@ from .pension import (
     fetch_pension_winning,
 )
 from .state import SentState, fingerprint_ticket
+from .ticket_import import parse_lotto_ticket_text, write_lotto_tickets
 
 
 @dataclass(frozen=True)
@@ -47,10 +49,31 @@ def main(argv: list[str] | None = None) -> int:
     check_parser.add_argument("--state", default=".state/sent-results.json", help="중복 알림 방지 상태 파일입니다.")
     check_parser.add_argument("--no-state", action="store_true", help="중복 알림 방지 상태를 사용하지 않습니다.")
 
+    import_parser = subparsers.add_parser("import-ticket", help="동행복권 티켓 보기 텍스트를 구매번호 YAML에 저장합니다.")
+    import_parser.add_argument("--input", help="붙여넣기 텍스트 파일 경로입니다. 생략하면 표준 입력을 읽습니다.")
+    import_parser.add_argument("--tickets", default="data/tickets.yml", help="갱신할 구매번호 YAML 파일 경로입니다.")
+    import_parser.add_argument("--replace-all", action="store_true", help="기존 설정을 모두 지우고 가져온 로또 항목만 저장합니다.")
+    import_parser.add_argument("--replace-lotto", action="store_true", help="기존 로또 항목을 지우고 가져온 항목만 저장합니다.")
+
     args = parser.parse_args(argv)
     if args.command == "check":
         return _run_check(args)
+    if args.command == "import-ticket":
+        return _run_import_ticket(args)
     return 1
+
+
+def _run_import_ticket(args: argparse.Namespace) -> int:
+    text = Path(args.input).read_text(encoding="utf-8") if args.input else sys.stdin.read()
+    try:
+        tickets = parse_lotto_ticket_text(text)
+        write_lotto_tickets(args.tickets, tickets, replace_all=args.replace_all, replace_lotto=args.replace_lotto)
+    except ValueError as exc:
+        print(f"입력 오류. {exc}", file=sys.stderr)
+        return 2
+    summary = ", ".join(" ".join(str(number) for number in ticket.numbers) for ticket in tickets)
+    print(f"{args.tickets} 파일을 갱신했습니다. 가져온 로또 {tickets[0].round}회 번호. {summary}")
+    return 0
 
 
 def _run_check(args: argparse.Namespace) -> int:

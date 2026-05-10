@@ -31,6 +31,28 @@ python -m dhlottery_checker check --tickets tickets.yml --dry-run --no-state
 회차를 정확히 알고 있다면 `round`에 숫자를 넣는 것이 가장 안전합니다.
 `latest`도 지원하지만 발표 직후에는 최신 회차 반영이 늦을 수 있으므로 일반 사용에는 숫자 회차를 권장합니다.
 
+## 티켓 보기 붙여넣기 입력
+
+동행복권에서 직접 구매한 뒤 `티켓 보기` 화면의 텍스트를 복사하면 로또 선택번호를 자동으로 `data/tickets.yml`에 반영할 수 있습니다.
+아이디, 비밀번호, 예치금 정보는 저장하거나 자동 입력하지 않습니다.
+
+1. 동행복권에서 로그인하고 구매내역 또는 티켓 보기 화면을 엽니다.
+2. `A 자동 9 12 13 33 35 43`처럼 실제 선택번호가 보이는 부분까지 복사합니다.
+3. 저장소 루트에서 아래 명령을 실행합니다.
+
+```powershell
+.\scripts\import-ticket.ps1 -ReplaceAll
+```
+
+처음 실제 티켓으로 바꾸거나 로또만 관리한다면 `-ReplaceAll`을 쓰면 됩니다.
+연금복권 항목은 유지하고 로또 항목만 교체하려면 `-ReplaceLotto`를 씁니다.
+기존 `data/tickets.yml`에 로또 항목을 누적하고 싶다면 두 옵션을 모두 빼고 실행합니다.
+GitHub Secret까지 바로 갱신하려면 아래처럼 실행합니다.
+
+```powershell
+.\scripts\import-ticket.ps1 -ReplaceAll -SyncSecret
+```
+
 ## GitHub Actions 실행
 
 워크플로는 `.github/workflows/check-results.yml`에 있습니다.
