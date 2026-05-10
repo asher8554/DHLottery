@@ -11,7 +11,7 @@ from unittest.mock import patch
 
 from dhlottery_checker.config import LottoTicket
 from dhlottery_checker.http import HttpError, HttpTimeoutError
-from dhlottery_checker.runner import Outcome, _format_messages, _run_check
+from dhlottery_checker.runner import Outcome, _format_messages, _run_balance_alert, _run_check
 
 
 class RunnerTest(unittest.TestCase):
@@ -260,6 +260,41 @@ class RunnerTest(unittest.TestCase):
         self.assertEqual(status["pending_not_ready_count"], 1)
         self.assertFalse(status["clear_tickets"])
 
+    def test_balance_alert_sends_when_balance_is_low(self):
+        account_path = Path(self.temp_dir.name) / "account.yml"
+        account_path.write_text("balance:\n  amount: 40000\n  currency: KRW\n", encoding="utf-8")
+
+        with patch("dhlottery_checker.runner.send_kakao_text") as send_kakao:
+            with patch("builtins.print"):
+                result = _run_balance_alert(self._balance_args(account_path))
+
+        self.assertEqual(result, 0)
+        send_kakao.assert_called_once()
+        self.assertIn("현재 예치금 40,000원", send_kakao.call_args.args[0])
+
+    def test_balance_alert_skips_when_balance_is_sufficient(self):
+        account_path = Path(self.temp_dir.name) / "account.yml"
+        account_path.write_text("balance:\n  amount: 60000\n  currency: KRW\n", encoding="utf-8")
+
+        with patch("dhlottery_checker.runner.send_kakao_text") as send_kakao:
+            with patch("builtins.print"):
+                result = _run_balance_alert(self._balance_args(account_path))
+
+        self.assertEqual(result, 0)
+        send_kakao.assert_not_called()
+
+    def test_balance_alert_deduplicates_same_low_amount(self):
+        account_path = Path(self.temp_dir.name) / "account.yml"
+        account_path.write_text("balance:\n  amount: 40000\n  currency: KRW\n", encoding="utf-8")
+        args = self._balance_args(account_path)
+
+        with patch("dhlottery_checker.runner.send_kakao_text") as send_kakao:
+            with patch("builtins.print"):
+                _run_balance_alert(args)
+                _run_balance_alert(args)
+
+        send_kakao.assert_called_once()
+
     def _args(self, force_notify: bool, status_json: str | None = None) -> argparse.Namespace:
         return argparse.Namespace(
             tickets="unused.yml",
@@ -270,6 +305,18 @@ class RunnerTest(unittest.TestCase):
             no_state=False,
             force_notify=force_notify,
             status_json=status_json,
+        )
+
+    def _balance_args(self, account_path: Path) -> argparse.Namespace:
+        return argparse.Namespace(
+            account=str(account_path),
+            threshold=50000,
+            charge_amount=50000,
+            notify=True,
+            dry_run=False,
+            state=str(Path(self.temp_dir.name) / "balance-alert.json"),
+            no_state=False,
+            force_notify=False,
         )
 
     def setUp(self):

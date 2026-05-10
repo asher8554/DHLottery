@@ -9,6 +9,14 @@ from pathlib import Path
 import sys
 from typing import Iterable
 
+from .account import (
+    DEFAULT_BALANCE_THRESHOLD,
+    DEFAULT_CHARGE_AMOUNT,
+    balance_state_payload,
+    format_balance_alert,
+    load_account_snapshot,
+    needs_balance_charge,
+)
 from .config import LottoTicket, PensionTicket, load_ticket_config
 from .http import HttpError, HttpTimeoutError
 from .kakao import send_kakao_text
@@ -81,6 +89,16 @@ def main(argv: list[str] | None = None) -> int:
     scrape_parser.add_argument("--append", action="store_true", help="기존 구매번호를 지우지 않고 새 번호만 추가합니다.")
     scrape_parser.add_argument("--verbose", action="store_true", help="구매내역 수집 진행 상황을 출력합니다.")
 
+    balance_parser = subparsers.add_parser("balance-alert", help="예치금이 기준 이하이면 카카오톡 알림을 보냅니다.")
+    balance_parser.add_argument("--account", default="data/account.yml", help="예치금 YAML 파일 경로입니다.")
+    balance_parser.add_argument("--threshold", type=int, default=DEFAULT_BALANCE_THRESHOLD, help="알림을 보낼 예치금 기준입니다.")
+    balance_parser.add_argument("--charge-amount", type=int, default=DEFAULT_CHARGE_AMOUNT, help="알림에 표시할 권장 충전 금액입니다.")
+    balance_parser.add_argument("--notify", action="store_true", help="카카오톡 알림을 보냅니다.")
+    balance_parser.add_argument("--dry-run", action="store_true", help="카카오톡 알림 없이 메시지만 출력합니다.")
+    balance_parser.add_argument("--state", default=".state/balance-alert.json", help="중복 알림 방지 상태 파일입니다.")
+    balance_parser.add_argument("--no-state", action="store_true", help="중복 알림 방지 상태를 사용하지 않습니다.")
+    balance_parser.add_argument("--force-notify", action="store_true", help="이미 보낸 예치금 부족 알림도 다시 보냅니다.")
+
     args = parser.parse_args(argv)
     if args.command == "check":
         return _run_check(args)
@@ -88,6 +106,8 @@ def main(argv: list[str] | None = None) -> int:
         return _run_import_ticket(args)
     if args.command == "scrape-ledger":
         return _run_scrape_ledger(args)
+    if args.command == "balance-alert":
+        return _run_balance_alert(args)
     return 1
 
 
@@ -134,6 +154,45 @@ def _run_scrape_ledger(args: argparse.Namespace) -> int:
     else:
         message += f" 예치금 {result.balance_amount:,}원도 저장했습니다."
     print(message)
+    return 0
+
+
+def _run_balance_alert(args: argparse.Namespace) -> int:
+    try:
+        snapshot = load_account_snapshot(args.account)
+    except ValueError as exc:
+        print(f"예치금 확인 실패. {exc}", file=sys.stderr)
+        return 2
+
+    message = format_balance_alert(
+        snapshot,
+        threshold=args.threshold,
+        charge_amount=args.charge_amount,
+    )
+    print(message)
+
+    if not needs_balance_charge(snapshot, args.threshold):
+        return 0
+
+    state = None if args.no_state else SentState.load(args.state)
+    salt = os.environ.get("STATE_HASH_SALT", "")
+    fingerprint = fingerprint_ticket(
+        balance_state_payload(
+            snapshot,
+            threshold=args.threshold,
+            charge_amount=args.charge_amount,
+        ),
+        salt,
+    )
+    should_notify = args.force_notify or state is None or not state.is_sent(fingerprint)
+
+    if args.notify and not args.dry_run and should_notify:
+        send_kakao_text(message)
+        if state is not None:
+            state.mark_sent(fingerprint, "balance", 0)
+            state.save()
+    elif state is not None and not Path(args.state).exists():
+        state.save()
     return 0
 
 

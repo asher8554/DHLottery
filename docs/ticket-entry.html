@@ -409,6 +409,10 @@
               <span class="stat-value" id="balanceAmount">-</span>
             </div>
             <div class="stat-row">
+              <span class="stat-label">예치금 상태</span>
+              <span class="stat-value" id="balanceStatus">-</span>
+            </div>
+            <div class="stat-row">
               <span class="stat-label">예치금 갱신</span>
               <span class="stat-value" id="balanceUpdatedAt">-</span>
             </div>
@@ -469,12 +473,14 @@
     const ticketsRawUrl = "https://raw.githubusercontent.com/asher8554/DHLottery/main/data/tickets.yml";
     const accountRawUrl = "https://raw.githubusercontent.com/asher8554/DHLottery/main/data/account.yml";
     const checkWorkflowDispatchUrl = "https://api.github.com/repos/asher8554/DHLottery/actions/workflows/check-results.yml/dispatches";
+    const balanceAlertThreshold = 50000;
     const tokenStorageKey = "dhlottery.githubToken";
     const themeStorageKey = "dhlottery.theme";
     const ballColors = ["#f2b705", "#3578d4", "#d94a38", "#667085", "#2c9b60"];
 
     const themeToggle = document.querySelector("#themeToggle");
     const balanceAmount = document.querySelector("#balanceAmount");
+    const balanceStatus = document.querySelector("#balanceStatus");
     const balanceUpdatedAt = document.querySelector("#balanceUpdatedAt");
     const loadedAt = document.querySelector("#loadedAt");
     const ticketCount = document.querySelector("#ticketCount");
@@ -709,10 +715,15 @@
         if (account.amount === null) {
           throw new Error("예치금 형식을 확인하지 못했습니다.");
         }
+        const isLowBalance = account.amount <= balanceAlertThreshold;
         balanceAmount.textContent = formatKrw(account.amount);
+        balanceStatus.textContent = isLowBalance ? "충전 필요" : "정상";
+        balanceStatus.style.color = isLowBalance ? "var(--bad)" : "var(--good)";
         balanceUpdatedAt.textContent = formatDateTime(account.updatedAt);
       } catch {
         balanceAmount.textContent = "동기화 전";
+        balanceStatus.textContent = "-";
+        balanceStatus.style.color = "";
         balanceUpdatedAt.textContent = "-";
       }
     }

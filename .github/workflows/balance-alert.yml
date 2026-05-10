@@ -1,0 +1,106 @@
+name: Check balance
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "data/account.yml"
+      - ".github/workflows/balance-alert.yml"
+  workflow_dispatch:
+    inputs:
+      threshold:
+        description: "Send Kakao notification when balance is this amount or lower."
+        required: false
+        default: "50000"
+      force_notify:
+        description: "Send Kakao notification even if the same balance alert was already sent."
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dhlottery-balance-alert
+  cancel-in-progress: false
+
+jobs:
+  balance-alert:
+    runs-on: ubuntu-latest
+    env:
+      KAKAO_REST_API_KEY: ${{ secrets.KAKAO_REST_API_KEY }}
+      KAKAO_REFRESH_TOKEN: ${{ secrets.KAKAO_REFRESH_TOKEN }}
+      KAKAO_CLIENT_SECRET: ${{ secrets.KAKAO_CLIENT_SECRET }}
+      STATE_HASH_SALT: ${{ secrets.STATE_HASH_SALT }}
+      BALANCE_THRESHOLD: ${{ inputs.threshold || '50000' }}
+      FORCE_NOTIFY: ${{ inputs.force_notify }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check account file
+        id: account-file
+        shell: bash
+        run: |
+          if [ -s data/account.yml ]; then
+            echo "has_account=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No account file. Nothing to check."
+            echo "has_account=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up Python
+        if: ${{ steps.account-file.outputs.has_account == 'true' }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        if: ${{ steps.account-file.outputs.has_account == 'true' }}
+        run: python -m pip install -r requirements.txt
+
+      - name: Restore balance alert state
+        if: ${{ steps.account-file.outputs.has_account == 'true' }}
+        uses: actions/cache/restore@v4
+        with:
+          path: .state
+          key: dhlottery-balance-state-${{ github.run_id }}
+          restore-keys: |
+            dhlottery-balance-state-
+
+      - name: Prepare state directory
+        if: ${{ steps.account-file.outputs.has_account == 'true' }}
+        run: mkdir -p .state
+
+      - name: Validate required secrets
+        if: ${{ steps.account-file.outputs.has_account == 'true' }}
+        shell: bash
+        run: |
+          missing=0
+          for name in KAKAO_REST_API_KEY KAKAO_REFRESH_TOKEN STATE_HASH_SALT; do
+            if [ -z "${!name}" ]; then
+              echo "::error title=Missing repository secret::$name is required."
+              missing=1
+            fi
+          done
+          exit "$missing"
+
+      - name: Send balance alert if needed
+        if: ${{ steps.account-file.outputs.has_account == 'true' }}
+        shell: bash
+        run: |
+          args=(python -m dhlottery_checker balance-alert --account data/account.yml --threshold "${BALANCE_THRESHOLD:-50000}" --charge-amount 50000 --notify --state .state/balance-alert.json)
+          if [ "$FORCE_NOTIFY" = "true" ]; then
+            args+=(--force-notify)
+          fi
+          "${args[@]}"
+
+      - name: Save balance alert state
+        if: ${{ always() && steps.account-file.outputs.has_account == 'true' }}
+        uses: actions/cache/save@v4
+        with:
+          path: .state
+          key: dhlottery-balance-state-${{ github.run_id }}
