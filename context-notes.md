@@ -149,3 +149,6 @@
 - Pages 예상 주소는 `https://asher8554.github.io/DHLottery/`이다.
 - `docs/index.html`은 Pages 루트 접근 시 `ticket-entry.html`로 이동한다.
 - 워크플로 YAML 로딩 검증, Pages 정적 검증, 단위 테스트 16개를 실행해 통과를 확인했다.
+- `gh api --method POST repos/asher8554/DHLottery/pages -f build_type=workflow`로 Pages를 GitHub Actions 배포 방식으로 활성화했다.
+- `gh workflow run pages.yml --repo asher8554/DHLottery --ref main`으로 재배포했고 성공했다.
+- `https://asher8554.github.io/DHLottery/`와 `/ticket-entry.html` 모두 HTTP 200 응답을 확인했다.
