@@ -584,10 +584,13 @@
 
     const ballColors = ["#f2b705", "#3578d4", "#d94a38", "#667085", "#2c9b60"];
     const workflowDispatchUrl = "https://api.github.com/repos/asher8554/DHLottery/actions/workflows/update-ticket.yml/dispatches";
+    const ticketsRawUrl = "https://raw.githubusercontent.com/asher8554/DHLottery/main/data/tickets.yml";
     const tokenStorageKey = "dhlottery.githubToken";
     const themeStorageKey = "dhlottery.theme";
+    const ticketYamlStorageKey = "dhlottery.ticketYaml";
     let parsedTickets = null;
     let pensionTickets = [];
+    let userEdited = false;
 
     function parsePositiveInt(value) {
       if (!/^\d+$/.test(String(value).trim())) {
@@ -646,6 +649,166 @@
       }
       lines.push("");
       return lines.join("\n");
+    }
+
+    function parseTicketsYaml(yaml) {
+      const rawLottoTickets = [];
+      const rawPensionTickets = [];
+      let section = "";
+      let current = null;
+
+      for (const line of yaml.split(/\r?\n/)) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed === "tickets:") {
+          continue;
+        }
+        if (trimmed === "lotto:") {
+          section = "lotto";
+          current = null;
+          continue;
+        }
+        if (trimmed === "pension:") {
+          section = "pension";
+          current = null;
+          continue;
+        }
+
+        const labelMatch = trimmed.match(/^- label:\s*["']?(.+?)["']?\s*$/);
+        if (labelMatch && section) {
+          current = { label: labelMatch[1] };
+          if (section === "lotto") {
+            rawLottoTickets.push(current);
+          } else if (section === "pension") {
+            rawPensionTickets.push(current);
+          }
+          continue;
+        }
+        if (!current) {
+          continue;
+        }
+
+        const roundMatch = trimmed.match(/^round:\s*(\d+)/);
+        if (roundMatch) {
+          current.round = Number(roundMatch[1]);
+          continue;
+        }
+        const numbersMatch = trimmed.match(/^numbers:\s*\[([^\]]+)\]/);
+        if (numbersMatch) {
+          current.numbers = (numbersMatch[1].match(/\d+/g) || []).map((value) => Number(value));
+          continue;
+        }
+        const groupMatch = trimmed.match(/^group:\s*([1-5])/);
+        if (groupMatch) {
+          current.group = Number(groupMatch[1]);
+          continue;
+        }
+        const pensionNumberMatch = trimmed.match(/^number:\s*["']?(\d{6})["']?/);
+        if (pensionNumberMatch) {
+          current.number = pensionNumberMatch[1];
+        }
+      }
+
+      const lottoTickets = rawLottoTickets
+        .map((ticket, index) => ({
+          slot: extractLottoSlot(ticket.label) || String.fromCharCode(65 + index),
+          round: ticket.round,
+          numbers: ticket.numbers || [],
+        }))
+        .filter((ticket) => ticket.round && isValidTicket(ticket.numbers));
+      const pensionItems = rawPensionTickets
+        .map((ticket, index) => ({
+          slot: extractPensionSlot(ticket.label) || String(index + 1),
+          round: ticket.round,
+          group: ticket.group,
+          number: ticket.number || "",
+        }))
+        .filter((ticket) => ticket.round && ticket.group >= 1 && ticket.group <= 5 && /^\d{6}$/.test(ticket.number));
+
+      return {
+        lottoRound: lottoTickets[0]?.round || null,
+        lottoTickets: lottoTickets.map((ticket) => ({ slot: ticket.slot, numbers: ticket.numbers })),
+        pensionItems,
+      };
+    }
+
+    function extractLottoSlot(label) {
+      const match = String(label || "").match(/로또\s+\d+회\s+([A-E])/);
+      return match ? match[1] : "";
+    }
+
+    function extractPensionSlot(label) {
+      const match = String(label || "").match(/연금복권\s+\d+회\s+(\d+)/);
+      return match ? match[1] : "";
+    }
+
+    function applyYamlToForm(yaml) {
+      const parsed = parseTicketsYaml(yaml);
+      if (parsed.lottoTickets.length === 0 && parsed.pensionItems.length === 0) {
+        return false;
+      }
+
+      parsedTickets = parsed.lottoTickets.length > 0 ? parsed.lottoTickets : null;
+      pensionTickets = parsed.pensionItems;
+      roundInput.value = parsed.lottoRound ? String(parsed.lottoRound) : "";
+      numberInputs.forEach((input, index) => {
+        input.value = parsed.lottoTickets[0]?.numbers[index] ? String(parsed.lottoTickets[0].numbers[index]) : "";
+      });
+      const lastPensionItem = parsed.pensionItems[parsed.pensionItems.length - 1];
+      pensionRoundInput.value = lastPensionItem?.round ? String(lastPensionItem.round) : "";
+      pensionGroupInput.value = "";
+      pensionNumberInput.value = "";
+      updateOutput();
+      return true;
+    }
+
+    function persistTicketYaml(yaml) {
+      try {
+        localStorage.setItem(ticketYamlStorageKey, yaml);
+      } catch {
+        return false;
+      }
+      return true;
+    }
+
+    function clearPersistedTicketYaml() {
+      try {
+        localStorage.removeItem(ticketYamlStorageKey);
+      } catch {
+        return false;
+      }
+      return true;
+    }
+
+    function loadCachedTicketYaml() {
+      try {
+        return localStorage.getItem(ticketYamlStorageKey) || "";
+      } catch {
+        return "";
+      }
+    }
+
+    async function loadSavedTickets() {
+      const cachedYaml = loadCachedTicketYaml();
+      if (cachedYaml.trim() && applyYamlToForm(cachedYaml)) {
+        setStatus("저장된 생성 결과를 불러왔습니다.", "good");
+      }
+
+      try {
+        const response = await fetch(`${ticketsRawUrl}?t=${Date.now()}`, { cache: "no-store" });
+        if (!response.ok || userEdited) {
+          return;
+        }
+        const yaml = await response.text();
+        if (!yaml.trim()) {
+          return;
+        }
+        if (applyYamlToForm(yaml)) {
+          persistTicketYaml(yaml);
+          setStatus("GitHub에 저장된 구매번호를 불러왔습니다.", "good");
+        }
+      } catch {
+        return;
+      }
     }
 
     function setStatus(message, tone) {
@@ -754,11 +917,16 @@
         copyYaml.disabled = true;
         downloadYaml.disabled = true;
         saveGithub.disabled = true;
+        if (userEdited) {
+          clearPersistedTicketYaml();
+        }
         setStatus("로또나 연금복권 번호를 입력하세요.", "bad");
         return;
       }
 
-      yamlOutput.textContent = buildYaml(round, tickets, pensionTickets);
+      const yaml = buildYaml(round, tickets, pensionTickets);
+      yamlOutput.textContent = yaml;
+      persistTicketYaml(yaml);
       copyYaml.disabled = false;
       downloadYaml.disabled = false;
       saveGithub.disabled = false;
@@ -1090,6 +1258,7 @@
       numberInputs.forEach((input) => {
         input.value = "";
       });
+      clearPersistedTicketYaml();
       updateOutput();
     }
 
@@ -1136,6 +1305,10 @@
         return;
       }
       forceNotify.disabled = false;
+    }
+
+    function markUserEdited() {
+      userEdited = true;
     }
 
     async function handleSaveGithub() {
@@ -1187,34 +1360,62 @@
       }
     }
 
-    applyPaste.addEventListener("click", applyQuickText);
-    applyPensionPaste.addEventListener("click", applyPensionQuickText);
-    addPensionTicket.addEventListener("click", addPensionFromForm);
-    clearPensionTickets.addEventListener("click", clearPensionList);
+    applyPaste.addEventListener("click", () => {
+      markUserEdited();
+      applyQuickText();
+    });
+    applyPensionPaste.addEventListener("click", () => {
+      markUserEdited();
+      applyPensionQuickText();
+    });
+    addPensionTicket.addEventListener("click", () => {
+      markUserEdited();
+      addPensionFromForm();
+    });
+    clearPensionTickets.addEventListener("click", () => {
+      markUserEdited();
+      clearPensionList();
+    });
     themeToggle.addEventListener("click", toggleTheme);
     copyYaml.addEventListener("click", handleCopy);
     downloadYaml.addEventListener("click", handleDownload);
-    resetForm.addEventListener("click", resetValues);
+    resetForm.addEventListener("click", () => {
+      markUserEdited();
+      resetValues();
+    });
     saveGithub.addEventListener("click", handleSaveGithub);
     clearToken.addEventListener("click", clearSavedToken);
     rememberToken.addEventListener("change", saveTokenPreference);
     notifyAfterSave.addEventListener("change", syncNotifyControls);
+    pasteText.addEventListener("input", markUserEdited);
+    pensionPasteText.addEventListener("input", markUserEdited);
     githubToken.addEventListener("input", () => {
       if (rememberToken.checked) {
         saveTokenPreference();
       }
     });
     roundInput.addEventListener("input", () => {
+      markUserEdited();
       parsedTickets = null;
       updateOutput();
     });
     numberInputs.forEach((input) => input.addEventListener("input", () => {
+      markUserEdited();
       parsedTickets = null;
       updateOutput();
     }));
-    pensionRoundInput.addEventListener("input", updateOutput);
-    pensionGroupInput.addEventListener("input", updateOutput);
-    pensionNumberInput.addEventListener("input", updateOutput);
+    pensionRoundInput.addEventListener("input", () => {
+      markUserEdited();
+      updateOutput();
+    });
+    pensionGroupInput.addEventListener("input", () => {
+      markUserEdited();
+      updateOutput();
+    });
+    pensionNumberInput.addEventListener("input", () => {
+      markUserEdited();
+      updateOutput();
+    });
     gameTabs.forEach((tab) => tab.addEventListener("click", () => {
       selectGameSection(tab.dataset.target);
     }));
@@ -1223,6 +1424,7 @@
     loadSavedToken();
     syncNotifyControls();
     updateOutput();
+    loadSavedTickets();
   </script>
 </body>
 </html>

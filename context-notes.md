@@ -282,3 +282,12 @@
 - 로또와 연금복권 결과 조회에서 `HttpTimeoutError`는 `결과 대기 중입니다`로 변환해 카카오의 발표 전 안내 대상에 포함한다.
 - 일반 `HttpError`는 계속 `결과 조회 실패. 다음 실행에서 다시 시도합니다`로 남기며 카카오 알림은 보내지 않는다.
 - `python -m unittest discover -s tests` 결과 27개 테스트가 통과했다.
+
+## 2026-05-10 생성 결과 복원
+
+- 사용자가 GitHub Pages 입력 화면의 `생성 결과` 영역에 저장된 로또와 연금복권 목록, YAML이 계속 표시되길 원했다.
+- 기존 페이지는 현재 브라우저 입력값으로만 생성 결과를 만들어서 새로고침하면 저장된 GitHub 티켓 내용을 다시 보여주지 못했다.
+- 생성된 YAML을 `localStorage`의 `dhlottery.ticketYaml`에 저장하고, 초기화 버튼을 누르면 이 캐시를 지운다.
+- 페이지 로드 시 `https://raw.githubusercontent.com/asher8554/DHLottery/main/data/tickets.yml`을 읽어 로또와 연금복권 목록을 파싱한 뒤 기존 생성 결과 렌더링 흐름으로 복원한다.
+- 사용자가 이미 입력을 시작했다면 늦게 도착한 원격 데이터가 화면을 덮어쓰지 않도록 `userEdited` 플래그를 둔다.
+- Node 스크립트 구문 검사와 저장 YAML 복원 모의 검증을 통과했고, `python -m unittest discover -s tests` 결과 27개 테스트가 통과했다.
