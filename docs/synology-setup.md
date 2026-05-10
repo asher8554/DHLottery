@@ -99,6 +99,14 @@ ssh-keyscan github.com >> .ssh/known_hosts
 chmod 644 .ssh/known_hosts
 ```
 
+만약 `ssh-keyscan: command not found`가 나오면 Docker로 `ssh-keyscan`을 실행합니다.
+
+```bash
+mkdir -p .ssh
+docker run --rm -v "$PWD/.ssh:/root/.ssh" debian:bookworm-slim sh -lc \
+  "apt-get update && apt-get install -y --no-install-recommends openssh-client ca-certificates && ssh-keyscan github.com >> /root/.ssh/known_hosts && chmod 644 /root/.ssh/known_hosts"
+```
+
 연결 확인은 아래처럼 합니다.
 
 ```bash
