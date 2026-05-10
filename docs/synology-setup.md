@@ -36,10 +36,31 @@ git clone git@github.com:asher8554/DHLottery.git
 cd DHLottery
 ```
 
+만약 `git: command not found`가 나오면 시놀로지 호스트에 Git이 없는 상태입니다. Docker는 있으므로 Git이 들어있는 임시 컨테이너로 clone하면 됩니다.
+DS916처럼 오래된 커널 계열에서는 `alpine/git`이 `unable to get random bytes for temporary file` 오류를 낼 수 있으므로 Debian 기반 컨테이너를 사용합니다.
+
+```bash
+mkdir -p /volume1/docker/Github
+cd /volume1/docker/Github
+rm -rf DHLottery
+docker run --rm -v "$PWD:/work" -w /work debian:bookworm-slim sh -lc \
+  "apt-get update && apt-get install -y --no-install-recommends git ca-certificates && git clone https://github.com/asher8554/DHLottery.git"
+cd DHLottery
+```
+
+이 방식은 HTTPS로 공개 저장소를 clone합니다. 나중에 push는 아래에서 만들 SSH key와 `dhlottery-synology` 컨테이너 안의 Git으로 처리합니다.
+
 HTTPS로 이미 받은 저장소라면 push 자동화를 위해 SSH 원격으로 바꾸는 편이 편합니다.
 
 ```bash
 git remote set-url origin git@github.com:asher8554/DHLottery.git
+```
+
+호스트에 Git이 없다면 위 명령도 Docker Git으로 실행합니다.
+
+```bash
+docker run --rm -v "$PWD:/work" -w /work debian:bookworm-slim sh -lc \
+  "apt-get update && apt-get install -y --no-install-recommends git ca-certificates openssh-client && git remote set-url origin git@github.com:asher8554/DHLottery.git"
 ```
 
 커밋 작성자도 한 번 설정합니다.
@@ -47,6 +68,13 @@ git remote set-url origin git@github.com:asher8554/DHLottery.git
 ```bash
 git config user.name "synology-dhlottery"
 git config user.email "synology-dhlottery@example.local"
+```
+
+호스트에 Git이 없다면 커밋 작성자 설정도 Docker Git으로 실행합니다.
+
+```bash
+docker run --rm -v "$PWD:/work" -w /work debian:bookworm-slim sh -lc \
+  "apt-get update && apt-get install -y --no-install-recommends git ca-certificates && git config user.name 'synology-dhlottery' && git config user.email 'synology-dhlottery@example.local'"
 ```
 
 ## SSH key 설정
