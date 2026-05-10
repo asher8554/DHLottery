@@ -179,3 +179,12 @@
 - `python -m unittest discover -s tests` 결과 17개 테스트가 통과했다.
 - 사용자가 준 전체 티켓 텍스트로 임시 YAML을 생성했고 A-E 5게임이 모두 결과 대기 메시지로 확인됐다.
 - HTML 정적 검증과 워크플로 YAML 검증을 통과했다.
+
+## 2026-05-10 GitHub token 브라우저 저장 옵션
+
+- 사용자가 GitHub token을 매번 입력하지 않는 방식 중 브라우저 저장을 선택했다.
+- Pages UI에 `이 브라우저에 토큰 저장` 체크박스와 `저장된 토큰 지우기` 버튼을 추가했다.
+- 토큰은 `localStorage`의 `dhlottery.githubToken` 키에 저장한다.
+- 체크박스를 끄거나 지우기 버튼을 누르면 저장된 토큰을 삭제한다.
+- `python -m unittest discover -s tests` 결과 17개 테스트가 통과했다.
+- HTML 정적 검증으로 localStorage 로드, 저장, 삭제 코드가 있는지 확인했다.

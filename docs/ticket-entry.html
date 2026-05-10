@@ -419,11 +419,16 @@
               <input id="githubToken" class="token-input" type="password" autocomplete="off" placeholder="github_pat_...">
             </label>
             <label class="inline-toggle">
+              <input id="rememberToken" type="checkbox">
+              이 브라우저에 토큰 저장
+            </label>
+            <label class="inline-toggle">
               <input id="notifyAfterSave" type="checkbox" checked>
               저장 후 당첨 확인과 카카오 알림 실행
             </label>
             <div class="actions">
               <button type="button" class="primary" id="saveGithub">GitHub에 저장하고 검사</button>
+              <button type="button" id="clearToken">저장된 토큰 지우기</button>
               <a class="external-link" href="https://github.com/asher8554/DHLottery/actions/workflows/update-ticket.yml" target="_blank" rel="noreferrer">Actions 보기</a>
             </div>
           </div>
@@ -457,11 +462,14 @@
     const downloadYaml = document.querySelector("#downloadYaml");
     const resetForm = document.querySelector("#resetForm");
     const githubToken = document.querySelector("#githubToken");
+    const rememberToken = document.querySelector("#rememberToken");
     const notifyAfterSave = document.querySelector("#notifyAfterSave");
     const saveGithub = document.querySelector("#saveGithub");
+    const clearToken = document.querySelector("#clearToken");
 
     const ballColors = ["#f2b705", "#3578d4", "#d94a38", "#667085", "#2c9b60"];
     const workflowDispatchUrl = "https://api.github.com/repos/asher8554/DHLottery/actions/workflows/update-ticket.yml/dispatches";
+    const tokenStorageKey = "dhlottery.githubToken";
     let parsedTickets = null;
 
     function parsePositiveInt(value) {
@@ -735,6 +743,42 @@
       updateOutput();
     }
 
+    function loadSavedToken() {
+      try {
+        const savedToken = localStorage.getItem(tokenStorageKey);
+        if (savedToken) {
+          githubToken.value = savedToken;
+          rememberToken.checked = true;
+        }
+      } catch {
+        clearToken.disabled = true;
+      }
+    }
+
+    function saveTokenPreference() {
+      try {
+        if (rememberToken.checked && githubToken.value.trim()) {
+          localStorage.setItem(tokenStorageKey, githubToken.value.trim());
+        } else {
+          localStorage.removeItem(tokenStorageKey);
+        }
+      } catch {
+        setStatus("브라우저 저장소에 토큰을 저장하지 못했습니다.", "bad");
+      }
+    }
+
+    function clearSavedToken() {
+      try {
+        localStorage.removeItem(tokenStorageKey);
+      } catch {
+        setStatus("브라우저 저장소에 접근하지 못했습니다.", "bad");
+        return;
+      }
+      githubToken.value = "";
+      rememberToken.checked = false;
+      setStatus("저장된 토큰을 지웠습니다.", "good");
+    }
+
     async function handleSaveGithub() {
       const token = githubToken.value.trim();
       const yaml = yamlOutput.textContent.trim();
@@ -748,6 +792,7 @@
         return;
       }
 
+      saveTokenPreference();
       saveGithub.disabled = true;
       setStatus("GitHub Actions 실행을 요청하는 중입니다.", "");
       try {
@@ -787,6 +832,13 @@
     downloadYaml.addEventListener("click", handleDownload);
     resetForm.addEventListener("click", resetValues);
     saveGithub.addEventListener("click", handleSaveGithub);
+    clearToken.addEventListener("click", clearSavedToken);
+    rememberToken.addEventListener("change", saveTokenPreference);
+    githubToken.addEventListener("input", () => {
+      if (rememberToken.checked) {
+        saveTokenPreference();
+      }
+    });
     roundInput.addEventListener("input", () => {
       parsedTickets = null;
       updateOutput();
@@ -796,6 +848,7 @@
       updateOutput();
     }));
 
+    loadSavedToken();
     updateOutput();
   </script>
 </body>
