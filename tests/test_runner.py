@@ -8,7 +8,7 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
-from dhlottery_checker.runner import Outcome, _run_check
+from dhlottery_checker.runner import Outcome, _format_messages, _run_check
 
 
 class RunnerTest(unittest.TestCase):
@@ -30,8 +30,52 @@ class RunnerTest(unittest.TestCase):
                         with self.subTest("force duplicate is resent and state remains usable"):
                             args = self._args(force_notify=True)
                             _run_check(args)
-                            send_kakao.assert_called_once()
-                            self.assertIn("재전송 결과", send_kakao.call_args.args[0])
+                            self.assertEqual(send_kakao.call_count, 2)
+                            sent_text = "\n\n".join(call.args[0] for call in send_kakao.call_args_list)
+                            self.assertIn("동행복권 결과 요약", sent_text)
+                            self.assertIn("동행복권 결과 상세", sent_text)
+                            self.assertIn("재전송 결과", sent_text)
+
+    def test_formats_summary_and_detail_messages(self):
+        messages = _format_messages(
+            [
+                Outcome(
+                    "lotto",
+                    1223,
+                    "로또 1223회 A",
+                    "로또 1223회 A. 5등 5,000원.",
+                    "ticket-a",
+                    True,
+                    won=True,
+                    result_label="5등 5,000원",
+                    match_count=3,
+                    summary_text="A 5등 5,000원",
+                    detail_header="로또 1223회 당첨번호 16, 18, 20, 32, 33, 39 + 26",
+                    detail_text="A. 5등 5,000원. 맞은 번호 16, 18, 20.",
+                ),
+                Outcome(
+                    "lotto",
+                    1223,
+                    "로또 1223회 B",
+                    "로또 1223회 B. 미당첨.",
+                    "ticket-b",
+                    True,
+                    won=False,
+                    result_label="미당첨",
+                    match_count=2,
+                    summary_text="B 미당첨",
+                    detail_header="로또 1223회 당첨번호 16, 18, 20, 32, 33, 39 + 26",
+                    detail_text="B. 미당첨. 맞은 번호 18, 32. 보너스 일치.",
+                ),
+            ],
+            [],
+        )
+
+        self.assertEqual(len(messages), 2)
+        self.assertIn("2게임 중 당첨 1개, 미당첨 1개", messages[0])
+        self.assertIn("A 5등 5,000원", messages[0])
+        self.assertIn("로또는 3개부터 당첨입니다.", messages[1])
+        self.assertIn("B. 미당첨. 맞은 번호 18, 32. 보너스 일치.", messages[1])
 
     def _args(self, force_notify: bool) -> argparse.Namespace:
         return argparse.Namespace(

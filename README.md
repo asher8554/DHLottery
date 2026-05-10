@@ -77,6 +77,7 @@ GitHub Pages에 올릴 수 있는 정적 입력 화면 예시는 [docs/ticket-en
 토큰 권한은 저장소 `asher8554/DHLottery`에 대해 `Actions: Read and write`면 됩니다.
 저장이 끝나면 `Update ticket and check results` 워크플로가 `data/tickets.yml`을 커밋하고 당첨 확인을 실행합니다.
 이미 보낸 결과를 카카오톡으로 다시 받고 싶으면 웹 입력 화면에서 `강제 재전송`을 체크합니다.
+카카오 알림은 전체 결과를 빠르게 보는 요약 메시지와 맞은 번호를 확인하는 상세 메시지로 나뉘어 발송됩니다.
 
 ## GitHub Actions 실행
 

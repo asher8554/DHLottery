@@ -35,6 +35,12 @@ class Outcome:
     text: str
     fingerprint: str
     resolved: bool
+    won: bool = False
+    result_label: str = ""
+    match_count: int | None = None
+    summary_text: str = ""
+    detail_header: str = ""
+    detail_text: str = ""
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -88,11 +94,12 @@ def _run_check(args: argparse.Namespace) -> int:
         outcome for outcome in resolved if state is None or not state.is_sent(outcome.fingerprint)
     ]
 
-    report = _format_report(unsent, outcomes)
-    print(report)
+    messages = _format_messages(unsent, outcomes)
+    print("\n\n".join(messages))
 
     if args.notify and not args.dry_run and unsent:
-        send_kakao_text(report)
+        for message in messages:
+            send_kakao_text(message)
         if state is not None:
             for outcome in unsent:
                 state.mark_sent(outcome.fingerprint, outcome.game, outcome.round)
@@ -135,18 +142,41 @@ def _lotto_outcomes(tickets: Iterable[LottoTicket], salt: str) -> Iterable[Outco
 
         selected = format_lotto_numbers(tuple(sorted(ticket.numbers)))
         winning_text = f"{format_lotto_numbers(winning.numbers)} + 보너스 {winning.bonus}"
+        short_label = _short_label(label, "lotto", round_no)
+        matched_numbers = tuple(number for number in winning.numbers if number in ticket.numbers)
+        matched_text = ", ".join(str(number) for number in matched_numbers) if matched_numbers else "없음"
+        bonus_matched = winning.bonus in ticket.numbers
+        bonus_text = " 보너스 일치." if bonus_matched else ""
+        detail_header = f"로또 {round_no}회 당첨번호 {format_lotto_numbers(winning.numbers)} + {winning.bonus}"
         if match.rank:
             amount = f"{match.amount:,}원" if match.amount is not None else "당첨금 확인 필요"
+            result_label = f"{match.rank}등 {amount}"
             text = (
-                f"{label}. {match.rank}등 {amount}. "
+                f"{label}. {result_label}. "
                 f"일치 {match.matched_count}개. 내 번호 {selected}. 당첨번호 {winning_text}."
             )
+            detail_text = f"{short_label}. {result_label}. 맞은 번호 {matched_text}.{bonus_text}"
         else:
+            result_label = "미당첨"
             text = (
                 f"{label}. 미당첨. 일치 {match.matched_count}개. "
                 f"내 번호 {selected}. 당첨번호 {winning_text}."
             )
-        yield Outcome("lotto", round_no, label, text, fingerprint, True)
+            detail_text = f"{short_label}. 미당첨. 맞은 번호 {matched_text}.{bonus_text}"
+        yield Outcome(
+            "lotto",
+            round_no,
+            label,
+            text,
+            fingerprint,
+            True,
+            won=match.is_winner,
+            result_label=result_label,
+            match_count=match.matched_count,
+            summary_text=f"{short_label} {result_label}",
+            detail_header=detail_header,
+            detail_text=detail_text,
+        )
 
 
 def _pension_outcomes(tickets: Iterable[PensionTicket], salt: str) -> Iterable[Outcome]:
@@ -169,12 +199,27 @@ def _pension_outcomes(tickets: Iterable[PensionTicket], salt: str) -> Iterable[O
 
         selected = f"{ticket.group}조 {ticket.number}"
         winning_text = f"{winning.group}조 {winning.number}, 보너스 각조 {winning.bonus_number}"
+        short_label = _short_label(label, "pension", round_no)
+        detail_header = f"연금복권 {round_no}회 당첨번호 {winning_text}"
         if matches:
             result_text = ", ".join(f"{match.rank_label} {match.amount_label}" for match in matches)
             text = f"{label}. {result_text}. 내 번호 {selected}. 당첨번호 {winning_text}."
         else:
+            result_text = "미당첨"
             text = f"{label}. 미당첨. 내 번호 {selected}. 당첨번호 {winning_text}."
-        yield Outcome("pension", round_no, label, text, fingerprint, True)
+        yield Outcome(
+            "pension",
+            round_no,
+            label,
+            text,
+            fingerprint,
+            True,
+            won=bool(matches),
+            result_label=result_text,
+            summary_text=f"{short_label} {result_text}",
+            detail_header=detail_header,
+            detail_text=f"{short_label}. {result_text}. 내 번호 {selected}.",
+        )
 
 
 def _resolve_round(round_value: int | str, cached_latest: int | None, loader) -> int:
@@ -183,12 +228,80 @@ def _resolve_round(round_value: int | str, cached_latest: int | None, loader) ->
     return int(round_value)
 
 
-def _format_report(unsent: list[Outcome], all_outcomes: list[Outcome]) -> str:
+def _format_messages(unsent: list[Outcome], all_outcomes: list[Outcome]) -> list[str]:
     if unsent:
-        lines = ["동행복권 당첨 확인 결과", *[outcome.text for outcome in unsent]]
-        return "\n".join(lines)
+        return [_format_summary_message(unsent), _format_detail_message(unsent)]
 
     pending = [outcome.text for outcome in all_outcomes if not outcome.resolved]
     if pending:
-        return "\n".join(["동행복권 당첨 확인 결과", *pending])
-    return "동행복권 당첨 확인 결과\n새로 알릴 결과가 없습니다."
+        return ["\n".join(["동행복권 결과 상세", *pending])]
+    return ["동행복권 결과 요약\n새로 알릴 결과가 없습니다."]
+
+
+def _format_report(unsent: list[Outcome], all_outcomes: list[Outcome]) -> str:
+    return "\n\n".join(_format_messages(unsent, all_outcomes))
+
+
+def _format_summary_message(outcomes: list[Outcome]) -> str:
+    lines = ["동행복권 결과 요약"]
+    for group in _group_outcomes(outcomes):
+        won_count = sum(1 for outcome in group if outcome.won)
+        losing_count = len(group) - won_count
+        lines.append(f"{_group_title(group[0])}. {len(group)}게임 중 당첨 {won_count}개, 미당첨 {losing_count}개.")
+        if won_count:
+            lines.extend(outcome.summary_text or f"{outcome.label} {outcome.result_label}" for outcome in group if outcome.won)
+            continue
+        match_counts = [outcome.match_count for outcome in group if outcome.match_count is not None]
+        if match_counts:
+            lines.append(f"최고 일치 {max(match_counts)}개. 이번 회차는 당첨 없음.")
+        else:
+            lines.append("이번 회차는 당첨 없음.")
+    return "\n".join(lines)
+
+
+def _format_detail_message(outcomes: list[Outcome]) -> str:
+    lines = ["동행복권 결과 상세"]
+    shown_rules: set[tuple[str, int]] = set()
+    current_header = ""
+    for outcome in outcomes:
+        if outcome.detail_header and outcome.detail_header != current_header:
+            lines.append(outcome.detail_header)
+            current_header = outcome.detail_header
+        rule_key = (outcome.game, outcome.round)
+        if outcome.game == "lotto" and rule_key not in shown_rules:
+            lines.append("로또는 3개부터 당첨입니다.")
+            shown_rules.add(rule_key)
+        lines.append(outcome.detail_text or outcome.text)
+    return "\n".join(lines)
+
+
+def _group_outcomes(outcomes: list[Outcome]) -> list[list[Outcome]]:
+    groups: list[list[Outcome]] = []
+    indexes: dict[tuple[str, int], int] = {}
+    for outcome in outcomes:
+        key = (outcome.game, outcome.round)
+        if key not in indexes:
+            indexes[key] = len(groups)
+            groups.append([])
+        groups[indexes[key]].append(outcome)
+    return groups
+
+
+def _group_title(outcome: Outcome) -> str:
+    if outcome.game == "lotto":
+        return f"로또 {outcome.round}회"
+    if outcome.game == "pension":
+        return f"연금복권 {outcome.round}회"
+    return f"{outcome.game} {outcome.round}회"
+
+
+def _short_label(label: str, game: str, round_no: int) -> str:
+    prefixes = []
+    if game == "lotto":
+        prefixes.append(f"로또 {round_no}회 ")
+    if game == "pension":
+        prefixes.append(f"연금복권 {round_no}회 ")
+    for prefix in prefixes:
+        if label.startswith(prefix):
+            return label[len(prefix):]
+    return label
