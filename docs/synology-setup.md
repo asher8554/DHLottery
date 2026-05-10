@@ -148,6 +148,32 @@ docker run --rm \
   "apt-get update && apt-get install -y --no-install-recommends git openssh-client ca-certificates && git config --global --add safe.directory /work && GIT_SSH_COMMAND='ssh -i /root/.ssh/id_ed25519 -o IdentitiesOnly=yes' git pull --rebase"
 ```
 
+이미 `dhlottery-synology:latest` 이미지를 빌드했다면 apt 설치 로그를 줄이기 위해 그 이미지로 pull할 수 있습니다.
+
+```bash
+cd /volume1/docker/Github/DHLottery
+docker run --rm \
+  -v "$PWD:/app" \
+  -w /app \
+  -v "$PWD/.ssh:/root/.ssh" \
+  dhlottery-synology:latest bash -lc \
+  "git config --global --add safe.directory /app && GIT_SSH_COMMAND='ssh -i /root/.ssh/id_ed25519 -o IdentitiesOnly=yes' git pull --rebase"
+```
+
+`cannot pull with rebase: You have unstaged changes`가 나오면 로컬 변경이 pull을 막고 있는 상태입니다. 시놀로지에서 문서를 직접 고친 적이 없다면 변경을 임시 보관한 뒤 pull합니다.
+
+```bash
+cd /volume1/docker/Github/DHLottery
+docker run --rm \
+  -v "$PWD:/app" \
+  -w /app \
+  -v "$PWD/.ssh:/root/.ssh" \
+  dhlottery-synology:latest bash -lc \
+  "git config --global --add safe.directory /app && git stash push -m synology-before-pull README.md checklist.md context-notes.md plan.md docs/synology-setup.md || true && GIT_SSH_COMMAND='ssh -i /root/.ssh/id_ed25519 -o IdentitiesOnly=yes' git pull --rebase"
+```
+
+`.ssh/`는 SSH key 보관 폴더라 Git에 올리지 않습니다. 최신 코드에는 `.ssh/`가 `.gitignore`에 들어 있습니다.
+
 ## .env 만들기
 
 저장소 루트에 `.env`를 만듭니다. 이 파일은 `.gitignore`에 포함되어 커밋되지 않습니다.
