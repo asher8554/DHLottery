@@ -216,7 +216,7 @@ def _pension_outcomes(tickets: Iterable[PensionTicket], salt: str) -> Iterable[O
             True,
             won=bool(matches),
             result_label=result_text,
-            summary_text=f"{short_label} {result_text}",
+            summary_text=f"{short_label} {selected} {result_text}",
             detail_header=detail_header,
             detail_text=f"{short_label}. {result_text}. 내 번호 {selected}.",
         )
@@ -249,7 +249,12 @@ def _format_summary_message(outcomes: list[Outcome]) -> str:
         losing_count = len(group) - won_count
         lines.append(f"{_group_title(group[0])}. {len(group)}게임 중 당첨 {won_count}개, 미당첨 {losing_count}개.")
         if won_count:
-            lines.extend(outcome.summary_text or f"{outcome.label} {outcome.result_label}" for outcome in group if outcome.won)
+            winning_text = ", ".join(
+                outcome.summary_text or f"{outcome.label} {outcome.result_label}"
+                for outcome in group
+                if outcome.won
+            )
+            lines.append(f"당첨. {winning_text}.")
             continue
         match_counts = [outcome.match_count for outcome in group if outcome.match_count is not None]
         if match_counts:

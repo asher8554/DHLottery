@@ -73,9 +73,32 @@ class RunnerTest(unittest.TestCase):
 
         self.assertEqual(len(messages), 2)
         self.assertIn("2게임 중 당첨 1개, 미당첨 1개", messages[0])
-        self.assertIn("A 5등 5,000원", messages[0])
+        self.assertIn("당첨. A 5등 5,000원.", messages[0])
         self.assertIn("로또는 3개부터 당첨입니다.", messages[1])
         self.assertIn("B. 미당첨. 맞은 번호 18, 32. 보너스 일치.", messages[1])
+
+    def test_formats_pension_winner_in_summary(self):
+        messages = _format_messages(
+            [
+                Outcome(
+                    "pension",
+                    314,
+                    "연금복권 314회 1",
+                    "연금복권 314회 1. 1등 월 700만원 x 20년.",
+                    "pension-ticket",
+                    True,
+                    won=True,
+                    result_label="1등 월 700만원 x 20년",
+                    summary_text="1 2조 060727 1등 월 700만원 x 20년",
+                    detail_header="연금복권 314회 당첨번호 2조 060727, 보너스 각조 293160",
+                    detail_text="1. 1등 월 700만원 x 20년. 내 번호 2조 060727.",
+                )
+            ],
+            [],
+        )
+
+        self.assertIn("연금복권 314회. 1게임 중 당첨 1개, 미당첨 0개.", messages[0])
+        self.assertIn("당첨. 1 2조 060727 1등 월 700만원 x 20년.", messages[0])
 
     def _args(self, force_notify: bool) -> argparse.Namespace:
         return argparse.Namespace(

@@ -1,4 +1,4 @@
-<!-- 로또 구매번호 YAML을 브라우저에서 생성하는 정적 입력 페이지 -->
+<!-- 로또와 연금복권 구매번호 YAML을 브라우저에서 생성하는 정적 입력 페이지 -->
 <!doctype html>
 <html lang="ko">
 <head>
@@ -117,6 +117,34 @@
       gap: 14px;
     }
 
+    .tabs {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .tab-button {
+      min-height: 42px;
+      border-color: var(--line);
+      background: #f8fafc;
+    }
+
+    .tab-button.active {
+      border-color: #1259a8;
+      background: #1259a8;
+      color: #ffffff;
+    }
+
+    .game-section {
+      display: grid;
+      gap: 14px;
+    }
+
+    .game-section[hidden] {
+      display: none;
+    }
+
     label {
       display: grid;
       gap: 6px;
@@ -165,6 +193,12 @@
     .number-grid input {
       text-align: center;
       padding: 0 6px;
+    }
+
+    .pension-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1.4fr;
+      gap: 8px;
     }
 
     .actions {
@@ -297,7 +331,7 @@
 
     .ticket-row {
       display: grid;
-      grid-template-columns: 32px 1fr;
+      grid-template-columns: auto 1fr;
       gap: 8px;
       align-items: center;
       color: var(--text);
@@ -308,9 +342,10 @@
     .ticket-slot {
       display: grid;
       place-items: center;
-      width: 30px;
+      min-width: 30px;
       height: 30px;
-      border-radius: 50%;
+      padding: 0 8px;
+      border-radius: 999px;
       background: #eef2f7;
       color: var(--focus);
     }
@@ -332,6 +367,10 @@
 
       .number-grid {
         grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .pension-grid {
+        grid-template-columns: 1fr;
       }
 
       .panel-header {
@@ -367,7 +406,7 @@
 <body>
   <main>
     <div class="topbar">
-      <h1>로또 티켓 입력</h1>
+      <h1>복권 티켓 입력</h1>
       <div class="badge" aria-label="GitHub Actions 연결">
         <span class="badge-mark" aria-hidden="true"></span>
         GitHub Actions 연결
@@ -380,31 +419,49 @@
           <h2 id="input-title">입력</h2>
         </div>
         <div class="panel-body">
-          <div class="grid">
+          <div class="tabs" role="tablist" aria-label="복권 종류">
+            <button type="button" class="tab-button active" id="lottoTab" data-target="lottoSection" role="tab" aria-selected="true" aria-controls="lottoSection">로또 6/45</button>
+            <button type="button" class="tab-button" id="pensionTab" data-target="pensionSection" role="tab" aria-selected="false" aria-controls="pensionSection">연금복권720+</button>
+          </div>
+
+          <div class="game-section" id="lottoSection" role="tabpanel" aria-labelledby="lottoTab">
             <label>
-              빠른 붙여넣기
-              <textarea id="pasteText" spellcheck="false">1224
-9
-12
-13
-33
-35
-43</textarea>
+              로또 빠른 붙여넣기
+              <textarea id="pasteText" spellcheck="false" placeholder="1224&#10;9&#10;12&#10;13&#10;33&#10;35&#10;43"></textarea>
             </label>
-            <button type="button" id="applyPaste">붙여넣기 적용</button>
+            <button type="button" id="applyPaste">로또 붙여넣기 적용</button>
 
             <label>
-              회차
-              <input id="round" inputmode="numeric" autocomplete="off" value="1224" aria-describedby="status">
+              로또 회차
+              <input id="round" inputmode="numeric" autocomplete="off" aria-describedby="status">
             </label>
 
             <div class="number-grid" aria-label="선택번호 6개">
-              <label>번호 1<input class="number" inputmode="numeric" autocomplete="off" value="9"></label>
-              <label>번호 2<input class="number" inputmode="numeric" autocomplete="off" value="12"></label>
-              <label>번호 3<input class="number" inputmode="numeric" autocomplete="off" value="13"></label>
-              <label>번호 4<input class="number" inputmode="numeric" autocomplete="off" value="33"></label>
-              <label>번호 5<input class="number" inputmode="numeric" autocomplete="off" value="35"></label>
-              <label>번호 6<input class="number" inputmode="numeric" autocomplete="off" value="43"></label>
+              <label>번호 1<input class="number" inputmode="numeric" autocomplete="off"></label>
+              <label>번호 2<input class="number" inputmode="numeric" autocomplete="off"></label>
+              <label>번호 3<input class="number" inputmode="numeric" autocomplete="off"></label>
+              <label>번호 4<input class="number" inputmode="numeric" autocomplete="off"></label>
+              <label>번호 5<input class="number" inputmode="numeric" autocomplete="off"></label>
+              <label>번호 6<input class="number" inputmode="numeric" autocomplete="off"></label>
+            </div>
+          </div>
+
+          <div class="game-section" id="pensionSection" role="tabpanel" aria-labelledby="pensionTab" hidden>
+            <label>
+              연금복권 빠른 붙여넣기
+              <textarea id="pensionPasteText" spellcheck="false" placeholder="315회&#10;1조&#10;0&#10;5&#10;2&#10;4&#10;1&#10;4"></textarea>
+            </label>
+            <button type="button" id="applyPensionPaste">연금복권 붙여넣기 적용</button>
+
+            <div class="pension-grid" aria-label="연금복권 구매번호">
+              <label>연금복권 회차<input id="pensionRound" inputmode="numeric" autocomplete="off"></label>
+              <label>조<input id="pensionGroup" inputmode="numeric" autocomplete="off"></label>
+              <label>6자리 번호<input id="pensionNumber" inputmode="numeric" autocomplete="off" maxlength="6"></label>
+            </div>
+
+            <div class="actions">
+              <button type="button" id="addPensionTicket">연금복권 추가</button>
+              <button type="button" id="clearPensionTickets">연금복권 목록 지우기</button>
             </div>
           </div>
 
@@ -458,6 +515,15 @@
     const numberInputs = Array.from(document.querySelectorAll(".number"));
     const pasteText = document.querySelector("#pasteText");
     const applyPaste = document.querySelector("#applyPaste");
+    const gameTabs = Array.from(document.querySelectorAll(".tab-button"));
+    const gameSections = Array.from(document.querySelectorAll(".game-section"));
+    const pensionPasteText = document.querySelector("#pensionPasteText");
+    const applyPensionPaste = document.querySelector("#applyPensionPaste");
+    const pensionRoundInput = document.querySelector("#pensionRound");
+    const pensionGroupInput = document.querySelector("#pensionGroup");
+    const pensionNumberInput = document.querySelector("#pensionNumber");
+    const addPensionTicket = document.querySelector("#addPensionTicket");
+    const clearPensionTickets = document.querySelector("#clearPensionTickets");
     const yamlOutput = document.querySelector("#yamlOutput");
     const ticketSummary = document.querySelector("#ticketSummary");
     const statusEl = document.querySelector("#status");
@@ -476,6 +542,7 @@
     const workflowDispatchUrl = "https://api.github.com/repos/asher8554/DHLottery/actions/workflows/update-ticket.yml/dispatches";
     const tokenStorageKey = "dhlottery.githubToken";
     let parsedTickets = null;
+    let pensionTickets = [];
 
     function parsePositiveInt(value) {
       if (!/^\d+$/.test(String(value).trim())) {
@@ -485,31 +552,52 @@
     }
 
     function readForm() {
+      const hasLottoInput = roundInput.value.trim() || numberInputs.some((input) => input.value.trim());
       const round = parsePositiveInt(roundInput.value);
       const numbers = numberInputs.map((input) => parsePositiveInt(input.value));
       const errors = [];
 
+      if (!hasLottoInput) {
+        return { round: null, numbers, errors, tickets: [] };
+      }
+
       if (!round || round < 1) {
-        errors.push("회차를 입력하세요.");
+        errors.push("로또 회차를 입력하세요.");
       }
 
       if (numbers.some((number) => number === null)) {
-        errors.push("번호 6개를 모두 입력하세요.");
+        errors.push("로또 번호 6개를 모두 입력하세요.");
       } else if (numbers.some((number) => number < 1 || number > 45)) {
-        errors.push("번호는 1부터 45 사이여야 합니다.");
+        errors.push("로또 번호는 1부터 45 사이여야 합니다.");
       } else if (new Set(numbers).size !== 6) {
-        errors.push("중복 번호가 있습니다.");
+        errors.push("로또 중복 번호가 있습니다.");
       }
 
-      return { round, numbers, errors };
+      return { round, numbers, errors, tickets: parsedTickets || [{ slot: "A", numbers }] };
     }
 
-    function buildYaml(round, tickets) {
-      const lines = ["lotto:", "  tickets:"];
-      for (const ticket of tickets) {
-        lines.push(`    - label: "로또 ${round}회 ${ticket.slot}"`);
-        lines.push(`      round: ${round}`);
-        lines.push(`      numbers: [${ticket.numbers.join(", ")}]`);
+    function buildYaml(lottoRound, lottoTickets, pensionItems) {
+      const lines = [];
+      if (lottoTickets.length > 0) {
+        lines.push("lotto:", "  tickets:");
+        for (const ticket of lottoTickets) {
+          lines.push(`    - label: "로또 ${lottoRound}회 ${ticket.slot}"`);
+          lines.push(`      round: ${lottoRound}`);
+          lines.push(`      numbers: [${ticket.numbers.join(", ")}]`);
+        }
+      }
+
+      if (pensionItems.length > 0) {
+        if (lines.length > 0) {
+          lines.push("");
+        }
+        lines.push("pension:", "  tickets:");
+        for (const ticket of pensionItems) {
+          lines.push(`    - label: "연금복권 ${ticket.round}회 ${ticket.slot}"`);
+          lines.push(`      round: ${ticket.round}`);
+          lines.push(`      group: ${ticket.group}`);
+          lines.push(`      number: "${ticket.number}"`);
+        }
       }
       lines.push("");
       return lines.join("\n");
@@ -534,15 +622,15 @@
       }
     }
 
-    function renderTicketSummary(tickets) {
+    function renderTicketSummary(lottoTickets, pensionItems) {
       ticketSummary.innerHTML = "";
-      for (const ticket of tickets) {
+      for (const ticket of lottoTickets) {
         const row = document.createElement("div");
         row.className = "ticket-row";
 
         const slot = document.createElement("span");
         slot.className = "ticket-slot";
-        slot.textContent = ticket.slot;
+        slot.textContent = `로또 ${ticket.slot}`;
 
         const numbers = document.createElement("span");
         numbers.textContent = ticket.numbers.join("  ");
@@ -551,13 +639,28 @@
         row.appendChild(numbers);
         ticketSummary.appendChild(row);
       }
+      for (const ticket of pensionItems) {
+        const row = document.createElement("div");
+        row.className = "ticket-row";
+
+        const slot = document.createElement("span");
+        slot.className = "ticket-slot";
+        slot.textContent = `연금 ${ticket.slot}`;
+
+        const numbers = document.createElement("span");
+        numbers.textContent = `${ticket.round}회  ${ticket.group}조  ${ticket.number}`;
+
+        row.appendChild(slot);
+        row.appendChild(numbers);
+        ticketSummary.appendChild(row);
+      }
     }
 
     function updateOutput() {
-      const { round, numbers, errors } = readForm();
-      const tickets = parsedTickets || [{ slot: "A", numbers }];
-      renderBalls(tickets[0].numbers);
-      renderTicketSummary(tickets);
+      const { round, numbers, errors, tickets } = readForm();
+      const totalCount = tickets.length + pensionTickets.length;
+      renderBalls(tickets[0]?.numbers || numbers);
+      renderTicketSummary(tickets, pensionTickets);
 
       if (errors.length > 0) {
         yamlOutput.textContent = "";
@@ -569,11 +672,20 @@
         return;
       }
 
-      yamlOutput.textContent = buildYaml(round, tickets);
+      if (totalCount === 0) {
+        yamlOutput.textContent = "";
+        copyYaml.disabled = true;
+        downloadYaml.disabled = true;
+        saveGithub.disabled = true;
+        setStatus("로또나 연금복권 번호를 입력하세요.", "bad");
+        return;
+      }
+
+      yamlOutput.textContent = buildYaml(round, tickets, pensionTickets);
       copyYaml.disabled = false;
       downloadYaml.disabled = false;
       saveGithub.disabled = false;
-      setStatus(`${tickets.length}개 게임을 확인했습니다.`, "good");
+      setStatus(`${totalCount}개 구매번호를 확인했습니다.`, "good");
     }
 
     function cleanPastedLines(text) {
@@ -679,6 +791,110 @@
       return { error: "A부터 E까지의 게임 줄이나 중복 없는 번호 6개를 붙여넣으세요." };
     }
 
+    function parsePensionRound(text, cleanedLines) {
+      const roundMatch = text.match(/(\d{1,5})\s*회/);
+      if (roundMatch) {
+        return Number(roundMatch[1]);
+      }
+      const firstRound = cleanedLines.find((line) => /^\d{2,5}$/.test(line) && !/^\d{6}$/.test(line));
+      return firstRound ? Number(firstRound) : null;
+    }
+
+    function parsePensionQuickText(text) {
+      const cleanedLines = cleanPastedLines(text);
+      const round = parsePensionRound(text, cleanedLines);
+
+      if (!round || round < 1) {
+        return { error: "연금복권 회차를 찾지 못했습니다." };
+      }
+
+      const blockTickets = parsePensionBlockTickets(cleanedLines, round);
+      if (blockTickets.length > 0) {
+        return { tickets: blockTickets };
+      }
+
+      const groupMatch = text.match(/([1-5])\s*조/);
+      const groupLine = cleanedLines.find((line) => /^[1-5]$/.test(line));
+      const numberMatch = text.match(/\b(\d{6})\b/);
+      const group = groupMatch ? Number(groupMatch[1]) : groupLine ? Number(groupLine) : null;
+      const number = numberMatch ? numberMatch[1] : "";
+      if (!group || group < 1 || group > 5) {
+        return { error: "연금복권 조는 1부터 5까지 입력하세요." };
+      }
+      if (!/^\d{6}$/.test(number)) {
+        return { error: "연금복권 번호 6자리를 찾지 못했습니다." };
+      }
+      return { tickets: [{ round, group, number }] };
+    }
+
+    function parsePensionBlockTickets(cleanedLines, round) {
+      const tickets = [];
+      for (let index = 0; index < cleanedLines.length; index += 1) {
+        const groupMatch = cleanedLines[index].match(/^([1-5])\s*조$/);
+        if (!groupMatch) {
+          continue;
+        }
+
+        const digits = [];
+        for (let cursor = index + 1; cursor < cleanedLines.length && digits.length < 6; cursor += 1) {
+          const line = cleanedLines[cursor];
+          if (/^[1-5]\s*조$/.test(line)) {
+            break;
+          }
+          if (/^\d$/.test(line)) {
+            digits.push(line);
+          } else if (/^\d{6}$/.test(line)) {
+            digits.push(...line.split(""));
+          }
+        }
+
+        if (digits.length === 6) {
+          tickets.push({ round, group: Number(groupMatch[1]), number: digits.join("") });
+        }
+      }
+      return tickets;
+    }
+
+    function readPensionDraft() {
+      const round = parsePositiveInt(pensionRoundInput.value);
+      const group = parsePositiveInt(pensionGroupInput.value);
+      const number = pensionNumberInput.value.trim();
+
+      if (!round || round < 1) {
+        return { error: "연금복권 회차를 입력하세요." };
+      }
+      if (!group || group < 1 || group > 5) {
+        return { error: "연금복권 조는 1부터 5까지 입력하세요." };
+      }
+      if (!/^\d{6}$/.test(number)) {
+        return { error: "연금복권 번호는 6자리 숫자여야 합니다." };
+      }
+      return { round, group, number };
+    }
+
+    function addPensionItem(ticket) {
+      const slot = String(pensionTickets.length + 1);
+      pensionTickets.push({ slot, round: ticket.round, group: ticket.group, number: ticket.number });
+      pensionRoundInput.value = String(ticket.round);
+      pensionGroupInput.value = "";
+      pensionNumberInput.value = "";
+      updateOutput();
+    }
+
+    function addPensionItems(tickets) {
+      for (const ticket of tickets) {
+        const slot = String(pensionTickets.length + 1);
+        pensionTickets.push({ slot, round: ticket.round, group: ticket.group, number: ticket.number });
+      }
+      const lastTicket = tickets[tickets.length - 1];
+      if (lastTicket) {
+        pensionRoundInput.value = String(lastTicket.round);
+        pensionGroupInput.value = "";
+        pensionNumberInput.value = "";
+      }
+      updateOutput();
+    }
+
     function applyQuickText() {
       const parsed = parseQuickText(pasteText.value);
       if (parsed.error) {
@@ -692,6 +908,30 @@
       numberInputs.forEach((input, index) => {
         input.value = String(parsedTickets[0].numbers[index]);
       });
+      updateOutput();
+    }
+
+    function applyPensionQuickText() {
+      const parsed = parsePensionQuickText(pensionPasteText.value);
+      if (parsed.error) {
+        setStatus(parsed.error, "bad");
+        return;
+      }
+
+      addPensionItems(parsed.tickets);
+    }
+
+    function addPensionFromForm() {
+      const ticket = readPensionDraft();
+      if (ticket.error) {
+        setStatus(ticket.error, "bad");
+        return;
+      }
+      addPensionItem(ticket);
+    }
+
+    function clearPensionList() {
+      pensionTickets = [];
       updateOutput();
     }
 
@@ -738,10 +978,26 @@
       setStatus("tickets.yml 파일을 만들었습니다.", "good");
     }
 
+    function selectGameSection(targetId) {
+      for (const tab of gameTabs) {
+        const isActive = tab.dataset.target === targetId;
+        tab.classList.toggle("active", isActive);
+        tab.setAttribute("aria-selected", String(isActive));
+      }
+      for (const section of gameSections) {
+        section.hidden = section.id !== targetId;
+      }
+    }
+
     function resetValues() {
       parsedTickets = null;
+      pensionTickets = [];
       pasteText.value = "";
+      pensionPasteText.value = "";
       roundInput.value = "";
+      pensionRoundInput.value = "";
+      pensionGroupInput.value = "";
+      pensionNumberInput.value = "";
       numberInputs.forEach((input) => {
         input.value = "";
       });
@@ -843,6 +1099,9 @@
     }
 
     applyPaste.addEventListener("click", applyQuickText);
+    applyPensionPaste.addEventListener("click", applyPensionQuickText);
+    addPensionTicket.addEventListener("click", addPensionFromForm);
+    clearPensionTickets.addEventListener("click", clearPensionList);
     copyYaml.addEventListener("click", handleCopy);
     downloadYaml.addEventListener("click", handleDownload);
     resetForm.addEventListener("click", resetValues);
@@ -862,6 +1121,12 @@
     numberInputs.forEach((input) => input.addEventListener("input", () => {
       parsedTickets = null;
       updateOutput();
+    }));
+    pensionRoundInput.addEventListener("input", updateOutput);
+    pensionGroupInput.addEventListener("input", updateOutput);
+    pensionNumberInput.addEventListener("input", updateOutput);
+    gameTabs.forEach((tab) => tab.addEventListener("click", () => {
+      selectGameSection(tab.dataset.target);
     }));
 
     loadSavedToken();
