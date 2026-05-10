@@ -12,6 +12,9 @@ lotto:
     - label: "로또 1223회 D"
       round: 1223
       numbers: [9, 13, 20, 21, 36, 41]
+    - label: "로또 1223회 E"
+      round: 1223
+      numbers: [9, 12, 13, 33, 35, 43]
 
 pension:
   tickets:
