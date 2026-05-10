@@ -1,0 +1,549 @@
+<!-- 로또 구매번호 YAML을 브라우저에서 생성하는 정적 입력 페이지 -->
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DHLottery 티켓 입력</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f7f8fb;
+      --surface: #ffffff;
+      --text: #17202a;
+      --muted: #667085;
+      --line: #d8dee8;
+      --focus: #1c6dd0;
+      --good: #16794c;
+      --bad: #b42318;
+      --ball-yellow: #f2b705;
+      --ball-blue: #3578d4;
+      --ball-red: #d94a38;
+      --ball-gray: #667085;
+      --ball-green: #2c9b60;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, "Malgun Gothic", sans-serif;
+      line-height: 1.5;
+    }
+
+    main {
+      width: min(1120px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 28px 0;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(24px, 4vw, 36px);
+      line-height: 1.1;
+      letter-spacing: 0;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 36px;
+      padding: 6px 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--muted);
+      font-size: 14px;
+      white-space: nowrap;
+    }
+
+    .badge-mark {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--good);
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(360px, 0.86fr);
+      gap: 16px;
+      align-items: start;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      box-shadow: 0 10px 28px rgba(23, 32, 42, 0.06);
+      overflow: hidden;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 17px;
+      letter-spacing: 0;
+    }
+
+    .panel-body {
+      padding: 18px;
+    }
+
+    .grid {
+      display: grid;
+      gap: 14px;
+    }
+
+    label {
+      display: grid;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    input,
+    textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #ffffff;
+      color: var(--text);
+      font: inherit;
+      letter-spacing: 0;
+    }
+
+    input {
+      height: 44px;
+      padding: 0 12px;
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    textarea {
+      min-height: 128px;
+      padding: 12px;
+      resize: vertical;
+    }
+
+    input:focus,
+    textarea:focus,
+    button:focus-visible {
+      outline: 3px solid rgba(28, 109, 208, 0.18);
+      border-color: var(--focus);
+    }
+
+    .number-grid {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .number-grid input {
+      text-align: center;
+      padding: 0 6px;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    button {
+      min-height: 40px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0 13px;
+      background: #ffffff;
+      color: var(--text);
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    button.primary {
+      border-color: #1259a8;
+      background: #1259a8;
+      color: #ffffff;
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+
+    .status {
+      min-height: 24px;
+      margin-top: 12px;
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    .status.good {
+      color: var(--good);
+    }
+
+    .status.bad {
+      color: var(--bad);
+    }
+
+    .balls {
+      display: grid;
+      grid-template-columns: repeat(6, 44px);
+      gap: 8px;
+      justify-content: end;
+    }
+
+    .ball {
+      display: grid;
+      place-items: center;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      color: #ffffff;
+      font-weight: 800;
+      box-shadow: inset 0 -5px 0 rgba(0, 0, 0, 0.14);
+    }
+
+    .ball.empty {
+      color: var(--muted);
+      background: #eef2f7;
+      box-shadow: none;
+    }
+
+    .yaml {
+      min-height: 290px;
+      margin: 0;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: auto;
+      background: #101828;
+      color: #e7edf7;
+      font-family: Consolas, "SFMono-Regular", Menlo, monospace;
+      font-size: 14px;
+      white-space: pre;
+    }
+
+    @media (max-width: 840px) {
+      main {
+        width: min(100% - 20px, 680px);
+        padding: 18px 0;
+      }
+
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .workspace {
+        grid-template-columns: 1fr;
+      }
+
+      .number-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .panel-header {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .balls {
+        justify-content: start;
+      }
+    }
+
+    @media (max-width: 420px) {
+      .number-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .balls {
+        grid-template-columns: repeat(3, 44px);
+      }
+
+      .actions button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="topbar">
+      <h1>로또 티켓 입력</h1>
+      <div class="badge" aria-label="정적 페이지">
+        <span class="badge-mark" aria-hidden="true"></span>
+        브라우저 안에서만 처리
+      </div>
+    </div>
+
+    <div class="workspace">
+      <section class="panel" aria-labelledby="input-title">
+        <div class="panel-header">
+          <h2 id="input-title">입력</h2>
+        </div>
+        <div class="panel-body">
+          <div class="grid">
+            <label>
+              빠른 붙여넣기
+              <textarea id="pasteText" spellcheck="false">1224회
+9
+12
+13
+33
+35
+43</textarea>
+            </label>
+            <button type="button" id="applyPaste">붙여넣기 적용</button>
+
+            <label>
+              회차
+              <input id="round" inputmode="numeric" autocomplete="off" value="1224" aria-describedby="status">
+            </label>
+
+            <div class="number-grid" aria-label="선택번호 6개">
+              <label>번호 1<input class="number" inputmode="numeric" autocomplete="off" value="9"></label>
+              <label>번호 2<input class="number" inputmode="numeric" autocomplete="off" value="12"></label>
+              <label>번호 3<input class="number" inputmode="numeric" autocomplete="off" value="13"></label>
+              <label>번호 4<input class="number" inputmode="numeric" autocomplete="off" value="33"></label>
+              <label>번호 5<input class="number" inputmode="numeric" autocomplete="off" value="35"></label>
+              <label>번호 6<input class="number" inputmode="numeric" autocomplete="off" value="43"></label>
+            </div>
+          </div>
+
+          <div class="actions">
+            <button type="button" class="primary" id="copyYaml">YAML 복사</button>
+            <button type="button" id="downloadYaml">tickets.yml 내려받기</button>
+            <button type="button" id="resetForm">초기화</button>
+          </div>
+          <div id="status" class="status" role="status" aria-live="polite"></div>
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="output-title">
+        <div class="panel-header">
+          <h2 id="output-title">생성 결과</h2>
+          <div id="balls" class="balls" aria-label="선택번호 미리보기"></div>
+        </div>
+        <div class="panel-body">
+          <pre id="yamlOutput" class="yaml"></pre>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    const roundInput = document.querySelector("#round");
+    const numberInputs = Array.from(document.querySelectorAll(".number"));
+    const pasteText = document.querySelector("#pasteText");
+    const applyPaste = document.querySelector("#applyPaste");
+    const yamlOutput = document.querySelector("#yamlOutput");
+    const statusEl = document.querySelector("#status");
+    const ballsEl = document.querySelector("#balls");
+    const copyYaml = document.querySelector("#copyYaml");
+    const downloadYaml = document.querySelector("#downloadYaml");
+    const resetForm = document.querySelector("#resetForm");
+
+    const ballColors = ["#f2b705", "#3578d4", "#d94a38", "#667085", "#2c9b60"];
+
+    function parsePositiveInt(value) {
+      if (!/^\d+$/.test(String(value).trim())) {
+        return null;
+      }
+      return Number(value);
+    }
+
+    function readForm() {
+      const round = parsePositiveInt(roundInput.value);
+      const numbers = numberInputs.map((input) => parsePositiveInt(input.value));
+      const errors = [];
+
+      if (!round || round < 1) {
+        errors.push("회차를 입력하세요.");
+      }
+
+      if (numbers.some((number) => number === null)) {
+        errors.push("번호 6개를 모두 입력하세요.");
+      } else if (numbers.some((number) => number < 1 || number > 45)) {
+        errors.push("번호는 1부터 45 사이여야 합니다.");
+      } else if (new Set(numbers).size !== 6) {
+        errors.push("중복 번호가 있습니다.");
+      }
+
+      return { round, numbers, errors };
+    }
+
+    function buildYaml(round, numbers) {
+      return [
+        "lotto:",
+        "  tickets:",
+        `    - label: "로또 ${round}회 A"`,
+        `      round: ${round}`,
+        `      numbers: [${numbers.join(", ")}]`,
+        "",
+      ].join("\n");
+    }
+
+    function setStatus(message, tone) {
+      statusEl.textContent = message;
+      statusEl.className = `status ${tone || ""}`.trim();
+    }
+
+    function renderBalls(numbers) {
+      ballsEl.innerHTML = "";
+      for (let index = 0; index < 6; index += 1) {
+        const value = numbers[index];
+        const ball = document.createElement("span");
+        ball.className = value ? "ball" : "ball empty";
+        ball.textContent = value || "-";
+        if (value) {
+          ball.style.background = ballColors[Math.min(Math.floor((value - 1) / 10), ballColors.length - 1)];
+        }
+        ballsEl.appendChild(ball);
+      }
+    }
+
+    function updateOutput() {
+      const { round, numbers, errors } = readForm();
+      renderBalls(numbers);
+
+      if (errors.length > 0) {
+        yamlOutput.textContent = "";
+        copyYaml.disabled = true;
+        downloadYaml.disabled = true;
+        setStatus(errors[0], "bad");
+        return;
+      }
+
+      yamlOutput.textContent = buildYaml(round, numbers);
+      copyYaml.disabled = false;
+      downloadYaml.disabled = false;
+      setStatus("입력값이 올바릅니다.", "good");
+    }
+
+    function applyQuickText() {
+      const text = pasteText.value;
+      const roundMatch = text.match(/(\d{3,5})\s*회/);
+      const round = roundMatch ? Number(roundMatch[1]) : null;
+      const lines = text.split(/\r?\n/);
+      const numbers = [];
+
+      for (const line of lines) {
+        if (/\d{3,5}\s*회/.test(line)) {
+          continue;
+        }
+        const tokens = line.match(/\d+/g) || [];
+        for (const token of tokens) {
+          const value = Number(token);
+          if (value > 45) {
+            setStatus("선택번호가 아닌 숫자가 섞여 있습니다.", "bad");
+            return;
+          }
+          if (value >= 1) {
+            numbers.push(value);
+          }
+        }
+      }
+
+      if (!round || numbers.length !== 6 || new Set(numbers).size !== 6) {
+        setStatus("회차와 중복 없는 번호 6개를 붙여넣으세요.", "bad");
+        return;
+      }
+
+      roundInput.value = String(round);
+      numberInputs.forEach((input, index) => {
+        input.value = String(numbers[index]);
+      });
+      updateOutput();
+    }
+
+    async function copyText(text) {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+        return;
+      }
+      const helper = document.createElement("textarea");
+      helper.value = text;
+      helper.setAttribute("readonly", "");
+      helper.style.position = "fixed";
+      helper.style.opacity = "0";
+      document.body.appendChild(helper);
+      helper.select();
+      document.execCommand("copy");
+      helper.remove();
+    }
+
+    async function handleCopy() {
+      if (!yamlOutput.textContent.trim()) {
+        return;
+      }
+      try {
+        await copyText(yamlOutput.textContent);
+        setStatus("YAML을 복사했습니다.", "good");
+      } catch {
+        setStatus("복사에 실패했습니다. 생성 결과를 직접 선택하세요.", "bad");
+      }
+    }
+
+    function handleDownload() {
+      if (!yamlOutput.textContent.trim()) {
+        return;
+      }
+      const blob = new Blob([yamlOutput.textContent], { type: "text/yaml;charset=utf-8" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "tickets.yml";
+      document.body.appendChild(link);
+      link.click();
+      URL.revokeObjectURL(link.href);
+      link.remove();
+      setStatus("tickets.yml 파일을 만들었습니다.", "good");
+    }
+
+    function resetValues() {
+      pasteText.value = "";
+      roundInput.value = "";
+      numberInputs.forEach((input) => {
+        input.value = "";
+      });
+      updateOutput();
+    }
+
+    applyPaste.addEventListener("click", applyQuickText);
+    copyYaml.addEventListener("click", handleCopy);
+    downloadYaml.addEventListener("click", handleDownload);
+    resetForm.addEventListener("click", resetValues);
+    roundInput.addEventListener("input", updateOutput);
+    numberInputs.forEach((input) => input.addEventListener("input", updateOutput));
+
+    updateOutput();
+  </script>
+</body>
+</html>

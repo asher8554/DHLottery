@@ -118,3 +118,14 @@
 - 날짜나 티켓 식별번호처럼 45보다 큰 숫자가 섞이면 간단 형식으로 저장하지 않는다.
 - `1224회`와 숫자 6개만 있는 텍스트를 `import-ticket`으로 가져온 뒤 `check --dry-run --no-state`를 실행했고, 1224회 결과 대기 메시지를 확인했다.
 - `python -m unittest discover -s tests` 결과 14개 테스트가 통과했다.
+
+## 2026-05-10 GitHub Pages 입력 화면 예시
+
+- 사용자가 GitHub Pages에 입력 화면을 만들고, 회차와 번호 6개를 입력하면 파일 파싱을 쉽게 하는 방향을 제안했다.
+- GitHub Pages는 정적 호스팅이므로 별도 인증 토큰 없이 저장소 파일이나 GitHub Actions Secret을 직접 수정할 수 없다.
+- 안전한 예시 범위는 브라우저 안에서 `tickets.yml` 내용을 생성하고, 사용자가 복사하거나 다운로드한 뒤 기존 동기화 스크립트를 실행하는 것이다.
+- 입력 화면은 로그인 정보, 토큰, 예치금 정보를 받지 않는다.
+- `docs/ticket-entry.html`은 외부 라이브러리 없이 동작하는 정적 HTML로 만들었다.
+- 화면은 회차와 번호 6개 직접 입력, 간단 붙여넣기 적용, YAML 복사, `tickets.yml` 내려받기를 제공한다.
+- HTML 정적 검증으로 핵심 입력 요소와 `buildYaml`, `applyQuickText`, 다운로드 설정이 있는지 확인했다.
+- `python -m unittest discover -s tests` 결과 14개 테스트가 통과했다.
