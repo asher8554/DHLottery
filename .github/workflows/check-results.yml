@@ -3,10 +3,10 @@ name: Check lottery results
 on:
   workflow_dispatch:
   schedule:
-    # KST Thursday 19:15 for Pension 720+ result checks.
-    - cron: "15 10 * * 4"
-    # KST Saturday 21:10 for Lotto 6/45 result checks.
-    - cron: "10 12 * * 6"
+    # KST Thursday 20:10 for Pension 720+ result checks after site reflection delay.
+    - cron: "10 11 * * 4"
+    # KST Saturday 21:45 for Lotto 6/45 result checks after site reflection delay.
+    - cron: "45 12 * * 6"
 
 permissions:
   contents: write

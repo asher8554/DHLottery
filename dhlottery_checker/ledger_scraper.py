@@ -1,6 +1,7 @@
 # 로그인된 로컬 브라우저에서 구매내역 티켓 텍스트를 수집하는 모듈
 from __future__ import annotations
 
+from collections import Counter
 from dataclasses import dataclass
 import os
 from pathlib import Path
@@ -49,6 +50,18 @@ LOGIN_SUBMIT_SELECTORS = (
 )
 TICKET_BUTTON_PATTERN = re.compile(
     r"(티켓\s*보기|티켓보기|복권\s*보기|복권보기|복권\s*번호\s*보기|번호\s*보기|상세\s*보기|상세보기)"
+)
+DETAIL_ICON_PATTERN = re.compile(
+    r"(돋보기|조회|search|magnifier|btn[-_ ]?search|ico[-_ ]?search|icon[-_ ]?search|btn[-_ ]?view|detail|popup)",
+    re.IGNORECASE,
+)
+TICKET_CONTEXT_PATTERN = re.compile(
+    r"(로또|Lotto|연금복권|구매번호|구입일자|추첨일자|\d\s*조\s*\d{6}|\d{5}\s+\d{5}\s+\d{5})",
+    re.IGNORECASE,
+)
+LEDGER_TICKET_ROW_PATTERN = re.compile(
+    r"((로또|Lotto|연금복권).*(구입일자|추첨일자))|(\d\s*조\s*\d{6})|(\d{5}\s+\d{5}\s+\d{5})",
+    re.IGNORECASE,
 )
 
 
@@ -319,6 +332,9 @@ def _ticket_button_handles(page) -> list[object]:
                 label = handle.evaluate(
                     """
                     (el) => {
+                      const parent = el.parentElement;
+                      const grandParent = parent?.parentElement;
+                      const row = el.closest?.('li, tr');
                       const childImageLabels = Array.from(el.querySelectorAll?.('img') ?? [])
                         .flatMap((img) => [
                           img.getAttribute('alt'),
@@ -336,6 +352,12 @@ def _ticket_button_handles(page) -> list[object]:
                         el.getAttribute('href'),
                         el.id,
                         el.className,
+                        parent?.innerText,
+                        parent?.className,
+                        grandParent?.innerText,
+                        grandParent?.className,
+                        row?.innerText,
+                        row?.className,
                         ...childImageLabels
                       ].filter(Boolean).join(' ');
                     }
@@ -349,11 +371,19 @@ def _ticket_button_handles(page) -> list[object]:
 
 
 def is_ticket_button_label(label: str) -> bool:
-    return bool(TICKET_BUTTON_PATTERN.search(_normalize_text(label)))
+    normalized = _normalize_text(label)
+    return (
+        TICKET_BUTTON_PATTERN.search(normalized) is not None
+        or LEDGER_TICKET_ROW_PATTERN.search(normalized) is not None
+    ) or (
+        DETAIL_ICON_PATTERN.search(normalized) is not None
+        and TICKET_CONTEXT_PATTERN.search(normalized) is not None
+    )
 
 
 def _text_after_click(context, page, handle, timeout_error_type: type[Exception]) -> str:
     popup = None
+    before_texts = _all_body_texts(page)
     try:
         with context.expect_page(timeout=4000) as popup_info:
             handle.click(timeout=5000)
@@ -361,8 +391,11 @@ def _text_after_click(context, page, handle, timeout_error_type: type[Exception]
         _wait_for_page_settle(popup, timeout_error_type)
         return "\n".join(_all_body_texts(popup))
     except timeout_error_type:
-        page.wait_for_timeout(700)
-        text = "\n".join(_all_body_texts(page))
+        page.wait_for_timeout(1000)
+        after_texts = _all_body_texts(page)
+        text = _text_added_after_click(before_texts, after_texts)
+        if not _looks_like_ticket_text(text):
+            text = "\n".join(after_texts)
         _close_dialog(page)
         return text
     finally:
@@ -381,6 +414,21 @@ def _all_body_texts(page) -> list[str]:
         if normalized:
             texts.append(normalized)
     return texts
+
+
+def _text_added_after_click(before_texts: Iterable[str], after_texts: Iterable[str]) -> str:
+    before_lines = Counter(_split_text_lines("\n".join(before_texts)))
+    added_lines = []
+    for line in _split_text_lines("\n".join(after_texts)):
+        if before_lines[line] > 0:
+            before_lines[line] -= 1
+            continue
+        added_lines.append(line)
+    return "\n".join(added_lines)
+
+
+def _split_text_lines(text: str) -> list[str]:
+    return [line for line in _normalize_text(text).split("\n") if line.strip()]
 
 
 def _close_dialog(page) -> None:

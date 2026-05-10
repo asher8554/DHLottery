@@ -174,6 +174,27 @@ A 자동
         self.assertEqual(tickets[0].slot, "A")
         self.assertEqual(tickets[0].numbers, (9, 12, 13, 33, 35, 43))
 
+    def test_parses_lotto_ticket_view_text_with_four_games(self):
+        text = """
+로또6/45 티켓 보기
+1224회
+발행일 2026/05/10 (일) 14:55:24
+추첨일 2026/05/16
+지급기한 2027/05/17
+68365 78496 66600 43342 43250 50974
+A 자동 16 23 30 32 35 37
+B 자동 7 10 17 18 26 32
+C 자동 1 4 14 17 39 41
+D 자동 9 13 20 21 36 41
+합계 4,000원
+"""
+
+        tickets = parse_lotto_ticket_text(text)
+
+        self.assertEqual([ticket.slot for ticket in tickets], ["A", "B", "C", "D"])
+        self.assertEqual(tickets[0].round, 1224)
+        self.assertEqual(tickets[3].numbers, (9, 13, 20, 21, 36, 41))
+
     def test_rejects_identifier_numbers_without_selected_row(self):
         text = """
 2026-05-10

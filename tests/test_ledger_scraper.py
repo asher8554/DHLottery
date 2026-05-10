@@ -10,6 +10,7 @@ from dhlottery_checker.ledger_scraper import (
     _looks_like_ticket_text,
     _parse_env_text,
     _parse_ticket_texts,
+    _text_added_after_click,
     load_dhlottery_credentials,
     is_ticket_button_label,
 )
@@ -25,6 +26,8 @@ class LedgerScraperTest(unittest.TestCase):
         self.assertTrue(is_ticket_button_label("티켓 보기"))
         self.assertTrue(is_ticket_button_label("상세보기"))
         self.assertTrue(is_ticket_button_label("img alt=복권번호보기"))
+        self.assertTrue(is_ticket_button_label("btn-search 로또6/45 (1224) 구입일자 추첨일자"))
+        self.assertTrue(is_ticket_button_label("연금복권720+ (315) 1조 052414 구입일자 2026-05-10 추첨일자 2026-05-14"))
         self.assertFalse(is_ticket_button_label("조회"))
 
     def test_detects_ticket_text(self):
@@ -85,6 +88,38 @@ class LedgerScraperTest(unittest.TestCase):
         page = _FakePage({"input[type='password']": [hidden, visible]})
 
         self.assertIs(_first_visible_locator(page, ("input[type='password']",)), visible)
+
+    def test_text_added_after_click_prefers_modal_lines(self):
+        before = [
+            """
+연금복권720+ (315)
+1조 052414
+구입일자 2026-05-10
+추첨일자 2026-05-14
+로또6/45 (1224)
+68365 78496 66600 43342 43250 50974
+구입일자 2026-05-10
+추첨일자 2026-05-16
+"""
+        ]
+        after = [
+            before[0]
+            + """
+로또6/45 티켓 보기
+1224회
+발행일 2026/05/10 (일) 14:55:24
+추첨일 2026/05/16
+68365 78496 66600 43342 43250 50974
+A 자동 16 23 30 32 35 37
+B 자동 7 10 17 18 26 32
+C 자동 1 4 14 17 39 41
+D 자동 9 13 20 21 36 41
+합계 4,000원
+"""
+        ]
+
+        self.assertIn("로또6/45 티켓 보기", _text_added_after_click(before, after))
+        self.assertNotIn("연금복권720+ (315)", _text_added_after_click(before, after))
 
 class _FakePage:
     def __init__(self, elements_by_selector):
