@@ -329,3 +329,15 @@
 - 구매내역 URL 이동 중 `interrupted by another navigation` 오류가 나면 페이지 안정화를 다시 기다린 뒤 최대 3번 재시도한다.
 - 재시도가 모두 실패하면 traceback 대신 `구매내역 가져오기 실패` 경로로 사용자 메시지가 나오도록 `RuntimeError`를 발생시킨다.
 - `python -m unittest discover -s tests` 결과 35개 테스트가 통과했고, `scrape-ledger --help`도 확인했다.
+
+## 2026-05-10 로컬 env 로그인과 스크래퍼 디버그
+
+- 사용자가 수동 로그인 후 구매내역 화면까지 갔지만 `구매내역에서 로또 또는 연금복권 티켓 번호를 찾지 못했습니다` 메시지를 받았다.
+- 사용자는 아이디는 이미 채워져 있고 비밀번호는 로컬 `.env` 파일에 둘 테니 그것으로 로그인되길 요청했다.
+- `.env`에서 `DHLOTTERY_PASSWORD` 또는 `DHLOTTERY_PW`를 읽고, 필요하면 `DHLOTTERY_ID`, `DHLOTTERY_USERNAME`, `DHLOTTERY_USER`도 읽도록 했다.
+- `.env` 파일은 기존 `.gitignore`에 포함되어 있으므로 저장소에는 커밋하지 않는다.
+- 로그인 폼이 보이면 비밀번호를 채우고 로그인 버튼 또는 Enter로 제출한다.
+- 자동 로그인이 실패하거나 비밀번호가 없으면 기존처럼 사용자가 브라우저에서 직접 로그인하고 Enter를 누르는 흐름을 유지한다.
+- 티켓 버튼 탐지는 일반 텍스트 버튼뿐 아니라 iframe 안의 요소, 이미지 `alt`, `title`, `onclick`, `href`까지 확인하도록 넓혔다.
+- 티켓 텍스트를 찾지 못하면 `.browser/debug/ledger-body.txt`에 모든 frame의 화면 텍스트를 저장하고 가능하면 `.browser/debug/ledger-page.png`도 저장한다.
+- `python -m unittest discover -s tests` 결과 37개 테스트가 통과했고, `scrape-ledger --help`와 PowerShell 스크립트 문법 검증도 통과했다.

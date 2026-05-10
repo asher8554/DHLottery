@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import os
 from pathlib import Path
 import re
 from typing import Iterable
@@ -11,7 +12,9 @@ from .ticket_import import ImportedTickets, parse_ticket_text, write_imported_ti
 
 LEDGER_URL = "https://www.dhlottery.co.kr/mypage/mylotteryledger"
 HOME_URL = "https://www.dhlottery.co.kr/"
-TICKET_BUTTON_PATTERN = re.compile(r"(티켓\s*보기|티켓보기|복권\s*보기|상세\s*보기|상세보기)")
+TICKET_BUTTON_PATTERN = re.compile(
+    r"(티켓\s*보기|티켓보기|복권\s*보기|복권보기|복권\s*번호\s*보기|번호\s*보기|상세\s*보기|상세보기)"
+)
 
 
 @dataclass(frozen=True)
@@ -24,6 +27,7 @@ def scrape_ledger_to_file(
     *,
     ticket_path: str | Path = "data/tickets.yml",
     profile_dir: str | Path = ".browser/dhlottery",
+    env_file: str | Path = ".env",
     ledger_url: str = LEDGER_URL,
     max_tickets: int = 30,
     headless: bool = False,
@@ -31,6 +35,7 @@ def scrape_ledger_to_file(
 ) -> ScrapeLedgerResult:
     ticket_texts = scrape_ledger_ticket_texts(
         profile_dir=profile_dir,
+        env_file=env_file,
         ledger_url=ledger_url,
         max_tickets=max_tickets,
         headless=headless,
@@ -43,6 +48,7 @@ def scrape_ledger_to_file(
 def scrape_ledger_ticket_texts(
     *,
     profile_dir: str | Path = ".browser/dhlottery",
+    env_file: str | Path = ".env",
     ledger_url: str = LEDGER_URL,
     max_tickets: int = 30,
     headless: bool = False,
@@ -60,6 +66,7 @@ def scrape_ledger_ticket_texts(
 
     profile_path = Path(profile_dir)
     profile_path.mkdir(parents=True, exist_ok=True)
+    credentials = load_dhlottery_credentials(env_file)
 
     with sync_playwright() as playwright:
         context = playwright.chromium.launch_persistent_context(
@@ -72,13 +79,133 @@ def scrape_ledger_ticket_texts(
             page = context.pages[0] if context.pages else context.new_page()
             if not headless:
                 page.goto(HOME_URL, wait_until="domcontentloaded")
-                print("브라우저에서 동행복권에 로그인하고 구매/당첨내역 페이지가 보이면 Enter를 누르세요.")
-                input()
+                auto_logged_in = _auto_login_if_possible(page, credentials, PlaywrightTimeoutError)
+                if not auto_logged_in:
+                    print("브라우저에서 동행복권에 로그인하고 구매/당첨내역 페이지가 보이면 Enter를 누르세요.")
+                    input()
                 _wait_for_page_settle(page, PlaywrightTimeoutError)
             _goto_with_navigation_retry(page, ledger_url, PlaywrightError, PlaywrightTimeoutError)
-            return _collect_ticket_texts(context, page, max_tickets, PlaywrightTimeoutError)
+            if _auto_login_if_possible(page, credentials, PlaywrightTimeoutError):
+                _goto_with_navigation_retry(page, ledger_url, PlaywrightError, PlaywrightTimeoutError)
+            texts = _collect_ticket_texts(context, page, max_tickets, PlaywrightTimeoutError)
+            if not texts:
+                debug_path = _write_debug_snapshot(page, profile_path)
+                raise ValueError(
+                    "구매내역에서 로또 또는 연금복권 티켓 번호를 찾지 못했습니다. "
+                    f"현재 화면 텍스트를 {debug_path}에 저장했습니다."
+                )
+            return texts
         finally:
             context.close()
+
+
+def load_dhlottery_credentials(env_file: str | Path = ".env") -> tuple[str, str]:
+    values = _load_env_values(env_file)
+    username = _first_env_value(values, "DHLOTTERY_ID", "DHLOTTERY_USERNAME", "DHLOTTERY_USER")
+    password = _first_env_value(values, "DHLOTTERY_PASSWORD", "DHLOTTERY_PW")
+    return username, password
+
+
+def _load_env_values(env_file: str | Path) -> dict[str, str]:
+    values = dict(os.environ)
+    path = Path(env_file)
+    if not path.exists():
+        return values
+    values.update(_parse_env_text(path.read_text(encoding="utf-8")))
+    return values
+
+
+def _parse_env_text(text: str) -> dict[str, str]:
+    values: dict[str, str] = {}
+    for raw_line in text.splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("export "):
+            line = line[len("export ") :].strip()
+        if "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key = key.strip()
+        value = value.strip().strip("'\"")
+        if key:
+            values[key] = value
+    return values
+
+
+def _first_env_value(values: dict[str, str], *names: str) -> str:
+    for name in names:
+        value = values.get(name, "").strip()
+        if value:
+            return value
+    return ""
+
+
+def _auto_login_if_possible(page, credentials: tuple[str, str], timeout_error_type: type[Exception]) -> bool:
+    username, password = credentials
+    if not password:
+        return False
+
+    password_input = _first_visible_locator(
+        page,
+        (
+            "input[type='password']",
+            "input[name='password']",
+            "input[name='passwd']",
+            "input[name='userPwd']",
+            "#userPwd",
+            "#password",
+        ),
+    )
+    if password_input is None:
+        return False
+
+    username_input = _first_visible_locator(
+        page,
+        (
+            "input[name='userId']",
+            "input[name='userID']",
+            "input[name='loginId']",
+            "input[name='id']",
+            "#userId",
+            "#loginId",
+            "input[type='text']",
+        ),
+    )
+    if username and username_input is not None:
+        username_input.fill(username, timeout=3000)
+    password_input.fill(password, timeout=3000)
+    _submit_login_form(page, password_input)
+    _wait_for_page_settle(page, timeout_error_type)
+    return True
+
+
+def _first_visible_locator(page, selectors: Iterable[str]):
+    for selector in selectors:
+        try:
+            locator = page.locator(selector).first
+            if locator.count() > 0 and locator.is_visible(timeout=1000):
+                return locator
+        except Exception:
+            continue
+    return None
+
+
+def _submit_login_form(page, password_input) -> None:
+    for selector in (
+        "button:has-text('로그인')",
+        "input[type='submit']",
+        "input[type='button'][value*='로그인']",
+        "a:has-text('로그인')",
+    ):
+        try:
+            locator = page.locator(selector).first
+            if locator.count() > 0 and locator.is_visible(timeout=1000):
+                locator.click(timeout=3000)
+                return
+        except Exception:
+            continue
+    password_input.press("Enter", timeout=3000)
 
 
 def _goto_with_navigation_retry(page, url: str, error_type: type[Exception], timeout_error_type: type[Exception]) -> None:
@@ -119,38 +246,70 @@ def _collect_ticket_texts(context, page, max_tickets: int, timeout_error_type: t
     texts: list[str] = []
     buttons = _ticket_button_handles(page)
     for handle in buttons[:max_tickets]:
-        text = _text_after_click(context, page, handle, timeout_error_type)
+        try:
+            text = _text_after_click(context, page, handle, timeout_error_type)
+        except Exception:
+            continue
         normalized = _normalize_text(text)
         if normalized and _looks_like_ticket_text(normalized):
             texts.append(normalized)
 
     if not texts:
-        body_text = _body_text(page)
-        if _looks_like_ticket_text(body_text):
-            texts.append(_normalize_text(body_text))
+        for body_text in _all_body_texts(page):
+            if _looks_like_ticket_text(body_text):
+                texts.append(_normalize_text(body_text))
     return _unique_texts(texts)
 
 
+def _write_debug_snapshot(page, profile_path: Path) -> Path:
+    debug_dir = profile_path.parent / "debug"
+    debug_dir.mkdir(parents=True, exist_ok=True)
+    text_path = debug_dir / "ledger-body.txt"
+    text_path.write_text("\n\n--- frame ---\n\n".join(_all_body_texts(page)), encoding="utf-8")
+    try:
+        page.screenshot(path=str(debug_dir / "ledger-page.png"), full_page=True)
+    except Exception:
+        pass
+    return text_path
+
+
 def _ticket_button_handles(page) -> list[object]:
-    handles = page.query_selector_all("a, button, input[type='button'], input[type='submit']")
     ticket_handles = []
-    for handle in handles:
-        try:
-            label = handle.evaluate(
-                """
-                (el) => [
-                  el.innerText,
-                  el.value,
-                  el.getAttribute('aria-label'),
-                  el.getAttribute('title'),
-                  el.getAttribute('onclick')
-                ].filter(Boolean).join(' ')
-                """
-            )
-        except Exception:
-            continue
-        if is_ticket_button_label(str(label)):
-            ticket_handles.append(handle)
+    for frame in page.frames:
+        handles = frame.query_selector_all(
+            "a, button, input[type='button'], input[type='submit'], img, area, [role='button'], [onclick]"
+        )
+        for handle in handles:
+            try:
+                label = handle.evaluate(
+                    """
+                    (el) => {
+                      const childImageLabels = Array.from(el.querySelectorAll?.('img') ?? [])
+                        .flatMap((img) => [
+                          img.getAttribute('alt'),
+                          img.getAttribute('title'),
+                          img.getAttribute('src')
+                        ]);
+                      return [
+                        el.innerText,
+                        el.textContent,
+                        el.value,
+                        el.getAttribute('aria-label'),
+                        el.getAttribute('title'),
+                        el.getAttribute('alt'),
+                        el.getAttribute('onclick'),
+                        el.getAttribute('href'),
+                        el.id,
+                        el.className,
+                        ...childImageLabels
+                      ].filter(Boolean).join(' ');
+                    }
+                    """
+                )
+            except Exception:
+                continue
+            if is_ticket_button_label(str(label)):
+                ticket_handles.append(handle)
     return ticket_handles
 
 
@@ -161,14 +320,14 @@ def is_ticket_button_label(label: str) -> bool:
 def _text_after_click(context, page, handle, timeout_error_type: type[Exception]) -> str:
     popup = None
     try:
-        with context.expect_page(timeout=1500) as popup_info:
+        with context.expect_page(timeout=4000) as popup_info:
             handle.click(timeout=5000)
         popup = popup_info.value
-        popup.wait_for_load_state("domcontentloaded", timeout=5000)
-        return _body_text(popup)
+        _wait_for_page_settle(popup, timeout_error_type)
+        return "\n".join(_all_body_texts(popup))
     except timeout_error_type:
         page.wait_for_timeout(700)
-        text = _body_text(page)
+        text = "\n".join(_all_body_texts(page))
         _close_dialog(page)
         return text
     finally:
@@ -176,11 +335,17 @@ def _text_after_click(context, page, handle, timeout_error_type: type[Exception]
             popup.close()
 
 
-def _body_text(page) -> str:
-    try:
-        return page.locator("body").inner_text(timeout=5000)
-    except Exception:
-        return ""
+def _all_body_texts(page) -> list[str]:
+    texts = []
+    for frame in page.frames:
+        try:
+            text = frame.locator("body").inner_text(timeout=5000)
+        except Exception:
+            continue
+        normalized = _normalize_text(text)
+        if normalized:
+            texts.append(normalized)
+    return texts
 
 
 def _close_dialog(page) -> None:

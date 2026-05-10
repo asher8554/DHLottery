@@ -3,6 +3,7 @@
 param(
     [string]$Path = "data/tickets.yml",
     [string]$ProfileDir = ".browser/dhlottery",
+    [string]$EnvFile = ".env",
     [int]$MaxTickets = 30,
     [switch]$Append,
     [switch]$Headless
@@ -17,6 +18,7 @@ try {
         "-m", "dhlottery_checker", "scrape-ledger",
         "--tickets", $Path,
         "--profile-dir", $ProfileDir,
+        "--env-file", $EnvFile,
         "--max-tickets", [string]$MaxTickets
     )
     if ($Append) {
