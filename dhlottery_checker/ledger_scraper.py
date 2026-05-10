@@ -48,6 +48,7 @@ def scrape_ledger_ticket_texts(
     headless: bool = False,
 ) -> list[str]:
     try:
+        from playwright.sync_api import Error as PlaywrightError
         from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
         from playwright.sync_api import sync_playwright
     except ModuleNotFoundError as exc:
@@ -73,11 +74,45 @@ def scrape_ledger_ticket_texts(
                 page.goto(HOME_URL, wait_until="domcontentloaded")
                 print("브라우저에서 동행복권에 로그인하고 구매/당첨내역 페이지가 보이면 Enter를 누르세요.")
                 input()
-            page.goto(ledger_url, wait_until="domcontentloaded")
-            page.wait_for_load_state("networkidle", timeout=10000)
+                _wait_for_page_settle(page, PlaywrightTimeoutError)
+            _goto_with_navigation_retry(page, ledger_url, PlaywrightError, PlaywrightTimeoutError)
             return _collect_ticket_texts(context, page, max_tickets, PlaywrightTimeoutError)
         finally:
             context.close()
+
+
+def _goto_with_navigation_retry(page, url: str, error_type: type[Exception], timeout_error_type: type[Exception]) -> None:
+    last_error: Exception | None = None
+    for _ in range(3):
+        try:
+            page.goto(url, wait_until="domcontentloaded", timeout=30000)
+            _wait_for_page_settle(page, timeout_error_type)
+            return
+        except error_type as exc:
+            last_error = exc
+            if not _is_navigation_interruption(exc):
+                raise
+            _wait_for_page_settle(page, timeout_error_type)
+    raise RuntimeError("구매/당첨내역 페이지 이동이 로그인 리다이렉트와 계속 충돌했습니다. 잠시 후 다시 실행하세요.") from last_error
+
+
+def _wait_for_page_settle(page, timeout_error_type: type[Exception]) -> None:
+    for state in ("domcontentloaded", "networkidle"):
+        try:
+            page.wait_for_load_state(state, timeout=10000)
+        except timeout_error_type:
+            pass
+    try:
+        page.wait_for_timeout(1000)
+    except Exception:
+        pass
+
+
+def _is_navigation_interruption(exc: Exception) -> bool:
+    message = str(exc)
+    return "interrupted by another navigation" in message or (
+        "Navigation to" in message and "is interrupted" in message
+    )
 
 
 def _collect_ticket_texts(context, page, max_tickets: int, timeout_error_type: type[Exception]) -> list[str]:

@@ -2,6 +2,7 @@
 import unittest
 
 from dhlottery_checker.ledger_scraper import (
+    _is_navigation_interruption,
     _looks_like_ticket_text,
     _parse_ticket_texts,
     is_ticket_button_label,
@@ -31,6 +32,15 @@ class LedgerScraperTest(unittest.TestCase):
         self.assertEqual(imported.lotto[0].numbers, (9, 12, 13, 33, 35, 43))
         self.assertEqual(len(imported.pension), 1)
         self.assertEqual(imported.pension[0].number, "052414")
+
+    def test_detects_navigation_interruption(self):
+        message = (
+            'Page.goto: Navigation to "https://www.dhlottery.co.kr/mypage/mylotteryledger" '
+            'is interrupted by another navigation to "https://www.dhlottery.co.kr/login/loginSuccess.do?returnUrl=/main"'
+        )
+
+        self.assertTrue(_is_navigation_interruption(Exception(message)))
+        self.assertFalse(_is_navigation_interruption(Exception("Page.goto: net::ERR_NAME_NOT_RESOLVED")))
 
 
 if __name__ == "__main__":

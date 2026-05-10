@@ -320,3 +320,12 @@
 - `scrape-ledger` CLI와 `scripts/scrape-ledger.ps1`을 추가해 구매/당첨내역의 티켓 보기 버튼을 찾아 텍스트를 수집하고 `data/tickets.yml`을 갱신한다.
 - Playwright는 실행 시에만 import해 일반 당첨 확인과 테스트가 브라우저 설치에 의존하지 않도록 했다.
 - `python -m unittest discover -s tests` 결과 34개 테스트가 통과했고, `python -m dhlottery_checker scrape-ledger --help`도 확인했다.
+
+## 2026-05-10 로그인 직후 구매내역 이동 안정화
+
+- 사용자가 `scrape-ledger.ps1` 실행 후 로그인하고 Enter를 눌렀을 때 구매내역 이동이 `loginSuccess.do?returnUrl=/main` 리다이렉트와 충돌하는 Playwright 오류를 보고했다.
+- 원인은 로그인 성공 처리 페이지가 아직 자체 navigation 중인데 곧바로 `mypage/mylotteryledger`로 `goto`를 호출한 것이다.
+- 로그인 후 Enter를 누르면 `domcontentloaded`와 `networkidle`을 기다리고 짧게 대기하는 `_wait_for_page_settle`을 추가했다.
+- 구매내역 URL 이동 중 `interrupted by another navigation` 오류가 나면 페이지 안정화를 다시 기다린 뒤 최대 3번 재시도한다.
+- 재시도가 모두 실패하면 traceback 대신 `구매내역 가져오기 실패` 경로로 사용자 메시지가 나오도록 `RuntimeError`를 발생시킨다.
+- `python -m unittest discover -s tests` 결과 35개 테스트가 통과했고, `scrape-ledger --help`도 확인했다.
