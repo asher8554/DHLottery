@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import time
 from typing import Any
 from urllib import error, parse, request
 
@@ -29,6 +30,8 @@ def get_text(
     params: dict[str, Any] | None = None,
     timeout: int = 20,
     accept: str = "text/html,application/json",
+    retries: int = 2,
+    retry_delay: float = 1.5,
 ) -> str:
     target = _with_params(url, params)
     req = request.Request(
@@ -39,15 +42,23 @@ def get_text(
         },
         method="GET",
     )
-    try:
-        with request.urlopen(req, timeout=timeout) as response:
-            charset = response.headers.get_content_charset() or "utf-8"
-            return response.read().decode(charset, errors="replace")
-    except error.HTTPError as exc:
-        detail = _http_error_detail(exc)
-        raise HttpError(f"HTTP 요청에 실패했습니다. {target}. {detail}") from exc
-    except OSError as exc:
-        raise HttpError(f"HTTP 요청에 실패했습니다. {target}") from exc
+    last_error: Exception | None = None
+    for attempt in range(retries + 1):
+        try:
+            with request.urlopen(req, timeout=timeout) as response:
+                charset = response.headers.get_content_charset() or "utf-8"
+                return response.read().decode(charset, errors="replace")
+        except error.HTTPError as exc:
+            last_error = exc
+            if not _should_retry_http_error(exc) or attempt >= retries:
+                detail = _http_error_detail(exc)
+                raise HttpError(f"HTTP 요청에 실패했습니다. {target}. {detail}") from exc
+        except OSError as exc:
+            last_error = exc
+            if attempt >= retries:
+                raise HttpError(f"HTTP 요청에 실패했습니다. {target}") from exc
+        time.sleep(retry_delay * (attempt + 1))
+    raise HttpError(f"HTTP 요청에 실패했습니다. {target}") from last_error
 
 
 def post_form(url: str, data: dict[str, Any], headers: dict[str, str] | None = None, timeout: int = 20) -> dict[str, Any]:
@@ -117,3 +128,7 @@ def _http_error_detail(exc: error.HTTPError) -> str:
     if description:
         parts.append(f"description={description}")
     return ", ".join(parts)
+
+
+def _should_retry_http_error(exc: error.HTTPError) -> bool:
+    return exc.code == 429 or exc.code >= 500

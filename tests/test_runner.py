@@ -8,6 +8,8 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
+from dhlottery_checker.config import LottoTicket
+from dhlottery_checker.http import HttpError
 from dhlottery_checker.runner import Outcome, _format_messages, _run_check
 
 
@@ -99,6 +101,24 @@ class RunnerTest(unittest.TestCase):
 
         self.assertIn("연금복권 314회. 1게임 중 당첨 1개, 미당첨 0개.", messages[0])
         self.assertIn("당첨. 1 2조 060727 1등 월 700만원 x 20년.", messages[0])
+
+    def test_lottery_http_error_does_not_fail_run(self):
+        config = SimpleNamespace(
+            lotto=(LottoTicket(round=1224, numbers=(9, 12, 13, 33, 35, 43), label="로또 1224회 A"),),
+            pension=(),
+        )
+
+        with patch("dhlottery_checker.runner.load_ticket_config", return_value=config):
+            with patch("dhlottery_checker.runner.fetch_lotto_winning", side_effect=HttpError("timeout")):
+                with patch("dhlottery_checker.runner.send_kakao_text") as send_kakao:
+                    with patch("builtins.print") as print_mock:
+                        result = _run_check(self._args(force_notify=False))
+
+        self.assertEqual(result, 0)
+        send_kakao.assert_not_called()
+        output = "\n".join(call.args[0] for call in print_mock.call_args_list)
+        self.assertIn("결과 조회 실패", output)
+        self.assertIn("다음 실행에서 다시 시도합니다", output)
 
     def _args(self, force_notify: bool) -> argparse.Namespace:
         return argparse.Namespace(

@@ -222,3 +222,13 @@
 - `python -m unittest discover -s tests` 결과 20개 테스트가 통과했다.
 - Node DOM 모의 검증으로 연금복권 붙여넣기 샘플이 `group: 1`부터 `group: 5`, `number: "052414"` 5개로 YAML에 들어가는 것을 확인했다.
 - `0d9f99e` 커밋을 원격 `main`에 푸시했다.
+
+## 2026-05-10 다크모드와 동행복권 조회 실패 안정화
+
+- 사용자가 GitHub Actions 로그에서 동행복권 로또 API 조회가 `TimeoutError`로 실패한 것을 공유했다.
+- 실패 URL은 `https://www.dhlottery.co.kr/lt645/selectPstLt645InfoNew.do?srchDir=center&srchLtEpsd=1224`이고, 네트워크 시간 초과가 `HttpError`로 올라온 뒤 runner에서 잡히지 않아 작업이 실패했다.
+- HTTP GET에는 재시도를 추가하고, 결과 조회 단계에서 끝까지 실패하면 “결과 조회 실패. 다음 실행에서 다시 시도합니다.”라는 미해결 결과로 처리한다.
+- 미해결 결과는 중복 알림 상태에 저장하지 않으므로 다음 스케줄 또는 수동 실행에서 다시 확인된다.
+- 입력 페이지에는 `다크모드` 토글을 추가하고 선택값을 `localStorage`의 `dhlottery.theme`에 저장한다.
+- `python -m unittest discover -s tests` 결과 22개 테스트가 통과했다.
+- Node DOM 모의 검증으로 다크모드 토글 저장과 연금복권 붙여넣기 파싱이 함께 동작하는 것을 확인했다.

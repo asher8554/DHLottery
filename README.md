@@ -71,6 +71,7 @@ GitHub Secret까지 바로 갱신하려면 아래처럼 실행합니다.
 GitHub Pages에 올릴 수 있는 정적 입력 화면 예시는 [docs/ticket-entry.html](docs/ticket-entry.html)에 있습니다.
 로또 6/45와 연금복권720+ 입력 탭을 구분해 `tickets.yml` 내용을 생성하고, GitHub Actions를 실행해 공개 `data/tickets.yml`에 커밋할 수 있습니다.
 배포 후 주소는 <https://asher8554.github.io/DHLottery/> 입니다.
+입력 화면은 다크모드 토글을 제공하고, 선택한 화면 모드는 같은 브라우저에 저장됩니다.
 
 웹에서 GitHub에 저장하려면 GitHub fine-grained token을 입력합니다.
 토큰은 기본적으로 요청에만 사용하고, `이 브라우저에 토큰 저장`을 체크하면 현재 브라우저에 저장합니다.
@@ -87,6 +88,7 @@ GitHub Pages에 올릴 수 있는 정적 입력 화면 예시는 [docs/ticket-en
 GitHub cron은 UTC 기준이라 파일에는 각각 `15 10 * * 4`, `10 12 * * 6`으로 적혀 있습니다.
 
 발표 반영이 늦어지는 날을 고려해 즉시 확인하지 않도록 잡았습니다.
+동행복권 조회가 일시적으로 시간 초과되면 몇 번 재시도하고, 끝까지 실패하면 다음 실행에서 다시 확인하도록 실패 결과를 상태에 저장하지 않습니다.
 원하면 워크플로 파일의 cron만 바꾸면 됩니다.
 
 ## 설정 문서

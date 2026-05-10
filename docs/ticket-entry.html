@@ -10,17 +10,45 @@
       color-scheme: light;
       --bg: #f7f8fb;
       --surface: #ffffff;
+      --control: #ffffff;
+      --control-soft: #f8fafc;
       --text: #17202a;
       --muted: #667085;
       --line: #d8dee8;
       --focus: #1c6dd0;
       --good: #16794c;
       --bad: #b42318;
+      --primary: #1259a8;
+      --primary-text: #ffffff;
+      --yaml-bg: #101828;
+      --yaml-text: #e7edf7;
+      --empty-ball: #eef2f7;
+      --shadow: 0 10px 28px rgba(23, 32, 42, 0.06);
       --ball-yellow: #f2b705;
       --ball-blue: #3578d4;
       --ball-red: #d94a38;
       --ball-gray: #667085;
       --ball-green: #2c9b60;
+    }
+
+    body.theme-dark {
+      color-scheme: dark;
+      --bg: #111418;
+      --surface: #1a2027;
+      --control: #222a33;
+      --control-soft: #252e38;
+      --text: #ecf1f7;
+      --muted: #a9b4c2;
+      --line: #394452;
+      --focus: #7ab7ff;
+      --good: #64d69b;
+      --bad: #ff8b82;
+      --primary: #2d7fd3;
+      --primary-text: #ffffff;
+      --yaml-bg: #0c1117;
+      --yaml-text: #dce7f5;
+      --empty-ball: #2a333e;
+      --shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
     }
 
     * {
@@ -48,6 +76,14 @@
       justify-content: space-between;
       gap: 16px;
       margin-bottom: 18px;
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
     }
 
     h1 {
@@ -89,7 +125,7 @@
       border: 1px solid var(--line);
       border-radius: 8px;
       background: var(--surface);
-      box-shadow: 0 10px 28px rgba(23, 32, 42, 0.06);
+      box-shadow: var(--shadow);
       overflow: hidden;
     }
 
@@ -127,13 +163,13 @@
     .tab-button {
       min-height: 42px;
       border-color: var(--line);
-      background: #f8fafc;
+      background: var(--control-soft);
     }
 
     .tab-button.active {
-      border-color: #1259a8;
-      background: #1259a8;
-      color: #ffffff;
+      border-color: var(--primary);
+      background: var(--primary);
+      color: var(--primary-text);
     }
 
     .game-section {
@@ -158,7 +194,7 @@
       width: 100%;
       border: 1px solid var(--line);
       border-radius: 8px;
-      background: #ffffff;
+      background: var(--control);
       color: var(--text);
       font: inherit;
       letter-spacing: 0;
@@ -252,7 +288,7 @@
       border: 1px solid var(--line);
       border-radius: 8px;
       padding: 0 13px;
-      background: #ffffff;
+      background: var(--control);
       color: var(--text);
       font: inherit;
       font-weight: 700;
@@ -260,9 +296,9 @@
     }
 
     button.primary {
-      border-color: #1259a8;
-      background: #1259a8;
-      color: #ffffff;
+      border-color: var(--primary);
+      background: var(--primary);
+      color: var(--primary-text);
     }
 
     button:disabled {
@@ -305,7 +341,7 @@
 
     .ball.empty {
       color: var(--muted);
-      background: #eef2f7;
+      background: var(--empty-ball);
       box-shadow: none;
     }
 
@@ -316,8 +352,8 @@
       border: 1px solid var(--line);
       border-radius: 8px;
       overflow: auto;
-      background: #101828;
-      color: #e7edf7;
+      background: var(--yaml-bg);
+      color: var(--yaml-text);
       font-family: Consolas, "SFMono-Regular", Menlo, monospace;
       font-size: 14px;
       white-space: pre;
@@ -346,7 +382,7 @@
       height: 30px;
       padding: 0 8px;
       border-radius: 999px;
-      background: #eef2f7;
+      background: var(--empty-ball);
       color: var(--focus);
     }
 
@@ -359,6 +395,10 @@
       .topbar {
         align-items: flex-start;
         flex-direction: column;
+      }
+
+      .top-actions {
+        justify-content: flex-start;
       }
 
       .workspace {
@@ -407,9 +447,12 @@
   <main>
     <div class="topbar">
       <h1>복권 티켓 입력</h1>
-      <div class="badge" aria-label="GitHub Actions 연결">
-        <span class="badge-mark" aria-hidden="true"></span>
-        GitHub Actions 연결
+      <div class="top-actions">
+        <button type="button" id="themeToggle" aria-pressed="false">다크모드</button>
+        <div class="badge" aria-label="GitHub Actions 연결">
+          <span class="badge-mark" aria-hidden="true"></span>
+          GitHub Actions 연결
+        </div>
       </div>
     </div>
 
@@ -524,6 +567,7 @@
     const pensionNumberInput = document.querySelector("#pensionNumber");
     const addPensionTicket = document.querySelector("#addPensionTicket");
     const clearPensionTickets = document.querySelector("#clearPensionTickets");
+    const themeToggle = document.querySelector("#themeToggle");
     const yamlOutput = document.querySelector("#yamlOutput");
     const ticketSummary = document.querySelector("#ticketSummary");
     const statusEl = document.querySelector("#status");
@@ -541,6 +585,7 @@
     const ballColors = ["#f2b705", "#3578d4", "#d94a38", "#667085", "#2c9b60"];
     const workflowDispatchUrl = "https://api.github.com/repos/asher8554/DHLottery/actions/workflows/update-ticket.yml/dispatches";
     const tokenStorageKey = "dhlottery.githubToken";
+    const themeStorageKey = "dhlottery.theme";
     let parsedTickets = null;
     let pensionTickets = [];
 
@@ -606,6 +651,38 @@
     function setStatus(message, tone) {
       statusEl.textContent = message;
       statusEl.className = `status ${tone || ""}`.trim();
+    }
+
+    function applyTheme(theme) {
+      const useDark = theme === "dark";
+      document.body.classList.toggle("theme-dark", useDark);
+      themeToggle.setAttribute("aria-pressed", String(useDark));
+      themeToggle.textContent = useDark ? "라이트모드" : "다크모드";
+    }
+
+    function loadTheme() {
+      let savedTheme = "";
+      try {
+        savedTheme = localStorage.getItem(themeStorageKey) || "";
+      } catch {
+        savedTheme = "";
+      }
+      if (savedTheme) {
+        applyTheme(savedTheme);
+        return;
+      }
+      const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+      applyTheme(prefersDark ? "dark" : "light");
+    }
+
+    function toggleTheme() {
+      const nextTheme = document.body.classList.contains("theme-dark") ? "light" : "dark";
+      applyTheme(nextTheme);
+      try {
+        localStorage.setItem(themeStorageKey, nextTheme);
+      } catch {
+        setStatus("브라우저 저장소에 화면 모드를 저장하지 못했습니다.", "bad");
+      }
     }
 
     function renderBalls(numbers) {
@@ -1102,6 +1179,7 @@
     applyPensionPaste.addEventListener("click", applyPensionQuickText);
     addPensionTicket.addEventListener("click", addPensionFromForm);
     clearPensionTickets.addEventListener("click", clearPensionList);
+    themeToggle.addEventListener("click", toggleTheme);
     copyYaml.addEventListener("click", handleCopy);
     downloadYaml.addEventListener("click", handleDownload);
     resetForm.addEventListener("click", resetValues);
@@ -1129,6 +1207,7 @@
       selectGameSection(tab.dataset.target);
     }));
 
+    loadTheme();
     loadSavedToken();
     syncNotifyControls();
     updateOutput();

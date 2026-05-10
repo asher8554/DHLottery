@@ -9,6 +9,7 @@ import sys
 from typing import Iterable
 
 from .config import LottoTicket, PensionTicket, load_ticket_config
+from .http import HttpError
 from .kakao import send_kakao_text
 from .lotto import (
     ResultNotReady as LottoResultNotReady,
@@ -126,7 +127,14 @@ def _lotto_outcomes(tickets: Iterable[LottoTicket], salt: str) -> Iterable[Outco
     latest_round: int | None = None
     winning_cache = {}
     for ticket in tickets:
-        round_no = _resolve_round(ticket.round, latest_round, fetch_latest_lotto_round)
+        try:
+            round_no = _resolve_round(ticket.round, latest_round, fetch_latest_lotto_round)
+        except (LottoResultNotReady, HttpError) as exc:
+            round_no = 0 if ticket.round == "latest" else int(ticket.round)
+            label = ticket.label or f"로또 {round_no}회"
+            fingerprint = fingerprint_ticket({**ticket.state_payload(), "round": round_no}, salt)
+            yield Outcome("lotto", round_no, label, f"{label}. 결과 조회 실패. 다음 실행에서 다시 시도합니다. {exc}", fingerprint, False)
+            continue
         if ticket.round == "latest":
             latest_round = round_no
         fingerprint = fingerprint_ticket({**ticket.state_payload(), "round": round_no}, salt)
@@ -136,8 +144,9 @@ def _lotto_outcomes(tickets: Iterable[LottoTicket], salt: str) -> Iterable[Outco
                 winning_cache[round_no] = fetch_lotto_winning(round_no)
             winning = winning_cache[round_no]
             match = check_lotto(ticket.numbers, winning)
-        except LottoResultNotReady as exc:
-            yield Outcome("lotto", round_no, label, f"{label}. 결과 대기 중입니다. {exc}", fingerprint, False)
+        except (LottoResultNotReady, HttpError) as exc:
+            reason = "결과 대기 중입니다" if isinstance(exc, LottoResultNotReady) else "결과 조회 실패. 다음 실행에서 다시 시도합니다"
+            yield Outcome("lotto", round_no, label, f"{label}. {reason}. {exc}", fingerprint, False)
             continue
 
         selected = format_lotto_numbers(tuple(sorted(ticket.numbers)))
@@ -183,7 +192,14 @@ def _pension_outcomes(tickets: Iterable[PensionTicket], salt: str) -> Iterable[O
     latest_round: int | None = None
     winning_cache = {}
     for ticket in tickets:
-        round_no = _resolve_round(ticket.round, latest_round, fetch_latest_pension_round)
+        try:
+            round_no = _resolve_round(ticket.round, latest_round, fetch_latest_pension_round)
+        except (PensionResultNotReady, HttpError) as exc:
+            round_no = 0 if ticket.round == "latest" else int(ticket.round)
+            label = ticket.label or f"연금복권 {round_no}회"
+            fingerprint = fingerprint_ticket({**ticket.state_payload(), "round": round_no}, salt)
+            yield Outcome("pension", round_no, label, f"{label}. 결과 조회 실패. 다음 실행에서 다시 시도합니다. {exc}", fingerprint, False)
+            continue
         if ticket.round == "latest":
             latest_round = round_no
         fingerprint = fingerprint_ticket({**ticket.state_payload(), "round": round_no}, salt)
@@ -193,8 +209,9 @@ def _pension_outcomes(tickets: Iterable[PensionTicket], salt: str) -> Iterable[O
                 winning_cache[round_no] = fetch_pension_winning(round_no)
             winning = winning_cache[round_no]
             matches = check_pension(ticket.group, ticket.number, winning)
-        except PensionResultNotReady as exc:
-            yield Outcome("pension", round_no, label, f"{label}. 결과 대기 중입니다. {exc}", fingerprint, False)
+        except (PensionResultNotReady, HttpError) as exc:
+            reason = "결과 대기 중입니다" if isinstance(exc, PensionResultNotReady) else "결과 조회 실패. 다음 실행에서 다시 시도합니다"
+            yield Outcome("pension", round_no, label, f"{label}. {reason}. {exc}", fingerprint, False)
             continue
 
         selected = f"{ticket.group}조 {ticket.number}"
