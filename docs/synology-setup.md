@@ -113,6 +113,19 @@ docker run --rm -v "$PWD/.ssh:/root/.ssh" debian:bookworm-slim sh -lc \
 GIT_SSH_COMMAND="ssh -i .ssh/id_ed25519 -o IdentitiesOnly=yes" git ls-remote origin
 ```
 
+호스트에 Git이 없으면 연결 확인도 Docker로 실행합니다.
+
+```bash
+docker run --rm \
+  -v "$PWD:/work" \
+  -w /work \
+  -v "$PWD/.ssh:/root/.ssh" \
+  debian:bookworm-slim sh -lc \
+  "apt-get update && apt-get install -y --no-install-recommends git openssh-client ca-certificates && GIT_SSH_COMMAND='ssh -i /root/.ssh/id_ed25519 -o IdentitiesOnly=yes' git ls-remote origin"
+```
+
+성공하면 `HEAD`와 `refs/heads/main`이 포함된 해시 목록이 출력됩니다.
+
 ## .env 만들기
 
 저장소 루트에 `.env`를 만듭니다. 이 파일은 `.gitignore`에 포함되어 커밋되지 않습니다.
