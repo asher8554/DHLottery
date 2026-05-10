@@ -5,6 +5,5 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 .state/
-tickets.yml
-data/tickets.yml
+/tickets.yml
 data/tickets.*.local.yml

@@ -74,3 +74,16 @@
    검증은 정적 HTML 파일 존재와 리다이렉트 대상 확인으로 한다.
 3. 현재 원격 저장소가 public이므로 실제 `data/tickets.yml` 자동 커밋은 구현하지 않는다.
    검증은 실제 구매번호 파일을 커밋 대상에 올리지 않는 것으로 한다.
+
+## 2026-05-10 공개 티켓 파일 갱신 자동화
+
+목표는 사용자가 실제 번호 공개를 허용했으므로 Pages에서 입력한 YAML을 GitHub Actions로 보내고, 공개 `data/tickets.yml`을 커밋한 뒤 당첨 확인을 실행하는 것이다.
+
+1. `data/tickets.yml`을 공개 커밋 대상으로 바꾼다.
+   검증은 `.gitignore`에서 해당 경로를 제거하고 현재 파일을 추적 대상으로 올리는 것으로 한다.
+2. Pages 호출용 `update-ticket.yml` 워크플로를 추가한다.
+   검증은 workflow_dispatch 입력, `contents: write`, 파일 검증, 커밋, 검사 실행 단계가 있는지 확인한다.
+3. 기존 스케줄 검사 워크플로가 공개 파일을 읽게 바꾼다.
+   검증은 `check-results.yml`이 `--tickets data/tickets.yml`을 사용하고 `TICKETS_YAML` Secret에 의존하지 않는지 확인한다.
+4. 웹페이지에서 GitHub token으로 workflow_dispatch를 호출한다.
+   검증은 정적 HTML에 API URL, token 입력, 저장 버튼, Actions 링크가 있는지 확인한다.

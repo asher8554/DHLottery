@@ -1,0 +1,11 @@
+lotto:
+  tickets:
+  - label: 로또 1224회 A
+    round: 1224
+    numbers:
+    - 9
+    - 12
+    - 13
+    - 33
+    - 35
+    - 43

@@ -67,9 +67,13 @@ GitHub Secret까지 바로 갱신하려면 아래처럼 실행합니다.
 ## 웹 입력 화면 예시
 
 GitHub Pages에 올릴 수 있는 정적 입력 화면 예시는 [docs/ticket-entry.html](docs/ticket-entry.html)에 있습니다.
-회차와 번호 6개를 입력하면 `tickets.yml` 내용을 생성하고, 브라우저에서 복사하거나 내려받을 수 있습니다.
-정적 페이지는 저장소 파일이나 GitHub Secret을 직접 수정하지 않습니다.
+회차와 번호 6개를 입력하면 `tickets.yml` 내용을 생성하고, GitHub Actions를 실행해 공개 `data/tickets.yml`에 커밋할 수 있습니다.
 배포 후 주소는 <https://asher8554.github.io/DHLottery/> 입니다.
+
+웹에서 GitHub에 저장하려면 GitHub fine-grained token을 입력합니다.
+토큰은 브라우저에 저장하지 않고 요청에만 사용합니다.
+토큰 권한은 저장소 `asher8554/DHLottery`에 대해 `Actions: Read and write`면 됩니다.
+저장이 끝나면 `Update ticket and check results` 워크플로가 `data/tickets.yml`을 커밋하고 당첨 확인을 실행합니다.
 
 ## GitHub Actions 실행
 

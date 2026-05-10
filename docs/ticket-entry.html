@@ -174,6 +174,45 @@
       margin-top: 16px;
     }
 
+    .publish-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 10px;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--line);
+    }
+
+    .inline-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .inline-toggle input {
+      width: 18px;
+      height: 18px;
+      margin: 0;
+    }
+
+    .token-input {
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .external-link {
+      display: inline-flex;
+      align-items: center;
+      min-height: 40px;
+      color: var(--focus);
+      font-size: 14px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+
     button {
       min-height: 40px;
       border: 1px solid var(--line);
@@ -291,6 +330,11 @@
       .actions button {
         width: 100%;
       }
+
+      .external-link {
+        width: 100%;
+        justify-content: center;
+      }
     }
   </style>
 </head>
@@ -298,9 +342,9 @@
   <main>
     <div class="topbar">
       <h1>로또 티켓 입력</h1>
-      <div class="badge" aria-label="정적 페이지">
+      <div class="badge" aria-label="GitHub Actions 연결">
         <span class="badge-mark" aria-hidden="true"></span>
-        브라우저 안에서만 처리
+        GitHub Actions 연결
       </div>
     </div>
 
@@ -343,6 +387,20 @@
             <button type="button" id="downloadYaml">tickets.yml 내려받기</button>
             <button type="button" id="resetForm">초기화</button>
           </div>
+          <div class="publish-grid">
+            <label>
+              GitHub token
+              <input id="githubToken" class="token-input" type="password" autocomplete="off" placeholder="github_pat_...">
+            </label>
+            <label class="inline-toggle">
+              <input id="notifyAfterSave" type="checkbox" checked>
+              저장 후 당첨 확인과 카카오 알림 실행
+            </label>
+            <div class="actions">
+              <button type="button" class="primary" id="saveGithub">GitHub에 저장하고 검사</button>
+              <a class="external-link" href="https://github.com/asher8554/DHLottery/actions/workflows/update-ticket.yml" target="_blank" rel="noreferrer">Actions 보기</a>
+            </div>
+          </div>
           <div id="status" class="status" role="status" aria-live="polite"></div>
         </div>
       </section>
@@ -370,8 +428,12 @@
     const copyYaml = document.querySelector("#copyYaml");
     const downloadYaml = document.querySelector("#downloadYaml");
     const resetForm = document.querySelector("#resetForm");
+    const githubToken = document.querySelector("#githubToken");
+    const notifyAfterSave = document.querySelector("#notifyAfterSave");
+    const saveGithub = document.querySelector("#saveGithub");
 
     const ballColors = ["#f2b705", "#3578d4", "#d94a38", "#667085", "#2c9b60"];
+    const workflowDispatchUrl = "https://api.github.com/repos/asher8554/DHLottery/actions/workflows/update-ticket.yml/dispatches";
 
     function parsePositiveInt(value) {
       if (!/^\d+$/.test(String(value).trim())) {
@@ -438,6 +500,7 @@
         yamlOutput.textContent = "";
         copyYaml.disabled = true;
         downloadYaml.disabled = true;
+        saveGithub.disabled = true;
         setStatus(errors[0], "bad");
         return;
       }
@@ -445,6 +508,7 @@
       yamlOutput.textContent = buildYaml(round, numbers);
       copyYaml.disabled = false;
       downloadYaml.disabled = false;
+      saveGithub.disabled = false;
       setStatus("입력값이 올바릅니다.", "good");
     }
 
@@ -541,10 +605,58 @@
       updateOutput();
     }
 
+    async function handleSaveGithub() {
+      const token = githubToken.value.trim();
+      const yaml = yamlOutput.textContent.trim();
+
+      if (!yaml) {
+        setStatus("저장할 YAML이 없습니다.", "bad");
+        return;
+      }
+      if (!token) {
+        setStatus("GitHub token을 입력하세요.", "bad");
+        return;
+      }
+
+      saveGithub.disabled = true;
+      setStatus("GitHub Actions 실행을 요청하는 중입니다.", "");
+      try {
+        const response = await fetch(workflowDispatchUrl, {
+          method: "POST",
+          headers: {
+            "Accept": "application/vnd.github+json",
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "application/json",
+            "X-GitHub-Api-Version": "2022-11-28",
+          },
+          body: JSON.stringify({
+            ref: "main",
+            inputs: {
+              ticket_yaml: yamlOutput.textContent,
+              notify: notifyAfterSave.checked ? "true" : "false",
+            },
+          }),
+        });
+
+        if (response.ok) {
+          setStatus("GitHub Actions를 실행했습니다. Actions 보기에서 진행 상태를 확인하세요.", "good");
+          return;
+        }
+
+        const detail = await response.text();
+        setStatus(`GitHub 요청 실패. ${response.status} ${detail}`, "bad");
+      } catch (error) {
+        setStatus(`GitHub 요청 실패. ${error.message}`, "bad");
+      } finally {
+        saveGithub.disabled = false;
+      }
+    }
+
     applyPaste.addEventListener("click", applyQuickText);
     copyYaml.addEventListener("click", handleCopy);
     downloadYaml.addEventListener("click", handleDownload);
     resetForm.addEventListener("click", resetValues);
+    saveGithub.addEventListener("click", handleSaveGithub);
     roundInput.addEventListener("input", updateOutput);
     numberInputs.forEach((input) => input.addEventListener("input", updateOutput));
 

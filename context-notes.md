@@ -152,3 +152,16 @@
 - `gh api --method POST repos/asher8554/DHLottery/pages -f build_type=workflow`로 Pages를 GitHub Actions 배포 방식으로 활성화했다.
 - `gh workflow run pages.yml --repo asher8554/DHLottery --ref main`으로 재배포했고 성공했다.
 - `https://asher8554.github.io/DHLottery/`와 `/ticket-entry.html` 모두 HTTP 200 응답을 확인했다.
+
+## 2026-05-10 공개 티켓 파일 갱신 자동화
+
+- 사용자가 실제 로또 번호가 public 저장소에 공개되어도 상관없다고 명시했다.
+- 따라서 `data/tickets.yml`을 더 이상 `.gitignore`로 숨기지 않고 공개 커밋 대상으로 전환한다.
+- `update-ticket.yml` 워크플로는 Pages에서 받은 YAML을 `data/tickets.yml`에 쓰고 검증한 뒤 커밋한다.
+- 같은 워크플로에서 선택적으로 당첨 확인과 카카오 알림까지 실행한다.
+- 기존 `check-results.yml`은 더 이상 `TICKETS_YAML` Secret을 읽지 않고 공개 `data/tickets.yml`을 사용한다.
+- Pages UI는 GitHub token을 브라우저 저장소에 저장하지 않고 workflow_dispatch 요청의 Authorization 헤더에만 사용한다.
+- 웹에서 저장하려면 token에 `Actions: Read and write` 권한이 필요하다.
+- `python -m unittest discover -s tests` 결과 16개 테스트가 통과했다.
+- 워크플로 YAML 3개와 Pages HTML 정적 검증을 통과했다.
+- 공개 `data/tickets.yml`로 `check --dry-run --no-state`를 실행했고 1224회 결과 대기 메시지를 확인했다.
