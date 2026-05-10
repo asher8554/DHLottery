@@ -313,7 +313,7 @@
           <div class="grid">
             <label>
               빠른 붙여넣기
-              <textarea id="pasteText" spellcheck="false">1224회
+              <textarea id="pasteText" spellcheck="false">1224
 9
 12
 13
@@ -450,13 +450,18 @@
 
     function applyQuickText() {
       const text = pasteText.value;
-      const roundMatch = text.match(/(\d{3,5})\s*회/);
-      const round = roundMatch ? Number(roundMatch[1]) : null;
       const lines = text.split(/\r?\n/);
+      const cleanedLines = lines.map((line) => line.trim()).filter(Boolean);
+      const roundMatch = text.match(/(\d{3,5})\s*회/);
+      let round = roundMatch ? Number(roundMatch[1]) : null;
+      if (!round && /^\d{3,5}$/.test(cleanedLines[0] || "")) {
+        round = Number(cleanedLines[0]);
+      }
       const numbers = [];
 
-      for (const line of lines) {
-        if (/\d{3,5}\s*회/.test(line)) {
+      for (let index = 0; index < cleanedLines.length; index += 1) {
+        const line = cleanedLines[index];
+        if (/\d{3,5}\s*회/.test(line) || (index === 0 && /^\d{3,5}$/.test(line))) {
           continue;
         }
         const tokens = line.match(/\d+/g) || [];

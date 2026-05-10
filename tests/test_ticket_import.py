@@ -8,6 +8,31 @@ from dhlottery_checker.ticket_import import parse_lotto_ticket_text, write_lotto
 
 
 class TicketImportTest(unittest.TestCase):
+    def test_parses_plain_round_and_numbers(self):
+        text = """
+1224
+9
+12
+13
+33
+35
+43
+"""
+
+        tickets = parse_lotto_ticket_text(text)
+
+        self.assertEqual(tickets[0].round, 1224)
+        self.assertEqual(tickets[0].slot, "A")
+        self.assertEqual(tickets[0].numbers, (9, 12, 13, 33, 35, 43))
+
+    def test_parses_plain_round_with_utf8_bom(self):
+        text = "\ufeff1224\n9\n12\n13\n33\n35\n43\n"
+
+        tickets = parse_lotto_ticket_text(text)
+
+        self.assertEqual(tickets[0].round, 1224)
+        self.assertEqual(tickets[0].numbers, (9, 12, 13, 33, 35, 43))
+
     def test_parses_simple_lotto_numbers(self):
         text = """
 1224회

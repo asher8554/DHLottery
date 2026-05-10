@@ -82,7 +82,12 @@ def write_lotto_tickets(
 
 
 def _clean_lines(text: str) -> list[str]:
-    return [line.strip() for line in text.replace("\r\n", "\n").replace("\r", "\n").split("\n") if line.strip()]
+    lines = []
+    for line in text.replace("\r\n", "\n").replace("\r", "\n").split("\n"):
+        cleaned = line.strip().lstrip("\ufeff")
+        if cleaned:
+            lines.append(cleaned)
+    return lines
 
 
 def _parse_round(lines: list[str]) -> int:
@@ -90,6 +95,10 @@ def _parse_round(lines: list[str]) -> int:
         match = re.search(r"(\d{3,5})\s*회", line)
         if match:
             return int(match.group(1))
+
+    first_line_round = _parse_plain_round(lines)
+    if first_line_round is not None:
+        return first_line_round
 
     for index, line in enumerate(lines):
         if "로또6/45" not in line and "Lotto 6/45" not in line and "Lotto6/45" not in line:
@@ -99,6 +108,18 @@ def _parse_round(lines: list[str]) -> int:
                 return int(candidate)
 
     raise ValueError("로또 회차를 찾지 못했습니다.")
+
+
+def _parse_plain_round(lines: list[str]) -> int | None:
+    if not lines:
+        return None
+    first_line = lines[0]
+    if not re.fullmatch(r"\d{3,5}", first_line):
+        return None
+    remaining_numbers = [token for line in lines[1:] for token in re.findall(r"\d+", line)]
+    if len(remaining_numbers) != 6:
+        return None
+    return int(first_line)
 
 
 def _parse_lotto_rows(lines: list[str], round_no: int) -> list[ImportedLottoTicket]:
@@ -123,8 +144,8 @@ def _parse_lotto_rows(lines: list[str], round_no: int) -> list[ImportedLottoTick
 
 def _parse_simple_lotto(lines: list[str], round_no: int) -> ImportedLottoTicket | None:
     numbers: list[int] = []
-    for line in lines:
-        if re.search(r"\d{3,5}\s*회", line):
+    for index, line in enumerate(lines):
+        if re.search(r"\d{3,5}\s*회", line) or (index == 0 and re.fullmatch(r"\d{3,5}", line)):
             continue
         tokens = re.findall(r"\d+", line)
         if any(int(token) > 45 for token in tokens):

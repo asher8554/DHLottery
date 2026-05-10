@@ -38,7 +38,7 @@ python -m dhlottery_checker check --tickets tickets.yml --dry-run --no-state
 아래처럼 회차와 숫자 6개만 복사해도 됩니다.
 
 ```text
-1224회
+1224
 9
 12
 13
