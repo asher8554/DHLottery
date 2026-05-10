@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 from dataclasses import dataclass
+import json
 import os
 from pathlib import Path
 import sys
@@ -60,6 +61,7 @@ def main(argv: list[str] | None = None) -> int:
     check_parser.add_argument("--state", default=".state/sent-results.json", help="중복 알림 방지 상태 파일입니다.")
     check_parser.add_argument("--no-state", action="store_true", help="중복 알림 방지 상태를 사용하지 않습니다.")
     check_parser.add_argument("--force-notify", action="store_true", help="이미 알린 결과도 이번 실행에 다시 포함합니다.")
+    check_parser.add_argument("--status-json", help="이번 검사 실행 요약을 JSON 파일로 저장합니다.")
 
     import_parser = subparsers.add_parser("import-ticket", help="동행복권 티켓 보기 텍스트를 구매번호 YAML에 저장합니다.")
     import_parser.add_argument("--input", help="붙여넣기 텍스트 파일 경로입니다. 생략하면 표준 입력을 읽습니다.")
@@ -100,6 +102,8 @@ def _run_check(args: argparse.Namespace) -> int:
     ]
     pending = [outcome for outcome in outcomes if not outcome.resolved]
     pending_to_notify = [outcome for outcome in pending if _is_result_not_ready(outcome)]
+    sent_resolved_count = 0
+    sent_pending_count = 0
 
     messages = _format_messages(unsent, outcomes)
     notification_messages = _format_messages(unsent, pending_to_notify)
@@ -108,6 +112,8 @@ def _run_check(args: argparse.Namespace) -> int:
     if args.notify and not args.dry_run and (unsent or pending_to_notify):
         for message in notification_messages:
             send_kakao_text(message)
+        sent_resolved_count = len(unsent)
+        sent_pending_count = len(pending_to_notify)
         if state is not None:
             for outcome in unsent:
                 state.mark_sent(outcome.fingerprint, outcome.game, outcome.round)
@@ -115,6 +121,16 @@ def _run_check(args: argparse.Namespace) -> int:
     elif state is not None and not Path(args.state).exists():
         state.save()
 
+    _write_status_json(
+        args.status_json,
+        resolved_count=len(resolved),
+        unsent_resolved_count=len(unsent),
+        pending_count=len(pending),
+        pending_not_ready_count=len(pending_to_notify),
+        sent_resolved_count=sent_resolved_count,
+        sent_pending_count=sent_pending_count,
+        clear_tickets=sent_resolved_count > 0 and len(pending) == 0,
+    )
     return 0
 
 
@@ -269,6 +285,14 @@ def _format_messages(unsent: list[Outcome], all_outcomes: list[Outcome]) -> list
 
 def _format_report(unsent: list[Outcome], all_outcomes: list[Outcome]) -> str:
     return "\n\n".join(_format_messages(unsent, all_outcomes))
+
+
+def _write_status_json(path: str | None, **status: int | bool) -> None:
+    if not path:
+        return
+    target = Path(path)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(json.dumps(status, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
 def _format_summary_message(outcomes: list[Outcome]) -> str:

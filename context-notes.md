@@ -291,3 +291,13 @@
 - 페이지 로드 시 `https://raw.githubusercontent.com/asher8554/DHLottery/main/data/tickets.yml`을 읽어 로또와 연금복권 목록을 파싱한 뒤 기존 생성 결과 렌더링 흐름으로 복원한다.
 - 사용자가 이미 입력을 시작했다면 늦게 도착한 원격 데이터가 화면을 덮어쓰지 않도록 `userEdited` 플래그를 둔다.
 - Node 스크립트 구문 검사와 저장 YAML 복원 모의 검증을 통과했고, `python -m unittest discover -s tests` 결과 27개 테스트가 통과했다.
+
+## 2026-05-10 결과 발표 후 구매번호 초기화
+
+- 사용자가 카카오톡으로 실제 당첨 결과 발표가 정상 발송되면 생성 결과를 초기화하고, 발표 전이면 저장된 구매번호를 유지해 발표일 공지를 받길 원했다.
+- `dhlottery_checker check`에 `--status-json` 옵션을 추가해 해결 결과 수, 미해결 결과 수, 실제 발송 수, 구매번호 초기화 권장 여부를 파일로 남긴다.
+- `clear_tickets`는 해결된 결과 알림을 1건 이상 정상 발송했고 미해결 결과가 하나도 없을 때만 `true`가 된다.
+- `update-ticket.yml`과 `check-results.yml`은 이 상태 파일을 읽어 `clear_tickets`가 true일 때만 `data/tickets.yml`을 빈 파일로 커밋한다.
+- `check-results.yml`은 티켓 파일이 비어 있으면 스케줄 실행을 조용히 건너뛰도록 바꿔 초기화 뒤 불필요한 실패를 막았다.
+- Pages는 원격 `data/tickets.yml`이 비어 있으면 브라우저에 저장된 생성 결과 캐시도 삭제하고 화면을 비운다.
+- `python -m unittest discover -s tests` 결과 29개 테스트가 통과했고, HTML 스크립트 구문 검사와 원격 빈 파일 캐시 삭제 모의 검증, workflow YAML 파싱을 확인했다.

@@ -800,6 +800,11 @@
         }
         const yaml = await response.text();
         if (!yaml.trim()) {
+          clearPersistedTicketYaml();
+          if (!userEdited) {
+            resetValues();
+            setStatus("저장된 구매번호가 없습니다.", "");
+          }
           return;
         }
         if (applyYamlToForm(yaml)) {

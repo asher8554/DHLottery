@@ -106,7 +106,40 @@ jobs:
           if [ "$FORCE_NOTIFY" = "true" ]; then
             args+=(--force-notify)
           fi
+          args+=(--status-json .state/check-status.json)
           "${args[@]}"
+
+      - name: Clear ticket file after completed notification
+        if: ${{ inputs.notify == true || inputs.notify == 'true' }}
+        shell: bash
+        run: |
+          should_clear="$(python - <<'PY'
+          import json
+          from pathlib import Path
+
+          path = Path(".state/check-status.json")
+          if not path.exists():
+              print("false")
+          else:
+              status = json.loads(path.read_text(encoding="utf-8"))
+              print("true" if status.get("clear_tickets") else "false")
+          PY
+          )"
+          if [ "$should_clear" != "true" ]; then
+            echo "Keeping ticket file for a later result check."
+            exit 0
+          fi
+          : > data/tickets.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/tickets.yml
+          if git diff --cached --quiet; then
+            echo "Ticket file is already clear."
+          else
+            git commit -m "구매번호 초기화"
+            git pull --rebase
+            git push
+          fi
 
       - name: Save sent state
         if: ${{ always() && (inputs.notify == true || inputs.notify == 'true') }}

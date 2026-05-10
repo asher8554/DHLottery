@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 from pathlib import Path
 import tempfile
 from types import SimpleNamespace
@@ -219,7 +220,47 @@ class RunnerTest(unittest.TestCase):
         self.assertIn("로또 1223회. 당첨 0개, 미당첨 1개.", sent_text)
         self.assertIn("로또 1224회. 아직 당첨결과 발표 전입니다.", sent_text)
 
-    def _args(self, force_notify: bool) -> argparse.Namespace:
+    def test_status_json_recommends_clear_after_resolved_notification(self):
+        status_path = Path(self.temp_dir.name) / "check-status.json"
+        outcome = Outcome("lotto", 1223, "로또 1223회 A", "로또 1223회 A. 미당첨.", "done-ticket", True)
+
+        with patch("dhlottery_checker.runner.load_ticket_config", return_value=SimpleNamespace(lotto=[], pension=[])):
+            with patch("dhlottery_checker.runner._build_outcomes", return_value=[outcome]):
+                with patch("dhlottery_checker.runner.send_kakao_text"):
+                    with patch("builtins.print"):
+                        result = _run_check(self._args(force_notify=False, status_json=str(status_path)))
+
+        self.assertEqual(result, 0)
+        status = json.loads(status_path.read_text(encoding="utf-8"))
+        self.assertEqual(status["sent_resolved_count"], 1)
+        self.assertEqual(status["pending_count"], 0)
+        self.assertTrue(status["clear_tickets"])
+
+    def test_status_json_keeps_tickets_when_pending_remains(self):
+        status_path = Path(self.temp_dir.name) / "check-status.json"
+        outcome = Outcome(
+            "lotto",
+            1224,
+            "로또 1224회 A",
+            "로또 1224회 A. 결과 대기 중입니다.",
+            "pending-ticket",
+            False,
+        )
+
+        with patch("dhlottery_checker.runner.load_ticket_config", return_value=SimpleNamespace(lotto=[], pension=[])):
+            with patch("dhlottery_checker.runner._build_outcomes", return_value=[outcome]):
+                with patch("dhlottery_checker.runner.send_kakao_text"):
+                    with patch("builtins.print"):
+                        result = _run_check(self._args(force_notify=False, status_json=str(status_path)))
+
+        self.assertEqual(result, 0)
+        status = json.loads(status_path.read_text(encoding="utf-8"))
+        self.assertEqual(status["sent_resolved_count"], 0)
+        self.assertEqual(status["sent_pending_count"], 1)
+        self.assertEqual(status["pending_not_ready_count"], 1)
+        self.assertFalse(status["clear_tickets"])
+
+    def _args(self, force_notify: bool, status_json: str | None = None) -> argparse.Namespace:
         return argparse.Namespace(
             tickets="unused.yml",
             game="all",
@@ -228,6 +269,7 @@ class RunnerTest(unittest.TestCase):
             state=str(self.state_path),
             no_state=False,
             force_notify=force_notify,
+            status_json=status_json,
         )
 
     def setUp(self):
