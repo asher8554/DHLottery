@@ -2,17 +2,5 @@ lotto:
   tickets:
     - label: "로또 1224회 A"
       round: 1224
-      numbers: [16, 23, 30, 32, 35, 37]
-    - label: "로또 1224회 B"
-      round: 1224
-      numbers: [7, 10, 17, 18, 26, 32]
-    - label: "로또 1224회 C"
-      round: 1224
-      numbers: [1, 4, 14, 17, 39, 41]
-    - label: "로또 1224회 D"
-      round: 1224
-      numbers: [9, 13, 20, 21, 36, 41]
-    - label: "로또 1224회 E"
-      round: 1224
       numbers: [9, 12, 13, 33, 35, 43]
 
