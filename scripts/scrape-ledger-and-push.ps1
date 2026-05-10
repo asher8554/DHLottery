@@ -26,6 +26,12 @@ try {
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $scrapeScript = Join-Path $PSScriptRoot "scrape-ledger.ps1"
 
+function Stop-IfNativeFailed {
+    if ($LASTEXITCODE -ne 0) {
+        exit $LASTEXITCODE
+    }
+}
+
 Push-Location $repoRoot
 try {
     $scrapeParams = @{
@@ -46,25 +52,23 @@ try {
     }
 
     & $scrapeScript @scrapeParams
-    if ($LASTEXITCODE -ne 0) {
-        exit $LASTEXITCODE
-    }
+    Stop-IfNativeFailed
 
     git add -- $Path
-    if ($LASTEXITCODE -ne 0) {
-        exit $LASTEXITCODE
-    }
+    Stop-IfNativeFailed
 
     git diff --cached --quiet -- $Path
-    if ($LASTEXITCODE -eq 0) {
+    $diffExitCode = $LASTEXITCODE
+    if ($diffExitCode -eq 0) {
         Write-Host "data/tickets.yml 변경사항이 없습니다."
         return
     }
+    if ($diffExitCode -ne 1) {
+        exit $diffExitCode
+    }
 
     git commit -m $CommitMessage
-    if ($LASTEXITCODE -ne 0) {
-        exit $LASTEXITCODE
-    }
+    Stop-IfNativeFailed
 
     if ($NoPush) {
         Write-Host "커밋까지만 완료했습니다. -NoPush 옵션으로 원격 푸시는 건너뜁니다."
@@ -72,14 +76,10 @@ try {
     }
 
     git pull --rebase
-    if ($LASTEXITCODE -ne 0) {
-        exit $LASTEXITCODE
-    }
+    Stop-IfNativeFailed
 
     git push
-    if ($LASTEXITCODE -ne 0) {
-        exit $LASTEXITCODE
-    }
+    Stop-IfNativeFailed
 
     Write-Host "GitHub Pages에서 새 구매번호를 확인할 수 있습니다."
 } finally {

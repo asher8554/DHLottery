@@ -62,6 +62,9 @@ DETAIL_ICON_PATTERN = re.compile(
     re.IGNORECASE,
 )
 BARCODE_BUTTON_PATTERN = re.compile(r"(^|\s)(barcd|col-num)(\s|$)", re.IGNORECASE)
+TICKET_BUTTON_SELECTOR = (
+    "a, button, input[type='button'], input[type='submit'], img, area, .barcd, [role='button'], [onclick]"
+)
 TICKET_CONTEXT_PATTERN = re.compile(
     r"(로또|Lotto|연금복권|구매번호|구입일자|추첨일자|\d\s*조\s*\d{6}|\d{5}\s+\d{5}\s+\d{5})",
     re.IGNORECASE,
@@ -365,9 +368,7 @@ def _write_debug_snapshot(page, profile_path: Path) -> Path:
 def _ticket_button_handles(page) -> list[object]:
     ticket_handles = []
     for frame in page.frames:
-        handles = frame.query_selector_all(
-            "a, button, input[type='button'], input[type='submit'], img, area, .barcd, [role='button'], [onclick]"
-        )
+        handles = frame.query_selector_all(TICKET_BUTTON_SELECTOR)
         for handle in handles:
             try:
                 label = _ticket_button_label(handle)
@@ -445,9 +446,7 @@ def _ticket_button_debug_labels(page) -> list[str]:
     debug_labels = []
     for frame_index, frame in enumerate(page.frames):
         try:
-            handles = frame.query_selector_all(
-                "a, button, input[type='button'], input[type='submit'], img, area, .barcd, [role='button'], [onclick]"
-            )
+            handles = frame.query_selector_all(TICKET_BUTTON_SELECTOR)
         except Exception:
             continue
         for index, handle in enumerate(handles):

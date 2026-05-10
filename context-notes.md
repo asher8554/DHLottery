@@ -398,3 +398,11 @@
 - 로컬 자동 연동은 `scripts/scrape-ledger-and-push.ps1`이 담당한다. 이 스크립트는 기존 `scrape-ledger.ps1`을 실행한 뒤 `data/tickets.yml`만 커밋하고 원격에 푸시한다.
 - Pages에서 당첨 검사를 바로 누를 수 있도록 `check-results.yml`에 `force_notify` workflow_dispatch 입력을 추가했다.
 - Playwright로 `docs/ticket-entry.html`을 열어 원격 구매번호 YAML이 로드되고 `생성 결과`에 `lotto:`가 표시되는 것을 확인했다.
+
+## 2026-05-10 스크래퍼 실행 경로 정리
+
+- 사용자는 `.\scripts\scrape-ledger-and-push.ps1 -ShowProgress` 실행 흐름은 좋지만 구현 과정에서 불합리하거나 더 짧게 쓸 수 있는 코드가 없는지 점검을 요청했다.
+- 기능 동작은 유지하고, PowerShell wrapper의 반복 exit code 체크와 `git diff --quiet` 처리만 정리한다.
+- `git diff --quiet`는 변경이 있으면 exit code 1을 반환하므로 이 값은 오류가 아니라 커밋 진행 신호로 다뤄야 한다.
+- `scrape-ledger.ps1`에도 UTF-8 콘솔 설정을 추가해 두 스크립트가 같은 인코딩 기준으로 동작하게 한다.
+- Python 스크래퍼의 상세 버튼 CSS selector 문자열은 두 함수에서 중복되어 상수로 올렸다.

@@ -341,3 +341,14 @@
    검증은 DOM 필수 요소와 삭제된 수동 입력 요소를 검사한다.
 3. 로컬에서 `scrape-ledger` 실행 후 `data/tickets.yml`을 커밋/푸시하는 스크립트를 추가한다.
    검증은 PowerShell 문법 검사와 dry-run 가능한 git 경로 확인으로 진행한다.
+
+## 2026-05-10 스크래퍼 실행 경로 정리
+
+목표는 `.\scripts\scrape-ledger-and-push.ps1 -ShowProgress`의 외부 동작은 유지하면서 반복 코드와 오류 처리의 애매한 부분을 줄이는 것이다.
+
+1. PowerShell native command 실패 체크를 한 함수로 모은다.
+   검증은 두 PowerShell 스크립트 문법 검사로 확인한다.
+2. `git diff --cached --quiet`의 exit code 1을 변경 있음으로 분리하고, 그 외 값만 오류로 처리한다.
+   검증은 스크립트 정적 검토와 문법 검사로 확인한다.
+3. Python 스크래퍼에서 반복되는 상세 버튼 selector 문자열을 상수화한다.
+   검증은 전체 단위 테스트로 확인한다.
