@@ -257,3 +257,11 @@
 - 로또는 `https://www.dhlottery.co.kr/lt645/result`, 연금복권은 `https://www.dhlottery.co.kr/pt720/result`를 사용한다.
 - `python -m unittest discover -s tests` 결과 23개 테스트가 통과했다.
 - `data/tickets.example.yml` dry-run으로 요약 메시지에 로또와 연금복권 결과 링크가 포함되는 것을 확인했다.
+
+## 2026-05-10 결과 링크 배치 정리
+
+- 사용자가 요약 줄을 먼저 공지하고, 그 아래에 로또와 연금복권 링크만 붙는 형식을 원했다.
+- `이번 회차는 당첨 없음.`과 `결과 확인` 문구는 제거한다.
+- 당첨 항목이 있는 경우에도 회차별 당첨/미당첨 요약을 먼저 보여주고 당첨 상세 줄은 그 뒤에 둔다.
+- `python -m unittest discover -s tests` 결과 23개 테스트가 통과했다.
+- `data/tickets.example.yml` dry-run으로 요약 블록, 당첨 상세 줄, 빈 줄, 링크 순서가 맞는지 확인했다.

@@ -265,11 +265,10 @@ def _format_report(unsent: list[Outcome], all_outcomes: list[Outcome]) -> str:
 
 def _format_summary_message(outcomes: list[Outcome]) -> str:
     lines = ["[동행복권 결과 요약]"]
-    total_won_count = 0
     groups = _group_outcomes(outcomes)
+    winning_lines = []
     for group in groups:
         won_count = sum(1 for outcome in group if outcome.won)
-        total_won_count += won_count
         losing_count = len(group) - won_count
         lines.append(f"{_group_title(group[0])}. 당첨 {won_count}개, 미당첨 {losing_count}개.")
         if won_count:
@@ -278,9 +277,9 @@ def _format_summary_message(outcomes: list[Outcome]) -> str:
                 for outcome in group
                 if outcome.won
             )
-            lines.append(f"당첨. {winning_text}.")
-    if total_won_count == 0:
-        lines.append("이번 회차는 당첨 없음.")
+            winning_lines.append(f"당첨. {winning_text}.")
+    lines.extend(winning_lines)
+    lines.append("")
     lines.extend(_result_link_lines(groups))
     return "\n".join(lines)
 
@@ -322,7 +321,7 @@ def _group_title(outcome: Outcome) -> str:
 
 
 def _result_link_lines(groups: list[list[Outcome]]) -> list[str]:
-    lines = ["결과 확인"]
+    lines = []
     for group in groups:
         representative = group[0]
         if representative.game == "lotto":
