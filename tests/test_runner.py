@@ -150,6 +150,55 @@ class RunnerTest(unittest.TestCase):
         output = "\n".join(call.args[0] for call in print_mock.call_args_list)
         self.assertIn("결과 조회 실패", output)
         self.assertIn("다음 실행에서 다시 시도합니다", output)
+        self.assertNotIn("아직 당첨결과 발표 전입니다", output)
+
+    def test_pending_result_message_is_notified(self):
+        outcome = Outcome(
+            "lotto",
+            1224,
+            "로또 1224회 A",
+            "로또 1224회 A. 결과 대기 중입니다.",
+            "pending-ticket",
+            False,
+        )
+
+        with patch("dhlottery_checker.runner.load_ticket_config", return_value=SimpleNamespace(lotto=[], pension=[])):
+            with patch("dhlottery_checker.runner._build_outcomes", return_value=[outcome]):
+                with patch("dhlottery_checker.runner.send_kakao_text") as send_kakao:
+                    with patch("builtins.print") as print_mock:
+                        result = _run_check(self._args(force_notify=False))
+
+        self.assertEqual(result, 0)
+        send_kakao.assert_called_once()
+        message = send_kakao.call_args.args[0]
+        self.assertIn("로또 1224회. 아직 당첨결과 발표 전입니다.", message)
+        self.assertIn("로또 1224회 https://www.dhlottery.co.kr/lt645/result", message)
+        self.assertIn("발표 후 다시 검사하면 당첨 여부를 알려드립니다.", message)
+        output = "\n".join(call.args[0] for call in print_mock.call_args_list)
+        self.assertIn("아직 당첨결과 발표 전입니다", output)
+
+    def test_pending_notice_is_sent_with_resolved_results(self):
+        resolved = Outcome("lotto", 1223, "로또 1223회 A", "로또 1223회 A. 미당첨.", "old-ticket", True)
+        pending = Outcome(
+            "lotto",
+            1224,
+            "로또 1224회 A",
+            "로또 1224회 A. 결과 대기 중입니다.",
+            "pending-ticket",
+            False,
+        )
+
+        with patch("dhlottery_checker.runner.load_ticket_config", return_value=SimpleNamespace(lotto=[], pension=[])):
+            with patch("dhlottery_checker.runner._build_outcomes", return_value=[resolved, pending]):
+                with patch("dhlottery_checker.runner.send_kakao_text") as send_kakao:
+                    with patch("builtins.print"):
+                        result = _run_check(self._args(force_notify=False))
+
+        self.assertEqual(result, 0)
+        self.assertEqual(send_kakao.call_count, 3)
+        sent_text = "\n\n".join(call.args[0] for call in send_kakao.call_args_list)
+        self.assertIn("로또 1223회. 당첨 0개, 미당첨 1개.", sent_text)
+        self.assertIn("로또 1224회. 아직 당첨결과 발표 전입니다.", sent_text)
 
     def _args(self, force_notify: bool) -> argparse.Namespace:
         return argparse.Namespace(

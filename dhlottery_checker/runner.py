@@ -98,12 +98,15 @@ def _run_check(args: argparse.Namespace) -> int:
     unsent = resolved if args.force_notify else [
         outcome for outcome in resolved if state is None or not state.is_sent(outcome.fingerprint)
     ]
+    pending = [outcome for outcome in outcomes if not outcome.resolved]
+    pending_to_notify = [outcome for outcome in pending if _is_result_not_ready(outcome)]
 
     messages = _format_messages(unsent, outcomes)
+    notification_messages = _format_messages(unsent, pending_to_notify)
     print("\n\n".join(messages))
 
-    if args.notify and not args.dry_run and unsent:
-        for message in messages:
+    if args.notify and not args.dry_run and (unsent or pending_to_notify):
+        for message in notification_messages:
             send_kakao_text(message)
         if state is not None:
             for outcome in unsent:
@@ -250,12 +253,15 @@ def _resolve_round(round_value: int | str, cached_latest: int | None, loader) ->
 
 
 def _format_messages(unsent: list[Outcome], all_outcomes: list[Outcome]) -> list[str]:
+    messages = []
     if unsent:
-        return [_format_summary_message(unsent), _format_detail_message(unsent)]
+        messages.extend([_format_summary_message(unsent), _format_detail_message(unsent)])
 
-    pending = [outcome.text for outcome in all_outcomes if not outcome.resolved]
+    pending = [outcome for outcome in all_outcomes if not outcome.resolved]
     if pending:
-        return ["\n".join(["동행복권 결과 상세", *pending])]
+        messages.append(_format_pending_message(pending))
+    if messages:
+        return messages
     return ["[동행복권 결과 요약]\n새로 알릴 결과가 없습니다."]
 
 
@@ -298,6 +304,26 @@ def _format_detail_message(outcomes: list[Outcome]) -> str:
             shown_rules.add(rule_key)
         lines.append(outcome.detail_text or outcome.text)
     return "\n".join(lines)
+
+
+def _format_pending_message(outcomes: list[Outcome]) -> str:
+    groups = _group_outcomes(outcomes)
+    lines = ["[동행복권 결과 요약]"]
+    for group in groups:
+        if any(_is_result_not_ready(outcome) for outcome in group):
+            lines.append(f"{_group_title(group[0])}. 아직 당첨결과 발표 전입니다.")
+        else:
+            lines.append(f"{_group_title(group[0])}. 결과 조회 실패. 다음 실행에서 다시 시도합니다.")
+    lines.append("")
+    lines.extend(_result_link_lines(groups))
+    if any(_is_result_not_ready(outcome) for outcome in outcomes):
+        lines.append("")
+        lines.append("발표 후 다시 검사하면 당첨 여부를 알려드립니다.")
+    return "\n".join(lines)
+
+
+def _is_result_not_ready(outcome: Outcome) -> bool:
+    return "결과 대기 중입니다" in outcome.text
 
 
 def _group_outcomes(outcomes: list[Outcome]) -> list[list[Outcome]]:
