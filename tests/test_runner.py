@@ -34,7 +34,7 @@ class RunnerTest(unittest.TestCase):
                             _run_check(args)
                             self.assertEqual(send_kakao.call_count, 2)
                             sent_text = "\n\n".join(call.args[0] for call in send_kakao.call_args_list)
-                            self.assertIn("동행복권 결과 요약", sent_text)
+                            self.assertIn("[동행복권 결과 요약]", sent_text)
                             self.assertIn("동행복권 결과 상세", sent_text)
                             self.assertIn("재전송 결과", sent_text)
 
@@ -74,7 +74,8 @@ class RunnerTest(unittest.TestCase):
         )
 
         self.assertEqual(len(messages), 2)
-        self.assertIn("2게임 중 당첨 1개, 미당첨 1개", messages[0])
+        self.assertIn("[동행복권 결과 요약]", messages[0])
+        self.assertIn("로또 1223회. 당첨 1개, 미당첨 1개.", messages[0])
         self.assertIn("당첨. A 5등 5,000원.", messages[0])
         self.assertIn("로또는 3개부터 당첨입니다.", messages[1])
         self.assertIn("B. 미당첨. 맞은 번호 18, 32. 보너스 일치.", messages[1])
@@ -99,8 +100,31 @@ class RunnerTest(unittest.TestCase):
             [],
         )
 
-        self.assertIn("연금복권 314회. 1게임 중 당첨 1개, 미당첨 0개.", messages[0])
+        self.assertIn("연금복권 314회. 당첨 1개, 미당첨 0개.", messages[0])
         self.assertIn("당첨. 1 2조 060727 1등 월 700만원 x 20년.", messages[0])
+
+    def test_formats_no_winner_summary_in_requested_style(self):
+        messages = _format_messages(
+            [
+                Outcome("lotto", 1223, "로또 1223회 A", "A. 미당첨.", "lotto-a", True, match_count=2),
+                Outcome("lotto", 1223, "로또 1223회 B", "B. 미당첨.", "lotto-b", True, match_count=1),
+                Outcome("pension", 314, "연금복권 314회 1", "1. 미당첨.", "pension-1", True),
+            ],
+            [],
+        )
+
+        self.assertEqual(
+            messages[0],
+            "\n".join(
+                [
+                    "[동행복권 결과 요약]",
+                    "로또 1223회. 당첨 0개, 미당첨 2개.",
+                    "연금복권 314회. 당첨 0개, 미당첨 1개.",
+                    "이번 회차는 당첨 없음.",
+                ]
+            ),
+        )
+        self.assertNotIn("최고 일치", messages[0])
 
     def test_lottery_http_error_does_not_fail_run(self):
         config = SimpleNamespace(

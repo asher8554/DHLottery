@@ -252,7 +252,7 @@ def _format_messages(unsent: list[Outcome], all_outcomes: list[Outcome]) -> list
     pending = [outcome.text for outcome in all_outcomes if not outcome.resolved]
     if pending:
         return ["\n".join(["동행복권 결과 상세", *pending])]
-    return ["동행복권 결과 요약\n새로 알릴 결과가 없습니다."]
+    return ["[동행복권 결과 요약]\n새로 알릴 결과가 없습니다."]
 
 
 def _format_report(unsent: list[Outcome], all_outcomes: list[Outcome]) -> str:
@@ -260,11 +260,13 @@ def _format_report(unsent: list[Outcome], all_outcomes: list[Outcome]) -> str:
 
 
 def _format_summary_message(outcomes: list[Outcome]) -> str:
-    lines = ["동행복권 결과 요약"]
+    lines = ["[동행복권 결과 요약]"]
+    total_won_count = 0
     for group in _group_outcomes(outcomes):
         won_count = sum(1 for outcome in group if outcome.won)
+        total_won_count += won_count
         losing_count = len(group) - won_count
-        lines.append(f"{_group_title(group[0])}. {len(group)}게임 중 당첨 {won_count}개, 미당첨 {losing_count}개.")
+        lines.append(f"{_group_title(group[0])}. 당첨 {won_count}개, 미당첨 {losing_count}개.")
         if won_count:
             winning_text = ", ".join(
                 outcome.summary_text or f"{outcome.label} {outcome.result_label}"
@@ -272,12 +274,8 @@ def _format_summary_message(outcomes: list[Outcome]) -> str:
                 if outcome.won
             )
             lines.append(f"당첨. {winning_text}.")
-            continue
-        match_counts = [outcome.match_count for outcome in group if outcome.match_count is not None]
-        if match_counts:
-            lines.append(f"최고 일치 {max(match_counts)}개. 이번 회차는 당첨 없음.")
-        else:
-            lines.append("이번 회차는 당첨 없음.")
+    if total_won_count == 0:
+        lines.append("이번 회차는 당첨 없음.")
     return "\n".join(lines)
 
 
