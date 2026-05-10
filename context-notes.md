@@ -139,3 +139,13 @@
 - `python -m unittest discover -s tests` 결과 16개 테스트가 통과했다.
 - `1224` 첫 줄 형식으로 임시 파일을 가져온 뒤 `check --dry-run --no-state`를 실행했고, 1224회 결과 대기 메시지를 확인했다.
 - HTML 정적 검증으로 빠른 붙여넣기 기본값과 첫 줄 회차 처리 코드가 있는지 확인했다.
+
+## 2026-05-10 GitHub Pages 배포 구성
+
+- 사용자가 GitHub Pages로 UI를 확인할 수 있게 하고, 입력 후 GitHub 내 `ticket.yml`에 적용해 검사되도록 구성해 달라고 요청했다.
+- `gh repo view asher8554/DHLottery --json visibility`로 확인한 결과 원격 저장소는 public이다.
+- public 저장소에 실제 `data/tickets.yml`을 커밋하면 구매번호가 공개되므로 자동 커밋 방식은 구현하지 않는다.
+- 우선 `docs/`를 GitHub Pages로 배포하는 Actions 워크플로를 추가한다.
+- Pages 예상 주소는 `https://asher8554.github.io/DHLottery/`이다.
+- `docs/index.html`은 Pages 루트 접근 시 `ticket-entry.html`로 이동한다.
+- 워크플로 YAML 로딩 검증, Pages 정적 검증, 단위 테스트 16개를 실행해 통과를 확인했다.

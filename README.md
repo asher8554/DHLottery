@@ -69,6 +69,7 @@ GitHub Secret까지 바로 갱신하려면 아래처럼 실행합니다.
 GitHub Pages에 올릴 수 있는 정적 입력 화면 예시는 [docs/ticket-entry.html](docs/ticket-entry.html)에 있습니다.
 회차와 번호 6개를 입력하면 `tickets.yml` 내용을 생성하고, 브라우저에서 복사하거나 내려받을 수 있습니다.
 정적 페이지는 저장소 파일이나 GitHub Secret을 직접 수정하지 않습니다.
+배포 후 주소는 <https://asher8554.github.io/DHLottery/> 입니다.
 
 ## GitHub Actions 실행
 

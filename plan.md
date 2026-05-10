@@ -63,3 +63,14 @@
    검증은 페이지 스크립트에 1부터 45 사이 중복 없는 숫자 조건을 둔다.
 3. GitHub Pages가 저장소 파일이나 Secret을 직접 수정하지 않는 한계를 문서에 명확히 둔다.
    검증은 README에 예시 페이지 링크와 사용 범위를 추가한다.
+
+## 2026-05-10 GitHub Pages 배포 구성
+
+목표는 `docs/` 정적 페이지를 GitHub Pages로 배포해 사용자가 `https://asher8554.github.io/DHLottery/`에서 UI를 확인할 수 있게 하는 것이다.
+
+1. GitHub Pages Actions 배포 워크플로를 추가한다.
+   검증은 워크플로 파일에 Pages 권한과 `docs` artifact 업로드가 있는지 확인한다.
+2. Pages 루트에서 티켓 입력 페이지로 이동하는 `docs/index.html`을 추가한다.
+   검증은 정적 HTML 파일 존재와 리다이렉트 대상 확인으로 한다.
+3. 현재 원격 저장소가 public이므로 실제 `data/tickets.yml` 자동 커밋은 구현하지 않는다.
+   검증은 실제 구매번호 파일을 커밋 대상에 올리지 않는 것으로 한다.
