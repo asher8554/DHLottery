@@ -433,3 +433,11 @@
 - 주간 작업은 `scripts/synology-docker-run.sh`를 DSM 작업 스케줄러에서 호출하는 구조로 안내한다.
 - Docker 이미지에는 Python 3.12, Git, SSH client, Playwright Chromium 의존성을 넣는다.
 - `NO_PUSH=1` 같은 테스트 옵션이 컨테이너 안까지 전달되도록 `scripts/synology-docker-run.sh`에서 환경변수를 넘긴다.
+
+## 2026-05-11 시놀로지 headless 예치금 조회 보정
+
+- 시놀로지 로그에서 구매번호 수집은 성공했지만 예치금만 `찾지 못했습니다`로 출력됐다.
+- 원인은 headless 실행에서 로그인 페이지 이동을 건너뛰고 메인 화면의 예치금을 먼저 읽은 뒤, 구매내역 페이지에서야 로그인 폼을 제출했기 때문이다.
+- 해결은 headless에서도 로그인 페이지를 먼저 열어 자동 로그인을 시도하고, 구매내역에서 뒤늦게 로그인된 경우 메인으로 돌아가 예치금을 다시 읽는 것이다.
+- 사용자의 실제 저장소 경로는 `/volume1/docker/Github/DHLottery`이므로 문서의 `/volume1/docker/DHLottery` 예시는 혼동을 줄이도록 함께 보강한다.
+- 일반 사용자 계정은 Docker daemon socket 권한이 없어 `permission denied`가 났다. DSM 작업 스케줄러는 root로 실행하거나 사용자를 Docker 권한 그룹에 넣어야 한다.

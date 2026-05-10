@@ -186,14 +186,13 @@ def scrape_ledger_data(
         )
         try:
             page = context.pages[0] if context.pages else context.new_page()
-            if not headless:
-                _log(verbose, f"로그인 페이지 이동. {login_url}")
-                _goto_with_navigation_retry(page, login_url, PlaywrightError, PlaywrightTimeoutError)
-                if _auto_login_if_possible(page, credentials, PlaywrightTimeoutError):
-                    _log(verbose, "로그인 폼 자동 제출 완료.")
-                else:
-                    _log(verbose, "자동 제출할 로그인 폼을 찾지 못했거나 비밀번호가 없습니다.")
-                _wait_for_page_settle(page, PlaywrightTimeoutError)
+            _log(verbose, f"로그인 페이지 이동. {login_url}")
+            _goto_with_navigation_retry(page, login_url, PlaywrightError, PlaywrightTimeoutError)
+            if _auto_login_if_possible(page, credentials, PlaywrightTimeoutError):
+                _log(verbose, "로그인 폼 자동 제출 완료.")
+            else:
+                _log(verbose, "자동 제출할 로그인 폼을 찾지 못했거나 비밀번호가 없습니다.")
+            _wait_for_page_settle(page, PlaywrightTimeoutError)
             _log(verbose, f"동행복권 메인 이동. {main_url}")
             _goto_with_navigation_retry(page, main_url, PlaywrightError, PlaywrightTimeoutError)
             if _auto_login_if_possible(page, credentials, PlaywrightTimeoutError):
@@ -209,11 +208,31 @@ def scrape_ledger_data(
             if _auto_login_if_possible(page, credentials, PlaywrightTimeoutError):
                 _log(verbose, "구매내역 이동 후 로그인 폼을 다시 제출했습니다.")
                 _goto_with_navigation_retry(page, ledger_url, PlaywrightError, PlaywrightTimeoutError)
+                if balance_amount is None:
+                    balance_amount = _read_balance_from_main(
+                        page,
+                        main_url,
+                        PlaywrightError,
+                        PlaywrightTimeoutError,
+                        verbose,
+                    )
+                    _goto_with_navigation_retry(page, ledger_url, PlaywrightError, PlaywrightTimeoutError)
             if not headless and _page_has_login_form(page):
                 print("자동 로그인이 되지 않았습니다. 브라우저에서 로그인하고 구매/당첨내역 페이지가 보이면 Enter를 누르세요.")
                 input()
                 _wait_for_page_settle(page, PlaywrightTimeoutError)
                 _goto_with_navigation_retry(page, ledger_url, PlaywrightError, PlaywrightTimeoutError)
+                if balance_amount is None:
+                    balance_amount = _read_balance_from_main(
+                        page,
+                        main_url,
+                        PlaywrightError,
+                        PlaywrightTimeoutError,
+                        verbose,
+                    )
+                    _goto_with_navigation_retry(page, ledger_url, PlaywrightError, PlaywrightTimeoutError)
+            if balance_amount is None:
+                _log(verbose, "최종 예치금 조회에 실패했습니다.")
             _log(verbose, _ledger_list_summary(_all_body_texts(page)))
             texts = _collect_ticket_texts(context, page, max_tickets, PlaywrightTimeoutError, verbose=verbose)
             if not texts:
@@ -247,6 +266,23 @@ def write_account_snapshot(
         f"  updated_at: \"{updated_at}\"\n",
         encoding="utf-8",
     )
+
+
+def _read_balance_from_main(
+    page,
+    main_url: str,
+    error_type: type[Exception],
+    timeout_error_type: type[Exception],
+    verbose: bool,
+) -> int | None:
+    _log(verbose, f"예치금 재조회용 메인 이동. {main_url}")
+    _goto_with_navigation_retry(page, main_url, error_type, timeout_error_type)
+    balance_amount = _read_main_balance(page, verbose)
+    if balance_amount is None:
+        _log(verbose, "메인 화면에서 예치금을 찾지 못했습니다.")
+    else:
+        _log(verbose, f"예치금 감지. {balance_amount:,}원.")
+    return balance_amount
 
 
 def _read_main_balance(page, verbose: bool) -> int | None:
