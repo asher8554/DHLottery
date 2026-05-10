@@ -388,3 +388,13 @@
 - 로또 상세 팝업은 `#Lotto645TicketP`, 연금복권 상세 팝업은 보이는 `.popup-wrap.on`에서 전체 텍스트를 직접 읽는 방식이 안정적이었다.
 - 팝업 닫기 버튼은 텍스트가 없는 `button#btn-pop-close`였으므로 텍스트 `X`를 찾는 방식으로는 닫히지 않았다.
 - 실제 `.\scripts\scrape-ledger.ps1 -MaxTickets 10 -ShowProgress` 실행 결과 로또 5개와 연금복권 5개가 `data/tickets.yml`에 정상 생성되는 것을 확인했다.
+
+## 2026-05-10 Pages 자동 연동 화면 정리
+
+- 사용자는 수동 붙여넣기 입력이 더 이상 필요 없고, 로컬 스크래퍼가 만든 `data/tickets.yml` 내용이 Pages의 생성 결과에 바로 올라오기를 원한다.
+- 브라우저에서 열린 GitHub Pages는 로컬 PC 프로그램을 직접 실행할 수 없으므로 연결 경로는 `로컬 scrape-ledger 실행`, `data/tickets.yml 커밋/푸시`, `Pages가 원격 data/tickets.yml 로드` 순서가 된다.
+- 기존 `ticket-entry.html`은 이미 원격 `data/tickets.yml`을 읽는 기능이 있었지만 수동 입력 UI가 중심이라 사용자 흐름과 맞지 않았다.
+- `docs/ticket-entry.html`은 수동 입력 탭과 붙여넣기 파서를 제거하고, 원격 `data/tickets.yml`을 읽어 생성 결과와 요약만 표시하는 화면으로 바꿨다.
+- 로컬 자동 연동은 `scripts/scrape-ledger-and-push.ps1`이 담당한다. 이 스크립트는 기존 `scrape-ledger.ps1`을 실행한 뒤 `data/tickets.yml`만 커밋하고 원격에 푸시한다.
+- Pages에서 당첨 검사를 바로 누를 수 있도록 `check-results.yml`에 `force_notify` workflow_dispatch 입력을 추가했다.
+- Playwright로 `docs/ticket-entry.html`을 열어 원격 구매번호 YAML이 로드되고 `생성 결과`에 `lotto:`가 표시되는 것을 확인했다.

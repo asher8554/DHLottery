@@ -2,6 +2,12 @@ name: Check lottery results
 
 on:
   workflow_dispatch:
+    inputs:
+      force_notify:
+        description: "Send Kakao notification even if the same result was already sent."
+        required: false
+        default: false
+        type: boolean
   schedule:
     # KST Thursday 20:10 for Pension 720+ result checks after site reflection delay.
     - cron: "10 11 * * 4"
@@ -77,7 +83,15 @@ jobs:
 
       - name: Check results and send Kakao message
         if: ${{ steps.ticket-file.outputs.has_tickets == 'true' }}
-        run: python -m dhlottery_checker check --tickets data/tickets.yml --notify --state .state/sent-results.json --status-json .state/check-status.json
+        env:
+          FORCE_NOTIFY: ${{ inputs.force_notify }}
+        shell: bash
+        run: |
+          args=(python -m dhlottery_checker check --tickets data/tickets.yml --notify --state .state/sent-results.json --status-json .state/check-status.json)
+          if [ "$FORCE_NOTIFY" = "true" ]; then
+            args+=(--force-notify)
+          fi
+          "${args[@]}"
 
       - name: Clear ticket file after completed notification
         if: ${{ steps.ticket-file.outputs.has_tickets == 'true' }}

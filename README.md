@@ -33,41 +33,6 @@ python -m dhlottery_checker check --tickets tickets.yml --dry-run --no-state
 회차를 정확히 알고 있다면 `round`에 숫자를 넣는 것이 가장 안전합니다.
 `latest`도 지원하지만 발표 직후에는 최신 회차 반영이 늦을 수 있으므로 일반 사용에는 숫자 회차를 권장합니다.
 
-## 티켓 보기 붙여넣기 입력
-
-동행복권에서 직접 구매한 뒤 `티켓 보기` 화면의 텍스트를 복사하면 로또 선택번호를 자동으로 `data/tickets.yml`에 반영할 수 있습니다.
-아이디, 비밀번호, 예치금 정보는 저장하거나 자동 입력하지 않습니다.
-아래처럼 회차와 숫자 6개만 복사해도 됩니다.
-
-```text
-1224
-9
-12
-13
-33
-35
-43
-```
-
-티켓 보기 화면 전체를 복사한 경우에도 `A`, `B`, `C`, `D`, `E` 게임 줄을 찾아 여러 게임을 한 번에 입력할 수 있습니다.
-
-1. 동행복권에서 로그인하고 구매내역 또는 티켓 보기 화면을 엽니다.
-2. `A 자동 9 12 13 33 35 43`처럼 실제 선택번호가 보이는 부분까지 복사합니다.
-3. 저장소 루트에서 아래 명령을 실행합니다.
-
-```powershell
-.\scripts\import-ticket.ps1 -ReplaceAll
-```
-
-처음 실제 티켓으로 바꾸거나 로또만 관리한다면 `-ReplaceAll`을 쓰면 됩니다.
-연금복권 항목은 유지하고 로또 항목만 교체하려면 `-ReplaceLotto`를 씁니다.
-기존 `data/tickets.yml`에 로또 항목을 누적하고 싶다면 두 옵션을 모두 빼고 실행합니다.
-GitHub Secret까지 바로 갱신하려면 아래처럼 실행합니다.
-
-```powershell
-.\scripts\import-ticket.ps1 -ReplaceAll -SyncSecret
-```
-
 ## 로컬 구매내역 자동 가져오기
 
 붙여넣기 대신 로컬 브라우저에서 동행복권 구매/당첨내역을 열고 티켓 보기 내용을 자동으로 가져올 수 있습니다.
@@ -84,10 +49,12 @@ python -m playwright install chromium
 이후 아래 명령을 실행합니다.
 
 ```powershell
-.\scripts\scrape-ledger.ps1
+.\scripts\scrape-ledger-and-push.ps1 -ShowProgress
 ```
 
 스크립트는 먼저 `https://www.dhlottery.co.kr/login`으로 이동해 로그인 폼을 확인한 뒤, 자동 로그인 후 `https://www.dhlottery.co.kr/mypage/mylotteryledger`로 이동합니다.
+초록 돋보기 상세 팝업을 열어 구매번호를 읽고 `data/tickets.yml`을 갱신한 다음 커밋과 푸시까지 진행합니다.
+푸시가 끝나면 Pages 화면의 생성 결과가 원격 `data/tickets.yml` 내용으로 표시됩니다.
 
 비밀번호를 매번 입력하지 않으려면 로컬 `.env`에 아래 값을 넣습니다.
 `.env`는 `.gitignore`에 포함되어 커밋되지 않습니다.
@@ -109,14 +76,13 @@ DHLOTTERY_PASSWORD=내비밀번호
 기존 항목에 누적하려면 `-Append`를 붙입니다.
 
 ```powershell
-.\scripts\scrape-ledger.ps1 -Append
+.\scripts\scrape-ledger-and-push.ps1 -Append -ShowProgress
 ```
 
-진행 상황을 터미널에서 보면서 확인하려면 `-ShowProgress`를 붙입니다.
-PowerShell 공통 옵션인 `-Verbose`도 같은 방식으로 동작합니다.
+로컬 파일 생성만 확인하고 원격 푸시는 미루려면 `-NoPush`를 붙입니다.
 
 ```powershell
-.\scripts\scrape-ledger.ps1 -ShowProgress
+.\scripts\scrape-ledger-and-push.ps1 -ShowProgress -NoPush
 ```
 
 로그인 세션을 지우고 싶으면 `.browser` 폴더를 삭제하면 됩니다.
@@ -124,18 +90,19 @@ PowerShell 공통 옵션인 `-Verbose`도 같은 방식으로 동작합니다.
 상세 버튼 후보 정보는 `.browser/debug/ledger-candidates.txt`에 저장됩니다.
 화면에 티켓이 보이는데도 실패하면 이 파일에서 `티켓보기`, `복권번호보기`, `A 자동` 같은 문구가 있는지 확인하면 다음 수정 지점을 바로 잡을 수 있습니다.
 
-## 웹 입력 화면 예시
+## Pages 생성 결과 확인
 
-GitHub Pages에 올릴 수 있는 정적 입력 화면 예시는 [docs/ticket-entry.html](docs/ticket-entry.html)에 있습니다.
-로또 6/45와 연금복권720+ 입력 탭을 구분해 `tickets.yml` 내용을 생성하고, GitHub Actions를 실행해 공개 `data/tickets.yml`에 커밋할 수 있습니다.
+Pages 화면은 [docs/ticket-entry.html](docs/ticket-entry.html)에 있습니다.
 배포 후 주소는 <https://asher8554.github.io/DHLottery/> 입니다.
-입력 화면은 다크모드 토글을 제공하고, 선택한 화면 모드는 같은 브라우저에 저장됩니다.
+직접 입력 화면이 아니라 GitHub에 저장된 `data/tickets.yml`을 읽어 생성 결과와 구매번호 요약을 표시합니다.
+스크래퍼 푸시 후 화면에서 `새로고침`을 누르면 최신 구매번호를 다시 불러옵니다.
+다크모드 토글을 제공하고, 선택한 화면 모드는 같은 브라우저에 저장됩니다.
 
-웹에서 GitHub에 저장하려면 GitHub fine-grained token을 입력합니다.
+웹에서 당첨 검사를 바로 실행하려면 GitHub fine-grained token을 입력합니다.
 토큰은 기본적으로 요청에만 사용하고, `이 브라우저에 토큰 저장`을 체크하면 현재 브라우저에 저장합니다.
 토큰 권한은 저장소 `asher8554/DHLottery`에 대해 `Actions: Read and write`면 됩니다.
-저장이 끝나면 `Update ticket and check results` 워크플로가 `data/tickets.yml`을 커밋하고 당첨 확인을 실행합니다.
-이미 보낸 결과를 카카오톡으로 다시 받고 싶으면 웹 입력 화면에서 `강제 재전송`을 체크합니다.
+`당첨 검사 실행` 버튼은 `Check lottery results` 워크플로를 실행합니다.
+이미 보낸 결과를 카카오톡으로 다시 받고 싶으면 `카카오톡 강제 재전송`을 체크합니다.
 카카오 알림은 전체 결과를 빠르게 보는 요약 메시지와 맞은 번호를 확인하는 상세 메시지로 나뉘어 발송됩니다.
 요약 메시지는 당첨 항목이 있을 때 로또 A-E 슬롯이나 연금복권 번호와 등수를 함께 보여줍니다.
 요약 메시지에는 동행복권 결과 페이지 링크도 함께 포함됩니다.
