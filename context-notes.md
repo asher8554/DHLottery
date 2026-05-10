@@ -165,3 +165,7 @@
 - `python -m unittest discover -s tests` 결과 16개 테스트가 통과했다.
 - 워크플로 YAML 3개와 Pages HTML 정적 검증을 통과했다.
 - 공개 `data/tickets.yml`로 `check --dry-run --no-state`를 실행했고 1224회 결과 대기 메시지를 확인했다.
+- `dfeb6b3` 커밋을 원격에 푸시한 뒤 Pages 배포가 성공했다.
+- `update-ticket.yml`을 `notify=false`로 실제 실행했고, 티켓 파일 검증과 커밋 단계가 성공했다.
+- 같은 티켓 내용이라 원격 실행 로그에서 `No ticket changes to commit.`을 확인했다.
+- 배포된 `ticket-entry.html`에서 `GitHub에 저장하고 검사` 버튼이 포함된 HTTP 200 응답을 확인했다.
