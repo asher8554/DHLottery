@@ -8,6 +8,101 @@ from dhlottery_checker.ticket_import import parse_lotto_ticket_text, write_lotto
 
 
 class TicketImportTest(unittest.TestCase):
+    def test_parses_full_ticket_text_with_split_game_blocks(self):
+        text = """
+1224회
+발행일
+2026/05/10 (일) 14:55:24
+추첨일
+2026/05/16
+지급기한
+2027/05/17
+68365
+78496
+66600
+43342
+43250
+50974
+A
+자동
+16
+
+23
+
+30
+
+32
+
+35
+
+37
+
+B
+자동
+7
+
+10
+
+17
+
+18
+
+26
+
+32
+
+C
+자동
+1
+
+4
+
+14
+
+17
+
+39
+
+41
+
+D
+자동
+9
+
+13
+
+20
+
+21
+
+36
+
+41
+E
+자동
+9
+
+12
+
+13
+
+33
+
+35
+
+43
+"""
+
+        tickets = parse_lotto_ticket_text(text)
+
+        self.assertEqual([ticket.slot for ticket in tickets], ["A", "B", "C", "D", "E"])
+        self.assertEqual(tickets[0].round, 1224)
+        self.assertEqual(tickets[0].numbers, (16, 23, 30, 32, 35, 37))
+        self.assertEqual(tickets[1].numbers, (7, 10, 17, 18, 26, 32))
+        self.assertEqual(tickets[2].numbers, (1, 4, 14, 17, 39, 41))
+        self.assertEqual(tickets[3].numbers, (9, 13, 20, 21, 36, 41))
+        self.assertEqual(tickets[4].numbers, (9, 12, 13, 33, 35, 43))
+
     def test_parses_plain_round_and_numbers(self):
         text = """
 1224

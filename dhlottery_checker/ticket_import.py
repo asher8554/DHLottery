@@ -36,6 +36,10 @@ class ImportedLottoTicket:
 def parse_lotto_ticket_text(text: str) -> list[ImportedLottoTicket]:
     lines = _clean_lines(text)
     round_no = _parse_round(lines)
+    block_tickets = _parse_lotto_blocks(lines, round_no)
+    if block_tickets:
+        return block_tickets
+
     simple_ticket = _parse_simple_lotto(lines, round_no)
     if simple_ticket is not None:
         return [simple_ticket]
@@ -140,6 +144,63 @@ def _parse_lotto_rows(lines: list[str], round_no: int) -> list[ImportedLottoTick
             tickets.append(ImportedLottoTicket(round_no, slot, numbers))  # type: ignore[arg-type]
 
     return tickets
+
+
+def _parse_lotto_blocks(lines: list[str], round_no: int) -> list[ImportedLottoTicket]:
+    tickets: list[ImportedLottoTicket] = []
+    seen_slots: set[str] = set()
+
+    for index, line in enumerate(lines):
+        slot_match = re.fullmatch(r"([A-E])(?:\s+(?:자동|수동|반자동))?(?:\s+(.*))?", line)
+        if not slot_match:
+            continue
+
+        slot = slot_match.group(1)
+        if slot in seen_slots:
+            continue
+
+        numbers = _numbers_from_block(slot_match.group(2) or "", lines[index + 1 :])
+        parsed = tuple(numbers)
+        if not _valid_lotto_numbers(parsed):
+            continue
+
+        seen_slots.add(slot)
+        tickets.append(ImportedLottoTicket(round_no, slot, parsed))  # type: ignore[arg-type]
+
+    return tickets
+
+
+def _numbers_from_block(first_line: str, following_lines: list[str]) -> list[int]:
+    numbers = _valid_number_tokens(first_line)
+    for line in following_lines:
+        if len(numbers) >= 6:
+            break
+        if re.fullmatch(r"[A-E](?:\s+.*)?", line):
+            break
+        if re.fullmatch(r"자동|수동|반자동", line):
+            continue
+
+        tokens = _valid_number_tokens(line)
+        if not tokens:
+            continue
+        numbers.extend(tokens)
+
+    return numbers[:6]
+
+
+def _valid_number_tokens(line: str) -> list[int]:
+    if not line:
+        return []
+    tokens = re.findall(r"\d+", line)
+    if not tokens:
+        return []
+    if re.sub(r"[\d\s]+", "", line):
+        return []
+
+    numbers = [int(token) for token in tokens]
+    if any(number < 1 or number > 45 for number in numbers):
+        return []
+    return numbers
 
 
 def _parse_simple_lotto(lines: list[str], round_no: int) -> ImportedLottoTicket | None:

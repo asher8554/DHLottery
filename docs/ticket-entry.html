@@ -289,6 +289,32 @@
       white-space: pre;
     }
 
+    .ticket-summary {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .ticket-row {
+      display: grid;
+      grid-template-columns: 32px 1fr;
+      gap: 8px;
+      align-items: center;
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .ticket-slot {
+      display: grid;
+      place-items: center;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: #eef2f7;
+      color: var(--focus);
+    }
+
     @media (max-width: 840px) {
       main {
         width: min(100% - 20px, 680px);
@@ -411,6 +437,7 @@
           <div id="balls" class="balls" aria-label="선택번호 미리보기"></div>
         </div>
         <div class="panel-body">
+          <div id="ticketSummary" class="ticket-summary" aria-label="파싱된 구매번호 목록"></div>
           <pre id="yamlOutput" class="yaml"></pre>
         </div>
       </section>
@@ -423,6 +450,7 @@
     const pasteText = document.querySelector("#pasteText");
     const applyPaste = document.querySelector("#applyPaste");
     const yamlOutput = document.querySelector("#yamlOutput");
+    const ticketSummary = document.querySelector("#ticketSummary");
     const statusEl = document.querySelector("#status");
     const ballsEl = document.querySelector("#balls");
     const copyYaml = document.querySelector("#copyYaml");
@@ -434,6 +462,7 @@
 
     const ballColors = ["#f2b705", "#3578d4", "#d94a38", "#667085", "#2c9b60"];
     const workflowDispatchUrl = "https://api.github.com/repos/asher8554/DHLottery/actions/workflows/update-ticket.yml/dispatches";
+    let parsedTickets = null;
 
     function parsePositiveInt(value) {
       if (!/^\d+$/.test(String(value).trim())) {
@@ -462,15 +491,15 @@
       return { round, numbers, errors };
     }
 
-    function buildYaml(round, numbers) {
-      return [
-        "lotto:",
-        "  tickets:",
-        `    - label: "로또 ${round}회 A"`,
-        `      round: ${round}`,
-        `      numbers: [${numbers.join(", ")}]`,
-        "",
-      ].join("\n");
+    function buildYaml(round, tickets) {
+      const lines = ["lotto:", "  tickets:"];
+      for (const ticket of tickets) {
+        lines.push(`    - label: "로또 ${round}회 ${ticket.slot}"`);
+        lines.push(`      round: ${round}`);
+        lines.push(`      numbers: [${ticket.numbers.join(", ")}]`);
+      }
+      lines.push("");
+      return lines.join("\n");
     }
 
     function setStatus(message, tone) {
@@ -492,12 +521,34 @@
       }
     }
 
+    function renderTicketSummary(tickets) {
+      ticketSummary.innerHTML = "";
+      for (const ticket of tickets) {
+        const row = document.createElement("div");
+        row.className = "ticket-row";
+
+        const slot = document.createElement("span");
+        slot.className = "ticket-slot";
+        slot.textContent = ticket.slot;
+
+        const numbers = document.createElement("span");
+        numbers.textContent = ticket.numbers.join("  ");
+
+        row.appendChild(slot);
+        row.appendChild(numbers);
+        ticketSummary.appendChild(row);
+      }
+    }
+
     function updateOutput() {
       const { round, numbers, errors } = readForm();
-      renderBalls(numbers);
+      const tickets = parsedTickets || [{ slot: "A", numbers }];
+      renderBalls(tickets[0].numbers);
+      renderTicketSummary(tickets);
 
       if (errors.length > 0) {
         yamlOutput.textContent = "";
+        ticketSummary.innerHTML = "";
         copyYaml.disabled = true;
         downloadYaml.disabled = true;
         saveGithub.disabled = true;
@@ -505,24 +556,76 @@
         return;
       }
 
-      yamlOutput.textContent = buildYaml(round, numbers);
+      yamlOutput.textContent = buildYaml(round, tickets);
       copyYaml.disabled = false;
       downloadYaml.disabled = false;
       saveGithub.disabled = false;
-      setStatus("입력값이 올바릅니다.", "good");
+      setStatus(`${tickets.length}개 게임을 확인했습니다.`, "good");
     }
 
-    function applyQuickText() {
-      const text = pasteText.value;
+    function cleanPastedLines(text) {
       const lines = text.split(/\r?\n/);
-      const cleanedLines = lines.map((line) => line.trim()).filter(Boolean);
+      return lines.map((line) => line.trim()).filter(Boolean);
+    }
+
+    function parseRoundFromText(text, cleanedLines) {
       const roundMatch = text.match(/(\d{3,5})\s*회/);
       let round = roundMatch ? Number(roundMatch[1]) : null;
       if (!round && /^\d{3,5}$/.test(cleanedLines[0] || "")) {
         round = Number(cleanedLines[0]);
       }
-      const numbers = [];
+      return round;
+    }
 
+    function validNumberTokens(line) {
+      const tokens = line.match(/\d+/g) || [];
+      if (tokens.length === 0 || line.replace(/[\d\s]+/g, "") !== "") {
+        return [];
+      }
+      const numbers = tokens.map((token) => Number(token));
+      if (numbers.some((number) => number < 1 || number > 45)) {
+        return [];
+      }
+      return numbers;
+    }
+
+    function isValidTicket(numbers) {
+      return numbers.length === 6 && new Set(numbers).size === 6 && numbers.every((number) => number >= 1 && number <= 45);
+    }
+
+    function parseBlockTickets(cleanedLines) {
+      const tickets = [];
+      const seenSlots = new Set();
+
+      for (let index = 0; index < cleanedLines.length; index += 1) {
+        const match = cleanedLines[index].match(/^([A-E])(?:\s+(?:자동|수동|반자동))?(?:\s+(.*))?$/);
+        if (!match || seenSlots.has(match[1])) {
+          continue;
+        }
+
+        const numbers = validNumberTokens(match[2] || "");
+        for (let cursor = index + 1; cursor < cleanedLines.length && numbers.length < 6; cursor += 1) {
+          const line = cleanedLines[cursor];
+          if (/^[A-E](?:\s+.*)?$/.test(line)) {
+            break;
+          }
+          if (/^(자동|수동|반자동)$/.test(line)) {
+            continue;
+          }
+          numbers.push(...validNumberTokens(line));
+        }
+
+        if (isValidTicket(numbers.slice(0, 6))) {
+          seenSlots.add(match[1]);
+          tickets.push({ slot: match[1], numbers: numbers.slice(0, 6) });
+        }
+      }
+
+      return tickets;
+    }
+
+    function parseSingleTicket(cleanedLines) {
+      const numbers = [];
       for (let index = 0; index < cleanedLines.length; index += 1) {
         const line = cleanedLines[index];
         if (/\d{3,5}\s*회/.test(line) || (index === 0 && /^\d{3,5}$/.test(line))) {
@@ -532,8 +635,7 @@
         for (const token of tokens) {
           const value = Number(token);
           if (value > 45) {
-            setStatus("선택번호가 아닌 숫자가 섞여 있습니다.", "bad");
-            return;
+            return [];
           }
           if (value >= 1) {
             numbers.push(value);
@@ -541,14 +643,41 @@
         }
       }
 
-      if (!round || numbers.length !== 6 || new Set(numbers).size !== 6) {
-        setStatus("회차와 중복 없는 번호 6개를 붙여넣으세요.", "bad");
+      return isValidTicket(numbers) ? [{ slot: "A", numbers }] : [];
+    }
+
+    function parseQuickText(text) {
+      const cleanedLines = cleanPastedLines(text);
+      const round = parseRoundFromText(text, cleanedLines);
+      if (!round) {
+        return { error: "회차를 찾지 못했습니다." };
+      }
+
+      const tickets = parseBlockTickets(cleanedLines);
+      if (tickets.length > 0) {
+        return { round, tickets };
+      }
+
+      const singleTicket = parseSingleTicket(cleanedLines);
+      if (singleTicket.length > 0) {
+        return { round, tickets: singleTicket };
+      }
+
+      return { error: "A부터 E까지의 게임 줄이나 중복 없는 번호 6개를 붙여넣으세요." };
+    }
+
+    function applyQuickText() {
+      const parsed = parseQuickText(pasteText.value);
+      if (parsed.error) {
+        parsedTickets = null;
+        setStatus(parsed.error, "bad");
         return;
       }
 
-      roundInput.value = String(round);
+      parsedTickets = parsed.tickets;
+      roundInput.value = String(parsed.round);
       numberInputs.forEach((input, index) => {
-        input.value = String(numbers[index]);
+        input.value = String(parsedTickets[0].numbers[index]);
       });
       updateOutput();
     }
@@ -597,6 +726,7 @@
     }
 
     function resetValues() {
+      parsedTickets = null;
       pasteText.value = "";
       roundInput.value = "";
       numberInputs.forEach((input) => {
@@ -657,8 +787,14 @@
     downloadYaml.addEventListener("click", handleDownload);
     resetForm.addEventListener("click", resetValues);
     saveGithub.addEventListener("click", handleSaveGithub);
-    roundInput.addEventListener("input", updateOutput);
-    numberInputs.forEach((input) => input.addEventListener("input", updateOutput));
+    roundInput.addEventListener("input", () => {
+      parsedTickets = null;
+      updateOutput();
+    });
+    numberInputs.forEach((input) => input.addEventListener("input", () => {
+      parsedTickets = null;
+      updateOutput();
+    }));
 
     updateOutput();
   </script>
