@@ -48,6 +48,7 @@ def main(argv: list[str] | None = None) -> int:
     check_parser.add_argument("--dry-run", action="store_true", help="카카오톡 알림 없이 결과만 출력합니다.")
     check_parser.add_argument("--state", default=".state/sent-results.json", help="중복 알림 방지 상태 파일입니다.")
     check_parser.add_argument("--no-state", action="store_true", help="중복 알림 방지 상태를 사용하지 않습니다.")
+    check_parser.add_argument("--force-notify", action="store_true", help="이미 알린 결과도 이번 실행에 다시 포함합니다.")
 
     import_parser = subparsers.add_parser("import-ticket", help="동행복권 티켓 보기 텍스트를 구매번호 YAML에 저장합니다.")
     import_parser.add_argument("--input", help="붙여넣기 텍스트 파일 경로입니다. 생략하면 표준 입력을 읽습니다.")
@@ -83,7 +84,9 @@ def _run_check(args: argparse.Namespace) -> int:
 
     outcomes = list(_build_outcomes(config.lotto, config.pension, args.game, salt))
     resolved = [outcome for outcome in outcomes if outcome.resolved]
-    unsent = [outcome for outcome in resolved if state is None or not state.is_sent(outcome.fingerprint)]
+    unsent = resolved if args.force_notify else [
+        outcome for outcome in resolved if state is None or not state.is_sent(outcome.fingerprint)
+    ]
 
     report = _format_report(unsent, outcomes)
     print(report)

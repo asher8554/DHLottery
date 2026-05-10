@@ -73,9 +73,10 @@ GitHub Pages에 올릴 수 있는 정적 입력 화면 예시는 [docs/ticket-en
 배포 후 주소는 <https://asher8554.github.io/DHLottery/> 입니다.
 
 웹에서 GitHub에 저장하려면 GitHub fine-grained token을 입력합니다.
-토큰은 브라우저에 저장하지 않고 요청에만 사용합니다.
+토큰은 기본적으로 요청에만 사용하고, `이 브라우저에 토큰 저장`을 체크하면 현재 브라우저에 저장합니다.
 토큰 권한은 저장소 `asher8554/DHLottery`에 대해 `Actions: Read and write`면 됩니다.
 저장이 끝나면 `Update ticket and check results` 워크플로가 `data/tickets.yml`을 커밋하고 당첨 확인을 실행합니다.
+이미 보낸 결과를 카카오톡으로 다시 받고 싶으면 웹 입력 화면에서 `강제 재전송`을 체크합니다.
 
 ## GitHub Actions 실행
 

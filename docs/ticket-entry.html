@@ -426,6 +426,10 @@
               <input id="notifyAfterSave" type="checkbox" checked>
               저장 후 당첨 확인과 카카오 알림 실행
             </label>
+            <label class="inline-toggle">
+              <input id="forceNotify" type="checkbox">
+              강제 재전송
+            </label>
             <div class="actions">
               <button type="button" class="primary" id="saveGithub">GitHub에 저장하고 검사</button>
               <button type="button" id="clearToken">저장된 토큰 지우기</button>
@@ -464,6 +468,7 @@
     const githubToken = document.querySelector("#githubToken");
     const rememberToken = document.querySelector("#rememberToken");
     const notifyAfterSave = document.querySelector("#notifyAfterSave");
+    const forceNotify = document.querySelector("#forceNotify");
     const saveGithub = document.querySelector("#saveGithub");
     const clearToken = document.querySelector("#clearToken");
 
@@ -779,6 +784,15 @@
       setStatus("저장된 토큰을 지웠습니다.", "good");
     }
 
+    function syncNotifyControls() {
+      if (!notifyAfterSave.checked) {
+        forceNotify.checked = false;
+        forceNotify.disabled = true;
+        return;
+      }
+      forceNotify.disabled = false;
+    }
+
     async function handleSaveGithub() {
       const token = githubToken.value.trim();
       const yaml = yamlOutput.textContent.trim();
@@ -809,6 +823,7 @@
             inputs: {
               ticket_yaml: yamlOutput.textContent,
               notify: notifyAfterSave.checked ? "true" : "false",
+              force_notify: forceNotify.checked ? "true" : "false",
             },
           }),
         });
@@ -834,6 +849,7 @@
     saveGithub.addEventListener("click", handleSaveGithub);
     clearToken.addEventListener("click", clearSavedToken);
     rememberToken.addEventListener("change", saveTokenPreference);
+    notifyAfterSave.addEventListener("change", syncNotifyControls);
     githubToken.addEventListener("input", () => {
       if (rememberToken.checked) {
         saveTokenPreference();
@@ -849,6 +865,7 @@
     }));
 
     loadSavedToken();
+    syncNotifyControls();
     updateOutput();
   </script>
 </body>

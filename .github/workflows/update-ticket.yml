@@ -12,6 +12,11 @@ on:
         required: true
         default: true
         type: boolean
+      force_notify:
+        description: "Send Kakao notification even if the same result was already sent."
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: write
@@ -93,7 +98,15 @@ jobs:
 
       - name: Check results and send Kakao message
         if: ${{ inputs.notify == true || inputs.notify == 'true' }}
-        run: python -m dhlottery_checker check --tickets data/tickets.yml --notify --state .state/sent-results.json
+        env:
+          FORCE_NOTIFY: ${{ inputs.force_notify }}
+        shell: bash
+        run: |
+          args=(python -m dhlottery_checker check --tickets data/tickets.yml --notify --state .state/sent-results.json)
+          if [ "$FORCE_NOTIFY" = "true" ]; then
+            args+=(--force-notify)
+          fi
+          "${args[@]}"
 
       - name: Save sent state
         if: ${{ always() && (inputs.notify == true || inputs.notify == 'true') }}
