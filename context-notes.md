@@ -310,3 +310,13 @@
 - 조 블록 안에서는 `^(\d)\D*$` 형태의 줄을 한 자리 숫자로 인정하도록 보정했다.
 - Node 모의 검증으로 `4wj`가 들어간 315회 샘플에서 1조부터 5조까지 5개 티켓이 생성되고, 1조 번호가 `052414`가 되는 것을 확인했다.
 - HTML 스크립트 구문 검사와 `python -m unittest discover -s tests` 결과 29개 테스트가 통과했다.
+
+## 2026-05-10 로컬 구매내역 스크래퍼 추가
+
+- 사용자가 동행복권 사이트에서 직접 내용을 복사하는 대신, 로그인 후 구매/당첨내역에서 현재 입력할 내용을 로컬 프로그램이 가져오길 원했다.
+- 보안 방향은 계정 정보를 코드나 환경 파일에 저장하지 않고, Playwright가 띄운 로컬 Chromium에서 사용자가 직접 로그인하는 방식으로 정했다.
+- `.browser/dhlottery` 프로필에 로그인 세션만 로컬 저장하며 `.gitignore`에 `.browser/`를 추가했다.
+- `dhlottery_checker ticket_import`에 연금복권 파서와 로또/연금복권 통합 저장 함수를 추가했다.
+- `scrape-ledger` CLI와 `scripts/scrape-ledger.ps1`을 추가해 구매/당첨내역의 티켓 보기 버튼을 찾아 텍스트를 수집하고 `data/tickets.yml`을 갱신한다.
+- Playwright는 실행 시에만 import해 일반 당첨 확인과 테스트가 브라우저 설치에 의존하지 않도록 했다.
+- `python -m unittest discover -s tests` 결과 34개 테스트가 통과했고, `python -m dhlottery_checker scrape-ledger --help`도 확인했다.

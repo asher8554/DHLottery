@@ -4,8 +4,9 @@
 
 ## 중요한 제한
 
-이 저장소는 동행복권 로그인, 복권 자동 구매, 예치금 충전, 은행이체를 구현하지 않습니다.
+이 저장소는 복권 자동 구매, 예치금 충전, 은행이체를 구현하지 않습니다.
 공식 구매 API가 확인되지 않았고, 계정 및 금융정보 자동화는 보안과 약관 리스크가 큽니다.
+구매내역 가져오기는 로컬 브라우저에서 사용자가 직접 로그인한 세션의 티켓 보기 텍스트만 읽습니다.
 
 ## 보안 원칙
 
@@ -14,6 +15,7 @@
 - 카카오 토큰은 GitHub Actions Secrets에만 저장합니다.
 - 카카오 Client Secret이 켜져 있다면 `KAKAO_CLIENT_SECRET`도 Secret에 저장합니다.
 - 저장소는 private로 운영하는 것을 전제로 합니다.
+- 동행복권 로그인 세션은 로컬 `.browser/` 폴더에만 보관되며 `.gitignore`로 커밋되지 않습니다.
 
 ## 로컬 실행
 
@@ -65,6 +67,35 @@ GitHub Secret까지 바로 갱신하려면 아래처럼 실행합니다.
 ```powershell
 .\scripts\import-ticket.ps1 -ReplaceAll -SyncSecret
 ```
+
+## 로컬 구매내역 자동 가져오기
+
+붙여넣기 대신 로컬 브라우저에서 동행복권 구매/당첨내역을 열고 티켓 보기 내용을 자동으로 가져올 수 있습니다.
+아이디와 비밀번호는 프로그램에 입력하지 않고, 열린 브라우저에서 직접 로그인합니다.
+로그인 세션은 저장소 안의 `.browser/dhlottery` 폴더에만 남습니다.
+
+처음 한 번은 Playwright 브라우저를 설치합니다.
+
+```powershell
+python -m pip install -r requirements.txt
+python -m playwright install chromium
+```
+
+이후 아래 명령을 실행합니다.
+
+```powershell
+.\scripts\scrape-ledger.ps1
+```
+
+브라우저가 열리면 동행복권에 직접 로그인하고 구매/당첨내역 화면이 보이는 상태에서 터미널로 돌아와 Enter를 누릅니다.
+기본 동작은 가져온 구매번호로 `data/tickets.yml`을 교체합니다.
+기존 항목에 누적하려면 `-Append`를 붙입니다.
+
+```powershell
+.\scripts\scrape-ledger.ps1 -Append
+```
+
+로그인 세션을 지우고 싶으면 `.browser` 폴더를 삭제하면 됩니다.
 
 ## 웹 입력 화면 예시
 

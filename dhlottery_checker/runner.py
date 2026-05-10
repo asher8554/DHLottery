@@ -69,11 +69,20 @@ def main(argv: list[str] | None = None) -> int:
     import_parser.add_argument("--replace-all", action="store_true", help="기존 설정을 모두 지우고 가져온 로또 항목만 저장합니다.")
     import_parser.add_argument("--replace-lotto", action="store_true", help="기존 로또 항목을 지우고 가져온 항목만 저장합니다.")
 
+    scrape_parser = subparsers.add_parser("scrape-ledger", help="로컬 브라우저에서 동행복권 구매내역을 가져옵니다.")
+    scrape_parser.add_argument("--tickets", default="data/tickets.yml", help="갱신할 구매번호 YAML 파일 경로입니다.")
+    scrape_parser.add_argument("--profile-dir", default=".browser/dhlottery", help="로그인 세션을 보관할 로컬 브라우저 프로필 경로입니다.")
+    scrape_parser.add_argument("--max-tickets", type=int, default=30, help="클릭할 티켓 보기 버튼의 최대 개수입니다.")
+    scrape_parser.add_argument("--headless", action="store_true", help="브라우저 창을 띄우지 않습니다. 이미 로그인 세션이 있을 때만 사용하세요.")
+    scrape_parser.add_argument("--append", action="store_true", help="기존 구매번호를 지우지 않고 새 번호만 추가합니다.")
+
     args = parser.parse_args(argv)
     if args.command == "check":
         return _run_check(args)
     if args.command == "import-ticket":
         return _run_import_ticket(args)
+    if args.command == "scrape-ledger":
+        return _run_scrape_ledger(args)
     return 1
 
 
@@ -87,6 +96,29 @@ def _run_import_ticket(args: argparse.Namespace) -> int:
         return 2
     summary = ", ".join(" ".join(str(number) for number in ticket.numbers) for ticket in tickets)
     print(f"{args.tickets} 파일을 갱신했습니다. 가져온 로또 {tickets[0].round}회 번호. {summary}")
+    return 0
+
+
+def _run_scrape_ledger(args: argparse.Namespace) -> int:
+    try:
+        from .ledger_scraper import scrape_ledger_to_file
+
+        result = scrape_ledger_to_file(
+            ticket_path=args.tickets,
+            profile_dir=args.profile_dir,
+            max_tickets=args.max_tickets,
+            headless=args.headless,
+            append=args.append,
+        )
+    except (RuntimeError, ValueError) as exc:
+        print(f"구매내역 가져오기 실패. {exc}", file=sys.stderr)
+        return 2
+
+    print(
+        f"{args.tickets} 파일을 갱신했습니다. "
+        f"로또 {len(result.imported_tickets.lotto)}개, "
+        f"연금복권 {len(result.imported_tickets.pension)}개를 가져왔습니다."
+    )
     return 0
 
 

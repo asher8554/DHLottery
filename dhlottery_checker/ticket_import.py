@@ -33,6 +33,55 @@ class ImportedLottoTicket:
         }
 
 
+@dataclass(frozen=True)
+class ImportedPensionTicket:
+    round: int
+    slot: str
+    group: int
+    number: str
+
+    @property
+    def label(self) -> str:
+        return f"연금복권 {self.round}회 {self.slot}"
+
+    def to_yaml_item(self) -> dict[str, Any]:
+        return {
+            "label": self.label,
+            "round": self.round,
+            "group": self.group,
+            "number": self.number,
+        }
+
+
+@dataclass(frozen=True)
+class ImportedTickets:
+    lotto: tuple[ImportedLottoTicket, ...] = ()
+    pension: tuple[ImportedPensionTicket, ...] = ()
+
+    @property
+    def total_count(self) -> int:
+        return len(self.lotto) + len(self.pension)
+
+
+def parse_ticket_text(text: str) -> ImportedTickets:
+    lotto_tickets: list[ImportedLottoTicket] = []
+    pension_tickets: list[ImportedPensionTicket] = []
+
+    try:
+        lotto_tickets = parse_lotto_ticket_text(text)
+    except ValueError:
+        lotto_tickets = []
+
+    try:
+        pension_tickets = parse_pension_ticket_text(text)
+    except ValueError:
+        pension_tickets = []
+
+    if not lotto_tickets and not pension_tickets:
+        raise ValueError("로또 또는 연금복권 티켓 보기 번호를 찾지 못했습니다.")
+    return ImportedTickets(tuple(lotto_tickets), tuple(pension_tickets))
+
+
 def parse_lotto_ticket_text(text: str) -> list[ImportedLottoTicket]:
     lines = _clean_lines(text)
     round_no = _parse_round(lines)
@@ -54,6 +103,15 @@ def parse_lotto_ticket_text(text: str) -> list[ImportedLottoTicket]:
     return tickets
 
 
+def parse_pension_ticket_text(text: str) -> list[ImportedPensionTicket]:
+    lines = _clean_lines(text)
+    round_no = _parse_pension_round(lines)
+    tickets = _parse_pension_blocks(lines, round_no)
+    if not tickets:
+        raise ValueError("연금복권 조와 6자리 번호를 찾지 못했습니다.")
+    return tickets
+
+
 def write_lotto_tickets(
     ticket_path: str | Path,
     imported_tickets: list[ImportedLottoTicket],
@@ -61,28 +119,63 @@ def write_lotto_tickets(
     replace_all: bool = False,
     replace_lotto: bool = False,
 ) -> None:
-    if not imported_tickets:
-        raise ValueError("저장할 로또 티켓이 없습니다.")
+    write_tickets(
+        ticket_path,
+        lotto_tickets=imported_tickets,
+        replace_all=replace_all,
+        replace_lotto=replace_lotto,
+    )
+
+
+def write_tickets(
+    ticket_path: str | Path,
+    *,
+    lotto_tickets: list[ImportedLottoTicket] | tuple[ImportedLottoTicket, ...] = (),
+    pension_tickets: list[ImportedPensionTicket] | tuple[ImportedPensionTicket, ...] = (),
+    replace_all: bool = False,
+    replace_lotto: bool = False,
+    replace_pension: bool = False,
+) -> None:
+    if not lotto_tickets and not pension_tickets:
+        raise ValueError("저장할 구매번호가 없습니다.")
 
     path = Path(ticket_path)
     source = {} if replace_all else _load_yaml(path)
-    lotto = source.setdefault("lotto", {})
-    if not isinstance(lotto, dict):
-        raise ValueError("lotto 설정은 YAML 객체여야 합니다.")
 
-    existing = [] if replace_lotto else _existing_lotto_tickets(lotto)
-    existing_keys = {_lotto_key(item) for item in existing}
-    new_items = []
-    for ticket in imported_tickets:
-        item = ticket.to_yaml_item()
-        key = _lotto_key(item)
-        if key not in existing_keys:
-            new_items.append(item)
-            existing_keys.add(key)
+    if lotto_tickets:
+        lotto = source.setdefault("lotto", {})
+        if not isinstance(lotto, dict):
+            raise ValueError("lotto 설정은 YAML 객체여야 합니다.")
+        existing_lotto = [] if replace_lotto else _existing_lotto_tickets(lotto)
+        lotto["tickets"] = [*existing_lotto, *_unique_lotto_items(existing_lotto, lotto_tickets)]
 
-    lotto["tickets"] = [*existing, *new_items]
+    if pension_tickets:
+        pension = source.setdefault("pension", {})
+        if not isinstance(pension, dict):
+            raise ValueError("pension 설정은 YAML 객체여야 합니다.")
+        existing_pension = [] if replace_pension else _existing_pension_tickets(pension)
+        pension["tickets"] = [*existing_pension, *_unique_pension_items(existing_pension, pension_tickets)]
+
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(yaml.safe_dump(source, allow_unicode=True, sort_keys=False), encoding="utf-8")
+
+
+def write_imported_tickets(
+    ticket_path: str | Path,
+    imported_tickets: ImportedTickets,
+    *,
+    replace_all: bool = False,
+    replace_lotto: bool = False,
+    replace_pension: bool = False,
+) -> None:
+    write_tickets(
+        ticket_path,
+        lotto_tickets=imported_tickets.lotto,
+        pension_tickets=imported_tickets.pension,
+        replace_all=replace_all,
+        replace_lotto=replace_lotto,
+        replace_pension=replace_pension,
+    )
 
 
 def _clean_lines(text: str) -> list[str]:
@@ -219,6 +312,68 @@ def _parse_simple_lotto(lines: list[str], round_no: int) -> ImportedLottoTicket 
     return ImportedLottoTicket(round_no, "A", parsed)  # type: ignore[arg-type]
 
 
+def _parse_pension_round(lines: list[str]) -> int:
+    first_group_index = next((index for index, line in enumerate(lines) if re.fullmatch(r"[1-5]\s*조", line)), None)
+    if first_group_index is not None:
+        for line in reversed(lines[:first_group_index]):
+            if "/" in line or ":" in line:
+                continue
+            match = re.search(r"(\d{1,5})\s*회", line) or re.fullmatch(r"\D*(\d{1,5})(?:\D|$)", line)
+            if match:
+                return int(match.group(1))
+
+    for line in lines:
+        if "/" in line or ":" in line:
+            continue
+        match = re.match(r"\D*(\d{1,5})(?:\D|$)", line)
+        if match:
+            return int(match.group(1))
+
+    for line in lines:
+        match = re.search(r"(\d{1,5})\s*회", line)
+        if match:
+            return int(match.group(1))
+
+    raise ValueError("연금복권 회차를 찾지 못했습니다.")
+
+
+def _parse_pension_blocks(lines: list[str], round_no: int) -> list[ImportedPensionTicket]:
+    tickets: list[ImportedPensionTicket] = []
+    for index, line in enumerate(lines):
+        group_match = re.fullmatch(r"([1-5])\s*조", line)
+        if not group_match:
+            continue
+
+        digits = _pension_digits_from_block(lines[index + 1 :])
+        if len(digits) != 6:
+            continue
+        tickets.append(
+            ImportedPensionTicket(
+                round=round_no,
+                slot=str(len(tickets) + 1),
+                group=int(group_match.group(1)),
+                number="".join(digits),
+            )
+        )
+    return tickets
+
+
+def _pension_digits_from_block(following_lines: list[str]) -> list[str]:
+    digits: list[str] = []
+    for line in following_lines:
+        if len(digits) >= 6:
+            break
+        if re.fullmatch(r"[1-5]\s*조", line):
+            break
+        single_digit = re.fullmatch(r"(\d)\D*", line)
+        if single_digit:
+            digits.append(single_digit.group(1))
+            continue
+        if re.fullmatch(r"\d{6}", line):
+            digits.extend(line)
+    return digits[:6]
+
+
 def _valid_lotto_numbers(numbers: tuple[int, ...]) -> bool:
     return len(numbers) == 6 and len(set(numbers)) == 6 and all(1 <= number <= 45 for number in numbers)
 
@@ -241,6 +396,45 @@ def _existing_lotto_tickets(lotto: dict[str, Any]) -> list[dict[str, Any]]:
     return [item for item in tickets if isinstance(item, dict)]
 
 
+def _existing_pension_tickets(pension: dict[str, Any]) -> list[dict[str, Any]]:
+    tickets = pension.get("tickets", [])
+    if tickets is None:
+        return []
+    if not isinstance(tickets, list):
+        raise ValueError("pension.tickets 설정은 목록이어야 합니다.")
+    return [item for item in tickets if isinstance(item, dict)]
+
+
+def _unique_lotto_items(
+    existing: list[dict[str, Any]],
+    imported_tickets: list[ImportedLottoTicket] | tuple[ImportedLottoTicket, ...],
+) -> list[dict[str, Any]]:
+    existing_keys = {_lotto_key(item) for item in existing}
+    new_items = []
+    for ticket in imported_tickets:
+        item = ticket.to_yaml_item()
+        key = _lotto_key(item)
+        if key not in existing_keys:
+            new_items.append(item)
+            existing_keys.add(key)
+    return new_items
+
+
+def _unique_pension_items(
+    existing: list[dict[str, Any]],
+    imported_tickets: list[ImportedPensionTicket] | tuple[ImportedPensionTicket, ...],
+) -> list[dict[str, Any]]:
+    existing_keys = {_pension_key(item) for item in existing}
+    new_items = []
+    for ticket in imported_tickets:
+        item = ticket.to_yaml_item()
+        key = _pension_key(item)
+        if key not in existing_keys:
+            new_items.append(item)
+            existing_keys.add(key)
+    return new_items
+
+
 def _lotto_key(item: dict[str, Any]) -> tuple[int | str | None, tuple[int, ...]]:
     numbers = item.get("numbers", [])
     if isinstance(numbers, list):
@@ -248,3 +442,11 @@ def _lotto_key(item: dict[str, Any]) -> tuple[int | str | None, tuple[int, ...]]
     else:
         parsed_numbers = ()
     return item.get("round"), parsed_numbers
+
+
+def _pension_key(item: dict[str, Any]) -> tuple[int | str | None, int | None, str]:
+    try:
+        group = int(item.get("group"))
+    except (TypeError, ValueError):
+        group = None
+    return item.get("round"), group, str(item.get("number", "")).strip()

@@ -4,7 +4,13 @@ import tempfile
 import unittest
 
 from dhlottery_checker.config import load_ticket_config
-from dhlottery_checker.ticket_import import parse_lotto_ticket_text, write_lotto_tickets
+from dhlottery_checker.ticket_import import (
+    parse_lotto_ticket_text,
+    parse_pension_ticket_text,
+    parse_ticket_text,
+    write_imported_tickets,
+    write_lotto_tickets,
+)
 
 
 class TicketImportTest(unittest.TestCase):
@@ -240,6 +246,78 @@ pension:
 
         self.assertEqual(config.lotto[0].round, 1224)
         self.assertEqual(config.pension, ())
+
+    def test_parses_pension_ticket_text_with_noisy_digit(self):
+        text = """
+315회
+발행일
+2026/05/10 일요일 14:56:34
+추첨일
+2026/05/14
+지급기한
+2027/05/14
+1조
+0
+
+5
+
+2
+
+4
+
+1
+
+4wj
+
+2조
+0
+
+5
+
+2
+
+4
+
+1
+
+4
+"""
+
+        tickets = parse_pension_ticket_text(text)
+
+        self.assertEqual(len(tickets), 2)
+        self.assertEqual(tickets[0].round, 315)
+        self.assertEqual(tickets[0].group, 1)
+        self.assertEqual(tickets[0].number, "052414")
+        self.assertEqual(tickets[1].group, 2)
+        self.assertEqual(tickets[1].number, "052414")
+
+    def test_writes_combined_imported_tickets(self):
+        text = """
+1224회
+A 자동 16 23 30 32 35 37
+연금복권720+
+315회
+1조
+0
+5
+2
+4
+1
+4
+"""
+        tickets = parse_ticket_text(text)
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            path = Path(temp_dir) / "tickets.yml"
+            write_imported_tickets(path, tickets, replace_all=True)
+            config = load_ticket_config(path)
+
+        self.assertEqual(config.lotto[0].round, 1224)
+        self.assertEqual(config.lotto[0].numbers, (16, 23, 30, 32, 35, 37))
+        self.assertEqual(config.pension[0].round, 315)
+        self.assertEqual(config.pension[0].group, 1)
+        self.assertEqual(config.pension[0].number, "052414")
 
 
 if __name__ == "__main__":
