@@ -1103,8 +1103,9 @@
           if (/^[1-5]\s*조$/.test(line)) {
             break;
           }
-          if (/^\d$/.test(line)) {
-            digits.push(line);
+          const singleDigitMatch = line.match(/^(\d)\D*$/);
+          if (singleDigitMatch) {
+            digits.push(singleDigitMatch[1]);
           } else if (/^\d{6}$/.test(line)) {
             digits.push(...line.split(""));
           }
