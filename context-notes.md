@@ -441,3 +441,11 @@
 - 해결은 headless에서도 로그인 페이지를 먼저 열어 자동 로그인을 시도하고, 구매내역에서 뒤늦게 로그인된 경우 메인으로 돌아가 예치금을 다시 읽는 것이다.
 - 사용자의 실제 저장소 경로는 `/volume1/docker/Github/DHLottery`이므로 문서의 `/volume1/docker/DHLottery` 예시는 혼동을 줄이도록 함께 보강한다.
 - 일반 사용자 계정은 Docker daemon socket 권한이 없어 `permission denied`가 났다. DSM 작업 스케줄러는 root로 실행하거나 사용자를 Docker 권한 그룹에 넣어야 한다.
+
+## 2026-05-11 시놀로지 가이드 최종 정리
+
+- 사용자가 문서의 우회 절차로 실제 문제를 해결했다고 알려줬다.
+- `docs/synology-setup.md`는 더 이상 시도 순서가 섞이지 않도록 정상 흐름을 Docker 기준으로 재정렬한다.
+- 기본 경로는 `/volume1/docker/Github/DHLottery`, 실행 사용자는 root, Git 명령은 컨테이너 기반으로 안내한다.
+- 실패했던 `alpine/git`, `ssh-keyscan`, Docker socket 권한, pull rebase 충돌은 문제 해결 섹션에 모아둔다.
+- 문서 검증으로 `git diff --check`를 실행했고, 전체 테스트는 `python -m unittest discover -s tests` 기준 55개가 통과했다.
