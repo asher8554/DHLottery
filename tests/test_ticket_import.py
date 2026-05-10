@@ -8,6 +8,28 @@ from dhlottery_checker.ticket_import import parse_lotto_ticket_text, write_lotto
 
 
 class TicketImportTest(unittest.TestCase):
+    def test_parses_simple_lotto_numbers(self):
+        text = """
+1224회
+9
+
+12
+
+13
+
+33
+
+35
+
+43
+"""
+
+        tickets = parse_lotto_ticket_text(text)
+
+        self.assertEqual(tickets[0].round, 1224)
+        self.assertEqual(tickets[0].slot, "A")
+        self.assertEqual(tickets[0].numbers, (9, 12, 13, 33, 35, 43))
+
     def test_parses_lotto_ticket_view_text(self):
         text = """
 로또6/45 티켓 보기

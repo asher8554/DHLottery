@@ -35,10 +35,15 @@ class ImportedLottoTicket:
 
 def parse_lotto_ticket_text(text: str) -> list[ImportedLottoTicket]:
     lines = _clean_lines(text)
-    if not any("로또6/45" in line or "Lotto 6/45" in line or "Lotto6/45" in line for line in lines):
-        raise ValueError("로또6/45 티켓 텍스트를 찾지 못했습니다.")
-
     round_no = _parse_round(lines)
+    simple_ticket = _parse_simple_lotto(lines, round_no)
+    if simple_ticket is not None:
+        return [simple_ticket]
+
+    has_lotto_marker = any("로또6/45" in line or "Lotto 6/45" in line or "Lotto6/45" in line for line in lines)
+    if not has_lotto_marker:
+        raise ValueError("로또 회차와 1부터 45 사이의 숫자 6개를 찾지 못했습니다.")
+
     tickets = _parse_lotto_rows(lines, round_no)
     if not tickets:
         raise ValueError("선택번호 줄을 찾지 못했습니다. 티켓 보기에서 `A 자동 9 12 13 33 35 43`처럼 보이는 줄까지 복사하세요.")
@@ -114,6 +119,22 @@ def _parse_lotto_rows(lines: list[str], round_no: int) -> list[ImportedLottoTick
             tickets.append(ImportedLottoTicket(round_no, slot, numbers))  # type: ignore[arg-type]
 
     return tickets
+
+
+def _parse_simple_lotto(lines: list[str], round_no: int) -> ImportedLottoTicket | None:
+    numbers: list[int] = []
+    for line in lines:
+        if re.search(r"\d{3,5}\s*회", line):
+            continue
+        tokens = re.findall(r"\d+", line)
+        if any(int(token) > 45 for token in tokens):
+            return None
+        numbers.extend(int(token) for token in tokens if 1 <= int(token) <= 45)
+
+    parsed = tuple(numbers)
+    if not _valid_lotto_numbers(parsed):
+        return None
+    return ImportedLottoTicket(round_no, "A", parsed)  # type: ignore[arg-type]
 
 
 def _valid_lotto_numbers(numbers: tuple[int, ...]) -> bool:
