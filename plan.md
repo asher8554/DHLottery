@@ -352,3 +352,16 @@
    검증은 스크립트 정적 검토와 문법 검사로 확인한다.
 3. Python 스크래퍼에서 반복되는 상세 버튼 selector 문자열을 상수화한다.
    검증은 전체 단위 테스트로 확인한다.
+
+## 2026-05-10 예치금 Pages 동기화
+
+목표는 로컬 스크래퍼가 동행복권 메인 화면의 예치금을 읽어 공개 데이터 파일로 저장하고, GitHub Pages 화면에서 티켓 목록과 함께 보여주는 것이다.
+
+1. 로그인된 브라우저에서 `https://www.dhlottery.co.kr/main`의 `예치금 n원` 텍스트를 추출한다.
+   검증은 텍스트 파서 단위 테스트로 쉼표가 있는 금액을 확인한다.
+2. 예치금 스냅샷을 `data/account.yml`에 저장한다.
+   검증은 임시 파일에 `balance.amount`와 `updated_at`이 저장되는지 확인한다.
+3. 로컬 동기화 스크립트가 `data/tickets.yml`과 `data/account.yml`을 함께 커밋하고 푸시한다.
+   검증은 PowerShell 문법 검사와 git add 대상 확인으로 진행한다.
+4. Pages가 `data/account.yml`을 raw URL로 읽어 예치금을 표시한다.
+   검증은 HTML 스크립트 구문 검사와 정적 문자열 확인으로 진행한다.

@@ -405,6 +405,14 @@
               <span class="stat-value">data/tickets.yml</span>
             </div>
             <div class="stat-row">
+              <span class="stat-label">예치금</span>
+              <span class="stat-value" id="balanceAmount">-</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">예치금 갱신</span>
+              <span class="stat-value" id="balanceUpdatedAt">-</span>
+            </div>
+            <div class="stat-row">
               <span class="stat-label">마지막 로드</span>
               <span class="stat-value" id="loadedAt">-</span>
             </div>
@@ -459,12 +467,15 @@
 
   <script>
     const ticketsRawUrl = "https://raw.githubusercontent.com/asher8554/DHLottery/main/data/tickets.yml";
+    const accountRawUrl = "https://raw.githubusercontent.com/asher8554/DHLottery/main/data/account.yml";
     const checkWorkflowDispatchUrl = "https://api.github.com/repos/asher8554/DHLottery/actions/workflows/check-results.yml/dispatches";
     const tokenStorageKey = "dhlottery.githubToken";
     const themeStorageKey = "dhlottery.theme";
     const ballColors = ["#f2b705", "#3578d4", "#d94a38", "#667085", "#2c9b60"];
 
     const themeToggle = document.querySelector("#themeToggle");
+    const balanceAmount = document.querySelector("#balanceAmount");
+    const balanceUpdatedAt = document.querySelector("#balanceUpdatedAt");
     const loadedAt = document.querySelector("#loadedAt");
     const ticketCount = document.querySelector("#ticketCount");
     const ticketSummary = document.querySelector("#ticketSummary");
@@ -496,6 +507,30 @@
 
     function parseNumberList(value) {
       return (value.match(/\d+/g) || []).map((number) => Number(number));
+    }
+
+    function parseAccountYaml(yaml) {
+      const amountMatch = yaml.match(/^\s*amount:\s*(\d+)\s*$/m);
+      const updatedAtMatch = yaml.match(/^\s*updated_at:\s*["']?(.+?)["']?\s*$/m);
+      return {
+        amount: amountMatch ? Number(amountMatch[1]) : null,
+        updatedAt: updatedAtMatch ? updatedAtMatch[1] : "",
+      };
+    }
+
+    function formatKrw(amount) {
+      return `${new Intl.NumberFormat("ko-KR").format(amount)}원`;
+    }
+
+    function formatDateTime(value) {
+      if (!value) {
+        return "-";
+      }
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) {
+        return value;
+      }
+      return date.toLocaleString("ko-KR");
     }
 
     function parseTicketsYaml(yaml) {
@@ -663,6 +698,29 @@
       }
     }
 
+    async function loadAccount() {
+      try {
+        const response = await fetch(`${accountRawUrl}?t=${Date.now()}`, { cache: "no-store" });
+        if (!response.ok) {
+          throw new Error(`${response.status} ${response.statusText}`);
+        }
+
+        const account = parseAccountYaml(await response.text());
+        if (account.amount === null) {
+          throw new Error("예치금 형식을 확인하지 못했습니다.");
+        }
+        balanceAmount.textContent = formatKrw(account.amount);
+        balanceUpdatedAt.textContent = formatDateTime(account.updatedAt);
+      } catch {
+        balanceAmount.textContent = "동기화 전";
+        balanceUpdatedAt.textContent = "-";
+      }
+    }
+
+    async function loadDashboard() {
+      await Promise.all([loadTickets(), loadAccount()]);
+    }
+
     async function copyText(text) {
       if (navigator.clipboard && window.isSecureContext) {
         await navigator.clipboard.writeText(text);
@@ -814,7 +872,7 @@
       }
     }
 
-    reloadTickets.addEventListener("click", loadTickets);
+    reloadTickets.addEventListener("click", loadDashboard);
     copyYaml.addEventListener("click", handleCopy);
     downloadYaml.addEventListener("click", handleDownload);
     runCheck.addEventListener("click", handleRunCheck);
@@ -830,7 +888,7 @@
     loadTheme();
     loadSavedToken();
     renderEmpty("저장된 구매번호를 불러오는 중입니다.");
-    loadTickets();
+    loadDashboard();
   </script>
 </body>
 </html>

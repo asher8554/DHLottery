@@ -2,9 +2,11 @@
 [CmdletBinding()]
 param(
     [string]$Path = "data/tickets.yml",
+    [string]$AccountPath = "data/account.yml",
     [string]$ProfileDir = ".browser/dhlottery",
     [string]$EnvFile = ".env",
     [string]$LoginUrl = "https://www.dhlottery.co.kr/login",
+    [string]$MainUrl = "https://www.dhlottery.co.kr/main",
     [int]$MaxTickets = 30,
     [switch]$Append,
     [switch]$Headless,
@@ -27,9 +29,11 @@ try {
     $arguments = @(
         "-m", "dhlottery_checker", "scrape-ledger",
         "--tickets", $Path,
+        "--account", $AccountPath,
         "--profile-dir", $ProfileDir,
         "--env-file", $EnvFile,
         "--login-url", $LoginUrl,
+        "--main-url", $MainUrl,
         "--max-tickets", [string]$MaxTickets
     )
     if ($Append) {

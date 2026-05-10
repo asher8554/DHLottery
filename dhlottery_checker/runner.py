@@ -71,9 +71,11 @@ def main(argv: list[str] | None = None) -> int:
 
     scrape_parser = subparsers.add_parser("scrape-ledger", help="로컬 브라우저에서 동행복권 구매내역을 가져옵니다.")
     scrape_parser.add_argument("--tickets", default="data/tickets.yml", help="갱신할 구매번호 YAML 파일 경로입니다.")
+    scrape_parser.add_argument("--account", default="data/account.yml", help="갱신할 예치금 YAML 파일 경로입니다.")
     scrape_parser.add_argument("--profile-dir", default=".browser/dhlottery", help="로그인 세션을 보관할 로컬 브라우저 프로필 경로입니다.")
     scrape_parser.add_argument("--env-file", default=".env", help="동행복권 로그인용 로컬 env 파일 경로입니다.")
     scrape_parser.add_argument("--login-url", default="https://www.dhlottery.co.kr/login", help="자동 로그인에 사용할 동행복권 로그인 페이지입니다.")
+    scrape_parser.add_argument("--main-url", default="https://www.dhlottery.co.kr/main", help="예치금을 읽을 동행복권 메인 페이지입니다.")
     scrape_parser.add_argument("--max-tickets", type=int, default=30, help="클릭할 티켓 보기 버튼의 최대 개수입니다.")
     scrape_parser.add_argument("--headless", action="store_true", help="브라우저 창을 띄우지 않습니다. 이미 로그인 세션이 있을 때만 사용하세요.")
     scrape_parser.add_argument("--append", action="store_true", help="기존 구매번호를 지우지 않고 새 번호만 추가합니다.")
@@ -108,9 +110,11 @@ def _run_scrape_ledger(args: argparse.Namespace) -> int:
 
         result = scrape_ledger_to_file(
             ticket_path=args.tickets,
+            account_path=args.account,
             profile_dir=args.profile_dir,
             env_file=args.env_file,
             login_url=args.login_url,
+            main_url=args.main_url,
             max_tickets=args.max_tickets,
             headless=args.headless,
             append=args.append,
@@ -120,11 +124,16 @@ def _run_scrape_ledger(args: argparse.Namespace) -> int:
         print(f"구매내역 가져오기 실패. {exc}", file=sys.stderr)
         return 2
 
-    print(
+    message = (
         f"{args.tickets} 파일을 갱신했습니다. "
         f"로또 {len(result.imported_tickets.lotto)}개, "
         f"연금복권 {len(result.imported_tickets.pension)}개를 가져왔습니다."
     )
+    if result.balance_amount is None:
+        message += " 예치금은 찾지 못했습니다."
+    else:
+        message += f" 예치금 {result.balance_amount:,}원도 저장했습니다."
+    print(message)
     return 0
 
 

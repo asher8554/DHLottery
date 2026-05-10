@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from collections import Counter
 from dataclasses import dataclass
+from datetime import datetime, timezone
 import os
 from pathlib import Path
 import re
@@ -19,6 +20,7 @@ from .ticket_import import (
 
 LEDGER_URL = "https://www.dhlottery.co.kr/mypage/mylotteryledger"
 LOGIN_URL = "https://www.dhlottery.co.kr/login"
+MAIN_URL = "https://www.dhlottery.co.kr/main"
 PASSWORD_SELECTORS = (
     "#inpUserPswdEncn",
     "input.login-pw",
@@ -79,36 +81,49 @@ LEDGER_TICKET_ROW_PATTERN = re.compile(
 class ScrapeLedgerResult:
     imported_tickets: ImportedTickets
     ticket_text_count: int
+    balance_amount: int | None = None
+
+
+@dataclass(frozen=True)
+class ScrapedLedgerData:
+    ticket_texts: list[str]
+    balance_amount: int | None
 
 
 def scrape_ledger_to_file(
     *,
     ticket_path: str | Path = "data/tickets.yml",
+    account_path: str | Path | None = "data/account.yml",
     profile_dir: str | Path = ".browser/dhlottery",
     env_file: str | Path = ".env",
     login_url: str = LOGIN_URL,
+    main_url: str = MAIN_URL,
     ledger_url: str = LEDGER_URL,
     max_tickets: int = 30,
     headless: bool = False,
     append: bool = False,
     verbose: bool = False,
 ) -> ScrapeLedgerResult:
-    ticket_texts = scrape_ledger_ticket_texts(
+    scraped = scrape_ledger_data(
         profile_dir=profile_dir,
         env_file=env_file,
         login_url=login_url,
+        main_url=main_url,
         ledger_url=ledger_url,
         max_tickets=max_tickets,
         headless=headless,
         verbose=verbose,
     )
-    imported_tickets = _parse_ticket_texts(ticket_texts)
+    imported_tickets = _parse_ticket_texts(scraped.ticket_texts)
     write_imported_tickets(ticket_path, imported_tickets, replace_all=not append)
+    if account_path and scraped.balance_amount is not None:
+        write_account_snapshot(account_path, scraped.balance_amount)
+        _log(verbose, f"{account_path} 저장 완료. 예치금 {scraped.balance_amount:,}원.")
     _log(
         verbose,
         f"{ticket_path} 저장 완료. 로또 {len(imported_tickets.lotto)}개, 연금복권 {len(imported_tickets.pension)}개.",
     )
-    return ScrapeLedgerResult(imported_tickets, len(ticket_texts))
+    return ScrapeLedgerResult(imported_tickets, len(scraped.ticket_texts), scraped.balance_amount)
 
 
 def scrape_ledger_ticket_texts(
@@ -116,11 +131,35 @@ def scrape_ledger_ticket_texts(
     profile_dir: str | Path = ".browser/dhlottery",
     env_file: str | Path = ".env",
     login_url: str = LOGIN_URL,
+    main_url: str = MAIN_URL,
     ledger_url: str = LEDGER_URL,
     max_tickets: int = 30,
     headless: bool = False,
     verbose: bool = False,
 ) -> list[str]:
+    return scrape_ledger_data(
+        profile_dir=profile_dir,
+        env_file=env_file,
+        login_url=login_url,
+        main_url=main_url,
+        ledger_url=ledger_url,
+        max_tickets=max_tickets,
+        headless=headless,
+        verbose=verbose,
+    ).ticket_texts
+
+
+def scrape_ledger_data(
+    *,
+    profile_dir: str | Path = ".browser/dhlottery",
+    env_file: str | Path = ".env",
+    login_url: str = LOGIN_URL,
+    main_url: str = MAIN_URL,
+    ledger_url: str = LEDGER_URL,
+    max_tickets: int = 30,
+    headless: bool = False,
+    verbose: bool = False,
+) -> ScrapedLedgerData:
     try:
         from playwright.sync_api import Error as PlaywrightError
         from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
@@ -155,6 +194,16 @@ def scrape_ledger_ticket_texts(
                 else:
                     _log(verbose, "자동 제출할 로그인 폼을 찾지 못했거나 비밀번호가 없습니다.")
                 _wait_for_page_settle(page, PlaywrightTimeoutError)
+            _log(verbose, f"동행복권 메인 이동. {main_url}")
+            _goto_with_navigation_retry(page, main_url, PlaywrightError, PlaywrightTimeoutError)
+            if _auto_login_if_possible(page, credentials, PlaywrightTimeoutError):
+                _log(verbose, "메인 이동 후 로그인 폼을 다시 제출했습니다.")
+                _goto_with_navigation_retry(page, main_url, PlaywrightError, PlaywrightTimeoutError)
+            balance_amount = _read_main_balance(page, verbose)
+            if balance_amount is None:
+                _log(verbose, "메인 화면에서 예치금을 찾지 못했습니다.")
+            else:
+                _log(verbose, f"예치금 감지. {balance_amount:,}원.")
             _log(verbose, f"구매/당첨내역 이동. {ledger_url}")
             _goto_with_navigation_retry(page, ledger_url, PlaywrightError, PlaywrightTimeoutError)
             if _auto_login_if_possible(page, credentials, PlaywrightTimeoutError):
@@ -175,10 +224,59 @@ def scrape_ledger_ticket_texts(
                     f"버튼 후보 정보는 {debug_path.with_name('ledger-candidates.txt')}에 저장했습니다."
                 )
             _log(verbose, f"상세 텍스트 {len(texts)}개 수집 완료.")
-            return texts
+            return ScrapedLedgerData(texts, balance_amount)
         finally:
             _log(verbose, "브라우저 종료.")
             context.close()
+
+
+def write_account_snapshot(
+    account_path: str | Path,
+    balance_amount: int,
+    *,
+    scraped_at: datetime | None = None,
+) -> None:
+    timestamp = scraped_at or datetime.now(timezone.utc)
+    updated_at = timestamp.astimezone(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+    path = Path(account_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        "balance:\n"
+        f"  amount: {balance_amount}\n"
+        "  currency: KRW\n"
+        f"  updated_at: \"{updated_at}\"\n",
+        encoding="utf-8",
+    )
+
+
+def _read_main_balance(page, verbose: bool) -> int | None:
+    fallback_balance = parse_balance_amount(_all_body_texts(page))
+    _close_dialog(page)
+    try:
+        page.wait_for_timeout(500)
+    except Exception:
+        pass
+
+    for selector in ("#goGnb", "button.ham", "button:has-text('전체메뉴')"):
+        try:
+            locator = page.locator(selector)
+            count = locator.count()
+        except Exception:
+            continue
+        for index in range(count):
+            candidate = locator.nth(index)
+            try:
+                if not candidate.is_visible(timeout=500):
+                    continue
+                _log(verbose, "전체메뉴를 열어 예치금을 확인합니다.")
+                candidate.click(timeout=3000)
+                page.wait_for_timeout(1000)
+                menu_balance = parse_balance_amount(_all_body_texts(page))
+                if menu_balance is not None:
+                    return menu_balance
+            except Exception:
+                continue
+    return fallback_balance
 
 
 def load_dhlottery_credentials(env_file: str | Path = ".env") -> tuple[str, str]:
@@ -548,6 +646,14 @@ def _ledger_list_summary(texts: Iterable[str]) -> str:
     pension_count = len(re.findall(r"연금복권720\+\s*\n?\s*\d{1,5}\s*\n?\s*[1-5]\s*조\s*\d{6}", text))
     lotto_count = len(re.findall(r"로또6/45\s*\n?\s*\d{1,5}\s*\n?\s*\d{5}(?:\s+\d{5}){5}", text))
     return f"구매내역 목록 감지. 로또 {lotto_count}건, 연금복권 {pension_count}건."
+
+
+def parse_balance_amount(texts: Iterable[str] | str) -> int | None:
+    text = texts if isinstance(texts, str) else "\n".join(texts)
+    match = re.search(r"예치금\s*([0-9,]+)\s*원", text)
+    if not match:
+        return None
+    return int(match.group(1).replace(",", ""))
 
 
 def _log(verbose: bool, message: str) -> None:

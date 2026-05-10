@@ -1,4 +1,7 @@
 # 로컬 구매내역 스크래퍼의 텍스트 판별과 파싱을 검증하는 테스트
+from datetime import datetime, timezone
+from pathlib import Path
+import tempfile
 import unittest
 
 from dhlottery_checker.ledger_scraper import (
@@ -15,6 +18,8 @@ from dhlottery_checker.ledger_scraper import (
     _text_added_after_click,
     load_dhlottery_credentials,
     is_ticket_button_label,
+    parse_balance_amount,
+    write_account_snapshot,
 )
 
 
@@ -237,6 +242,25 @@ D 자동 9 13 20 21 36 41
         )
 
         self.assertEqual(summary, "구매내역 목록 감지. 로또 1건, 연금복권 1건.")
+
+    def test_parses_deposit_balance_from_main_text(self):
+        self.assertEqual(parse_balance_amount("우후님\n예치금 40,000원\n로그아웃"), 40000)
+        self.assertEqual(parse_balance_amount(["예치금\n40,000원", "미확인 게임수 0건"]), 40000)
+        self.assertIsNone(parse_balance_amount("미확인 게임수 0건"))
+
+    def test_writes_account_snapshot_yaml(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            path = Path(temp_dir) / "account.yml"
+            write_account_snapshot(
+                path,
+                40000,
+                scraped_at=datetime(2026, 5, 10, 12, 34, 56, tzinfo=timezone.utc),
+            )
+
+            self.assertEqual(
+                path.read_text(encoding="utf-8"),
+                'balance:\n  amount: 40000\n  currency: KRW\n  updated_at: "2026-05-10T12:34:56Z"\n',
+            )
 
 class _FakePage:
     def __init__(self, elements_by_selector):

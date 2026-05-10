@@ -2,9 +2,11 @@
 [CmdletBinding()]
 param(
     [string]$Path = "data/tickets.yml",
+    [string]$AccountPath = "data/account.yml",
     [string]$ProfileDir = ".browser/dhlottery",
     [string]$EnvFile = ".env",
     [string]$LoginUrl = "https://www.dhlottery.co.kr/login",
+    [string]$MainUrl = "https://www.dhlottery.co.kr/main",
     [int]$MaxTickets = 30,
     [switch]$Append,
     [switch]$Headless,
@@ -36,9 +38,11 @@ Push-Location $repoRoot
 try {
     $scrapeParams = @{
         Path = $Path
+        AccountPath = $AccountPath
         ProfileDir = $ProfileDir
         EnvFile = $EnvFile
         LoginUrl = $LoginUrl
+        MainUrl = $MainUrl
         MaxTickets = $MaxTickets
     }
     if ($Append) {
@@ -54,13 +58,18 @@ try {
     & $scrapeScript @scrapeParams
     Stop-IfNativeFailed
 
-    git add -- $Path
+    $changePaths = @($Path)
+    if ($AccountPath) {
+        $changePaths += $AccountPath
+    }
+
+    git add -- $changePaths
     Stop-IfNativeFailed
 
-    git diff --cached --quiet -- $Path
+    git diff --cached --quiet -- $changePaths
     $diffExitCode = $LASTEXITCODE
     if ($diffExitCode -eq 0) {
-        Write-Host "data/tickets.yml 변경사항이 없습니다."
+        Write-Host "구매번호와 예치금 변경사항이 없습니다."
         return
     }
     if ($diffExitCode -ne 1) {
