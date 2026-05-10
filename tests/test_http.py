@@ -4,8 +4,9 @@ from __future__ import annotations
 import socket
 import unittest
 from unittest.mock import MagicMock, patch
+from urllib import error
 
-from dhlottery_checker.http import get_text
+from dhlottery_checker.http import HttpTimeoutError, get_text
 
 
 class HttpTest(unittest.TestCase):
@@ -20,6 +21,16 @@ class HttpTest(unittest.TestCase):
 
         self.assertEqual(result, "ok")
         sleep.assert_called_once()
+
+    def test_get_text_raises_timeout_error_after_elapsed_limit(self):
+        timeout = error.URLError(TimeoutError("timed out"))
+
+        with patch("dhlottery_checker.http.request.urlopen", side_effect=timeout):
+            with patch("dhlottery_checker.http.time.sleep") as sleep:
+                with self.assertRaises(HttpTimeoutError):
+                    get_text("https://example.com", retries=2, retry_delay=0, max_elapsed=0)
+
+        sleep.assert_not_called()
 
 
 if __name__ == "__main__":

@@ -9,7 +9,7 @@ import unittest
 from unittest.mock import patch
 
 from dhlottery_checker.config import LottoTicket
-from dhlottery_checker.http import HttpError
+from dhlottery_checker.http import HttpError, HttpTimeoutError
 from dhlottery_checker.runner import Outcome, _format_messages, _run_check
 
 
@@ -174,6 +174,25 @@ class RunnerTest(unittest.TestCase):
         self.assertIn("로또 1224회. 아직 당첨결과 발표 전입니다.", message)
         self.assertIn("로또 1224회 https://www.dhlottery.co.kr/lt645/result", message)
         self.assertIn("발표 후 다시 검사하면 당첨 여부를 알려드립니다.", message)
+        output = "\n".join(call.args[0] for call in print_mock.call_args_list)
+        self.assertIn("아직 당첨결과 발표 전입니다", output)
+
+    def test_timeout_result_message_is_notified_as_pending(self):
+        config = SimpleNamespace(
+            lotto=(LottoTicket(round=1224, numbers=(9, 12, 13, 33, 35, 43), label="로또 1224회 A"),),
+            pension=(),
+        )
+
+        with patch("dhlottery_checker.runner.load_ticket_config", return_value=config):
+            with patch("dhlottery_checker.runner.fetch_lotto_winning", side_effect=HttpTimeoutError("1분 초과")):
+                with patch("dhlottery_checker.runner.send_kakao_text") as send_kakao:
+                    with patch("builtins.print") as print_mock:
+                        result = _run_check(self._args(force_notify=False))
+
+        self.assertEqual(result, 0)
+        send_kakao.assert_called_once()
+        message = send_kakao.call_args.args[0]
+        self.assertIn("로또 1224회. 아직 당첨결과 발표 전입니다.", message)
         output = "\n".join(call.args[0] for call in print_mock.call_args_list)
         self.assertIn("아직 당첨결과 발표 전입니다", output)
 

@@ -14,8 +14,17 @@ class HttpError(RuntimeError):
     pass
 
 
-def get_json(url: str, params: dict[str, Any] | None = None, timeout: int = 20) -> dict[str, Any]:
-    text = get_text(url, params=params, timeout=timeout, accept="application/json")
+class HttpTimeoutError(HttpError):
+    pass
+
+
+def get_json(
+    url: str,
+    params: dict[str, Any] | None = None,
+    timeout: int = 20,
+    max_elapsed: float = 60,
+) -> dict[str, Any]:
+    text = get_text(url, params=params, timeout=timeout, accept="application/json", max_elapsed=max_elapsed)
     try:
         data = json.loads(text)
     except json.JSONDecodeError as exc:
@@ -32,6 +41,7 @@ def get_text(
     accept: str = "text/html,application/json",
     retries: int = 2,
     retry_delay: float = 1.5,
+    max_elapsed: float = 60,
 ) -> str:
     target = _with_params(url, params)
     req = request.Request(
@@ -43,6 +53,7 @@ def get_text(
         method="GET",
     )
     last_error: Exception | None = None
+    started_at = time.monotonic()
     for attempt in range(retries + 1):
         try:
             with request.urlopen(req, timeout=timeout) as response:
@@ -55,8 +66,12 @@ def get_text(
                 raise HttpError(f"HTTP 요청에 실패했습니다. {target}. {detail}") from exc
         except OSError as exc:
             last_error = exc
+            if _is_timeout_error(exc) and time.monotonic() - started_at >= max_elapsed:
+                raise HttpTimeoutError(_timeout_error_message(target, max_elapsed)) from exc
             if attempt >= retries:
                 raise HttpError(f"HTTP 요청에 실패했습니다. {target}") from exc
+        if last_error is not None and _is_timeout_error(last_error) and time.monotonic() - started_at >= max_elapsed:
+            raise HttpTimeoutError(_timeout_error_message(target, max_elapsed)) from last_error
         time.sleep(retry_delay * (attempt + 1))
     raise HttpError(f"HTTP 요청에 실패했습니다. {target}") from last_error
 
@@ -132,3 +147,18 @@ def _http_error_detail(exc: error.HTTPError) -> str:
 
 def _should_retry_http_error(exc: error.HTTPError) -> bool:
     return exc.code == 429 or exc.code >= 500
+
+
+def _is_timeout_error(exc: BaseException) -> bool:
+    if isinstance(exc, TimeoutError):
+        return True
+    reason = getattr(exc, "reason", None)
+    if isinstance(reason, TimeoutError):
+        return True
+    return "timed out" in str(exc).lower()
+
+
+def _timeout_error_message(target: str, max_elapsed: float) -> str:
+    if max_elapsed == 60:
+        return f"HTTP 요청 시간이 1분을 초과했습니다. {target}"
+    return f"HTTP 요청 시간이 {max_elapsed:g}초를 초과했습니다. {target}"
