@@ -288,3 +288,12 @@
    검증은 CLI 도움말에서 `--login-url` 기본 흐름을 확인한다.
 2. 로그인 시도 후 `https://www.dhlottery.co.kr/mypage/mylotteryledger`로 이동한다.
    검증은 기존 스크래퍼 단위 테스트와 도움말 검증으로 회귀를 확인한다.
+
+## 2026-05-10 로그인 비밀번호 입력 보정
+
+목표는 동행복권 실제 로그인 폼의 `#inpUserPswdEncn`, `#inpUserId`, `#btnLogin` 요소를 우선 사용해 `.env` 비밀번호가 확실히 입력되게 하는 것이다.
+
+1. 공식 로그인 페이지 HTML의 실제 input id와 버튼 id를 셀렉터 앞순위에 둔다.
+   검증은 셀렉터 상수 테스트로 확인한다.
+2. 같은 selector에 여러 요소가 있으면 첫 번째만 보지 않고 visible 요소를 찾는다.
+   검증은 fake locator 단위 테스트로 확인한다.

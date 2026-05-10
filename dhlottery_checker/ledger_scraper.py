@@ -13,6 +13,10 @@ from .ticket_import import ImportedTickets, parse_ticket_text, write_imported_ti
 LEDGER_URL = "https://www.dhlottery.co.kr/mypage/mylotteryledger"
 LOGIN_URL = "https://www.dhlottery.co.kr/login"
 PASSWORD_SELECTORS = (
+    "#inpUserPswdEncn",
+    "input.login-pw",
+    "input[aria-label='비밀번호']",
+    "input[placeholder='비밀번호']",
     "input[type='password']",
     "input[name='password']",
     "input[name='passwd']",
@@ -21,6 +25,11 @@ PASSWORD_SELECTORS = (
     "#password",
 )
 USERNAME_SELECTORS = (
+    "#inpUserId",
+    "input[name='inpUserId']",
+    "input.login-id",
+    "input[aria-label='아이디']",
+    "input[placeholder='아이디']",
     "input[name='userId']",
     "input[name='userID']",
     "input[name='loginId']",
@@ -30,6 +39,9 @@ USERNAME_SELECTORS = (
     "input[type='text']",
 )
 LOGIN_SUBMIT_SELECTORS = (
+    "#btnLogin",
+    "button.login-btn",
+    "button.item-submit",
     "button:has-text('로그인')",
     "input[type='submit']",
     "input[type='button'][value*='로그인']",
@@ -180,8 +192,8 @@ def _auto_login_if_possible(page, credentials: tuple[str, str], timeout_error_ty
 
     username_input = _first_visible_locator(page, USERNAME_SELECTORS)
     if username and username_input is not None:
-        username_input.fill(username, timeout=3000)
-    password_input.fill(password, timeout=3000)
+        _fill_input(username_input, username)
+    _fill_input(password_input, password)
     _submit_login_form(page, password_input)
     _wait_for_page_settle(page, timeout_error_type)
     return True
@@ -193,24 +205,41 @@ def _page_has_login_form(page) -> bool:
 
 def _first_visible_locator(page, selectors: Iterable[str]):
     for selector in selectors:
-        try:
-            locator = page.locator(selector).first
-            if locator.count() > 0 and locator.is_visible(timeout=1000):
-                return locator
-        except Exception:
-            continue
+        for scope in _locator_scopes(page):
+            try:
+                locator = scope.locator(selector)
+                count = locator.count()
+            except Exception:
+                continue
+            for index in range(count):
+                try:
+                    candidate = locator.nth(index)
+                    if candidate.is_visible(timeout=1000):
+                        return candidate
+                except Exception:
+                    continue
     return None
 
 
-def _submit_login_form(page, password_input) -> None:
-    for selector in LOGIN_SUBMIT_SELECTORS:
+def _locator_scopes(page):
+    frames = getattr(page, "frames", None)
+    return frames if frames else (page,)
+
+
+def _fill_input(locator, value: str) -> None:
+    locator.fill(value, timeout=3000)
+    for event_name in ("input", "change"):
         try:
-            locator = page.locator(selector).first
-            if locator.count() > 0 and locator.is_visible(timeout=1000):
-                locator.click(timeout=3000)
-                return
+            locator.dispatch_event(event_name, timeout=1000)
         except Exception:
-            continue
+            pass
+
+
+def _submit_login_form(page, password_input) -> None:
+    submit_button = _first_visible_locator(page, LOGIN_SUBMIT_SELECTORS)
+    if submit_button is not None:
+        submit_button.click(timeout=3000)
+        return
     password_input.press("Enter", timeout=3000)
 
 

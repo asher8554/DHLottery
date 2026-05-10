@@ -2,6 +2,10 @@
 import unittest
 
 from dhlottery_checker.ledger_scraper import (
+    LOGIN_SUBMIT_SELECTORS,
+    PASSWORD_SELECTORS,
+    USERNAME_SELECTORS,
+    _first_visible_locator,
     _is_navigation_interruption,
     _looks_like_ticket_text,
     _parse_env_text,
@@ -12,6 +16,11 @@ from dhlottery_checker.ledger_scraper import (
 
 
 class LedgerScraperTest(unittest.TestCase):
+    def test_prioritizes_current_dhlottery_login_selectors(self):
+        self.assertEqual(PASSWORD_SELECTORS[0], "#inpUserPswdEncn")
+        self.assertEqual(USERNAME_SELECTORS[0], "#inpUserId")
+        self.assertEqual(LOGIN_SUBMIT_SELECTORS[0], "#btnLogin")
+
     def test_detects_ticket_view_button_labels(self):
         self.assertTrue(is_ticket_button_label("티켓 보기"))
         self.assertTrue(is_ticket_button_label("상세보기"))
@@ -69,6 +78,44 @@ class LedgerScraperTest(unittest.TestCase):
 
         self.assertEqual(username, "sample-user")
         self.assertEqual(password, "sample-password")
+
+    def test_first_visible_locator_checks_all_matching_elements(self):
+        hidden = _FakeElement(False)
+        visible = _FakeElement(True)
+        page = _FakePage({"input[type='password']": [hidden, visible]})
+
+        self.assertIs(_first_visible_locator(page, ("input[type='password']",)), visible)
+
+class _FakePage:
+    def __init__(self, elements_by_selector):
+        self.frames = [_FakeFrame(elements_by_selector)]
+
+
+class _FakeFrame:
+    def __init__(self, elements_by_selector):
+        self._elements_by_selector = elements_by_selector
+
+    def locator(self, selector):
+        return _FakeLocator(self._elements_by_selector.get(selector, []))
+
+
+class _FakeLocator:
+    def __init__(self, elements):
+        self._elements = elements
+
+    def count(self):
+        return len(self._elements)
+
+    def nth(self, index):
+        return self._elements[index]
+
+
+class _FakeElement:
+    def __init__(self, visible):
+        self._visible = visible
+
+    def is_visible(self, timeout=None):
+        return self._visible
 
 
 if __name__ == "__main__":

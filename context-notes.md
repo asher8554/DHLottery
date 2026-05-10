@@ -350,3 +350,13 @@
 - 비헤드리스 실행에서는 로그인 URL로 먼저 이동해 `.env` credential로 로그인 시도 후 구매/당첨내역 URL로 이동한다.
 - 구매/당첨내역으로 이동했는데 여전히 로그인 폼이 보이면 한 번 더 자동 로그인을 시도하고, 그래도 실패하면 수동 로그인 안내를 유지한다.
 - PowerShell 스크립트와 CLI에 `--login-url` 전달 경로를 추가해 로그인 URL이 바뀌어도 override할 수 있게 했다.
+
+## 2026-05-10 로그인 비밀번호 입력 보정
+
+- 사용자가 `.env`에 비밀번호를 넣었지만 로그인 페이지에서 비밀번호가 입력되지 않는다고 보고했다.
+- 실제 동행복권 로그인 페이지 HTML을 확인하니 사용자 입력용 아이디는 `#inpUserId`, 비밀번호는 `#inpUserPswdEncn`, 로그인 버튼은 `#btnLogin`이다.
+- 숨김 전송 필드 `#userId`, `#userPswdEncn`은 로그인 버튼 클릭 시 페이지 JS가 RSA 암호화 값을 넣는 곳이므로 자동 입력 대상이 아니다.
+- 기존 selector는 `input[type='password']`처럼 넓은 후보를 먼저 보고, 같은 selector에서 첫 번째 요소만 검사해 숨김 또는 잘못된 요소를 만날 때 visible 입력칸을 놓칠 수 있었다.
+- 실제 로그인 폼의 id와 class를 selector 앞순위에 두고, 같은 selector 안의 모든 후보 중 visible 요소를 찾도록 바꾼다.
+- Playwright headless 확인에서 `#inpUserId`, `#inpUserPswdEncn`, `#btnLogin`이 각각 1개씩 있고 모두 visible임을 확인했다.
+- `python -m unittest discover -s tests` 결과 39개 테스트가 통과했고, CLI 도움말과 PowerShell 스크립트 문법 검증도 통과했다.
