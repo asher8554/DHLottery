@@ -869,6 +869,18 @@
     }
 
     function parsePensionRound(text, cleanedLines) {
+      for (const line of cleanedLines) {
+        if (/^[1-5]\s*조$/.test(line)) {
+          break;
+        }
+        if (/[/:]/.test(line)) {
+          continue;
+        }
+        const lineMatch = line.match(/^\D*(\d{1,5})(?:\D|$)/);
+        if (lineMatch) {
+          return Number(lineMatch[1]);
+        }
+      }
       const roundMatch = text.match(/(\d{1,5})\s*회/);
       if (roundMatch) {
         return Number(roundMatch[1]);
