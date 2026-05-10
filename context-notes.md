@@ -249,3 +249,11 @@
 - 전체 당첨이 0개일 때 `이번 회차는 당첨 없음.`을 마지막에 한 번만 붙인다.
 - `python -m unittest discover -s tests` 결과 23개 테스트가 통과했다.
 - `data/tickets.example.yml` dry-run으로 새 대괄호 헤더와 회차별 간소화 요약 출력을 확인했다.
+
+## 2026-05-10 결과 확인 링크 추가
+
+- 사용자가 카카오 메시지에서 동행복권 결과 사이트로 바로 이동할 수 있는 링크를 원했다.
+- 요약 메시지 끝에 `결과 확인` 섹션을 추가하고, 게임별 공식 결과 페이지 URL을 본문에 넣는다.
+- 로또는 `https://www.dhlottery.co.kr/lt645/result`, 연금복권은 `https://www.dhlottery.co.kr/pt720/result`를 사용한다.
+- `python -m unittest discover -s tests` 결과 23개 테스트가 통과했다.
+- `data/tickets.example.yml` dry-run으로 요약 메시지에 로또와 연금복권 결과 링크가 포함되는 것을 확인했다.

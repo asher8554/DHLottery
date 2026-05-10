@@ -77,6 +77,7 @@ class RunnerTest(unittest.TestCase):
         self.assertIn("[동행복권 결과 요약]", messages[0])
         self.assertIn("로또 1223회. 당첨 1개, 미당첨 1개.", messages[0])
         self.assertIn("당첨. A 5등 5,000원.", messages[0])
+        self.assertIn("로또 1223회 https://www.dhlottery.co.kr/lt645/result", messages[0])
         self.assertIn("로또는 3개부터 당첨입니다.", messages[1])
         self.assertIn("B. 미당첨. 맞은 번호 18, 32. 보너스 일치.", messages[1])
 
@@ -102,6 +103,7 @@ class RunnerTest(unittest.TestCase):
 
         self.assertIn("연금복권 314회. 당첨 1개, 미당첨 0개.", messages[0])
         self.assertIn("당첨. 1 2조 060727 1등 월 700만원 x 20년.", messages[0])
+        self.assertIn("연금복권 314회 https://www.dhlottery.co.kr/pt720/result", messages[0])
 
     def test_formats_no_winner_summary_in_requested_style(self):
         messages = _format_messages(
@@ -121,6 +123,9 @@ class RunnerTest(unittest.TestCase):
                     "로또 1223회. 당첨 0개, 미당첨 2개.",
                     "연금복권 314회. 당첨 0개, 미당첨 1개.",
                     "이번 회차는 당첨 없음.",
+                    "결과 확인",
+                    "로또 1223회 https://www.dhlottery.co.kr/lt645/result",
+                    "연금복권 314회 https://www.dhlottery.co.kr/pt720/result",
                 ]
             ),
         )

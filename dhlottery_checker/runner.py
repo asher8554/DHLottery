@@ -12,6 +12,7 @@ from .config import LottoTicket, PensionTicket, load_ticket_config
 from .http import HttpError
 from .kakao import send_kakao_text
 from .lotto import (
+    LOTTO_RESULT_PAGE,
     ResultNotReady as LottoResultNotReady,
     check_lotto,
     fetch_latest_lotto_round,
@@ -26,6 +27,9 @@ from .pension import (
 )
 from .state import SentState, fingerprint_ticket
 from .ticket_import import parse_lotto_ticket_text, write_lotto_tickets
+
+
+PENSION_RESULT_PAGE = "https://www.dhlottery.co.kr/pt720/result"
 
 
 @dataclass(frozen=True)
@@ -262,7 +266,8 @@ def _format_report(unsent: list[Outcome], all_outcomes: list[Outcome]) -> str:
 def _format_summary_message(outcomes: list[Outcome]) -> str:
     lines = ["[동행복권 결과 요약]"]
     total_won_count = 0
-    for group in _group_outcomes(outcomes):
+    groups = _group_outcomes(outcomes)
+    for group in groups:
         won_count = sum(1 for outcome in group if outcome.won)
         total_won_count += won_count
         losing_count = len(group) - won_count
@@ -276,6 +281,7 @@ def _format_summary_message(outcomes: list[Outcome]) -> str:
             lines.append(f"당첨. {winning_text}.")
     if total_won_count == 0:
         lines.append("이번 회차는 당첨 없음.")
+    lines.extend(_result_link_lines(groups))
     return "\n".join(lines)
 
 
@@ -313,6 +319,17 @@ def _group_title(outcome: Outcome) -> str:
     if outcome.game == "pension":
         return f"연금복권 {outcome.round}회"
     return f"{outcome.game} {outcome.round}회"
+
+
+def _result_link_lines(groups: list[list[Outcome]]) -> list[str]:
+    lines = ["결과 확인"]
+    for group in groups:
+        representative = group[0]
+        if representative.game == "lotto":
+            lines.append(f"{_group_title(representative)} {LOTTO_RESULT_PAGE}")
+        elif representative.game == "pension":
+            lines.append(f"{_group_title(representative)} {PENSION_RESULT_PAGE}")
+    return lines
 
 
 def _short_label(label: str, game: str, round_no: int) -> str:
