@@ -424,3 +424,12 @@
 - 알림은 GitHub Actions에서 `data/account.yml` 변경 시 실행한다. 충전 자체는 사용자가 동행복권에서 직접 확인하고 진행한다.
 - 같은 예치금 금액에 대해서는 중복 카카오 알림을 막는다. 예치금이 더 줄어 다른 금액이 되면 다시 알림 대상이 된다.
 - 현재 `data/account.yml` 기준 예치금은 40,000원이므로 Pages는 `충전 필요`를 표시한다.
+
+## 2026-05-10 시놀로지 정기 실행 구성
+
+- 사용자는 지금까지 만든 스크래퍼와 Pages 동기화 흐름을 시놀로지에서 매주 자동 실행하고 싶어 한다.
+- 시놀로지 DSM 네이티브 환경은 Chromium 실행 의존성이 부족할 수 있으므로 Docker/Container Manager 방식이 더 안정적이다.
+- Linux용 실행 래퍼는 기존 PowerShell 스크립트와 같은 역할을 하되, 기본값을 headless 실행으로 둔다.
+- 주간 작업은 `scripts/synology-docker-run.sh`를 DSM 작업 스케줄러에서 호출하는 구조로 안내한다.
+- Docker 이미지에는 Python 3.12, Git, SSH client, Playwright Chromium 의존성을 넣는다.
+- `NO_PUSH=1` 같은 테스트 옵션이 컨테이너 안까지 전달되도록 `scripts/synology-docker-run.sh`에서 환경변수를 넘긴다.

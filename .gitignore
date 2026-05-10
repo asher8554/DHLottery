@@ -6,5 +6,6 @@ __pycache__/
 .mypy_cache/
 .state/
 .browser/
+logs/
 /tickets.yml
 data/tickets.*.local.yml

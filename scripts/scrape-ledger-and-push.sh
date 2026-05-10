@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# 리눅스에서 구매내역과 예치금을 가져와 커밋하고 원격에 올리는 스크립트
+set -euo pipefail
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$repo_root"
+
+ticket_path="${TICKET_PATH:-data/tickets.yml}"
+account_path="${ACCOUNT_PATH:-data/account.yml}"
+commit_message="${COMMIT_MESSAGE:-구매번호 자동 반영}"
+no_push="${NO_PUSH:-0}"
+lock_dir="${LOCK_DIR:-.state/scrape-ledger.lock}"
+
+mkdir -p "$(dirname "$lock_dir")"
+if ! mkdir "$lock_dir" 2>/dev/null; then
+  echo "이미 스크래퍼가 실행 중입니다."
+  exit 0
+fi
+trap 'rmdir "$lock_dir"' EXIT
+
+git config --global --add safe.directory "$repo_root" >/dev/null 2>&1 || true
+
+bash "$repo_root/scripts/scrape-ledger.sh"
+
+change_paths=("$ticket_path")
+if [[ -n "$account_path" ]]; then
+  change_paths+=("$account_path")
+fi
+
+git add -- "${change_paths[@]}"
+
+if git diff --cached --quiet -- "${change_paths[@]}"; then
+  echo "구매번호와 예치금 변경사항이 없습니다."
+  exit 0
+fi
+
+git commit -m "$commit_message"
+
+if [[ "$no_push" == "1" || "$no_push" == "true" ]]; then
+  echo "커밋까지만 완료했습니다. NO_PUSH=1 설정으로 원격 푸시는 건너뜁니다."
+  exit 0
+fi
+
+git pull --rebase
+git push
+
+echo "GitHub Pages에서 새 구매번호와 예치금을 확인할 수 있습니다."

@@ -121,6 +121,7 @@ GitHub cron은 UTC 기준이라 파일에는 각각 `10 11 * * 4`, `45 12 * * 6`
 
 - GitHub 저장소와 Secret 설정은 [docs/github-setup.md](docs/github-setup.md)를 보세요.
 - 카카오톡 나에게 보내기 설정은 [docs/kakao-setup.md](docs/kakao-setup.md)를 보세요.
+- 시놀로지에서 매주 자동 실행하려면 [docs/synology-setup.md](docs/synology-setup.md)를 보세요.
 - 로컬 `data/tickets.yml`을 GitHub Secret으로 올릴 때는 `scripts/sync-tickets-secret.ps1`을 사용할 수 있습니다.
 - 다음 작업을 이어갈 때는 [handoff.md](handoff.md)를 먼저 보세요.
 

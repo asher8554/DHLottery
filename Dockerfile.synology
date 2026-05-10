@@ -1,0 +1,20 @@
+# 시놀로지 컨테이너에서 스크래퍼를 실행하는 Python 환경
+FROM python:3.12-bookworm
+
+ENV PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        git \
+        openssh-client \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY requirements.txt /tmp/dhlottery-requirements.txt
+RUN python -m pip install -r /tmp/dhlottery-requirements.txt \
+    && python -m playwright install --with-deps chromium
+
+CMD ["bash"]
