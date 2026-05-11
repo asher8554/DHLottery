@@ -19,6 +19,12 @@ fi
 trap 'rmdir "$lock_dir"' EXIT
 
 git config --global --add safe.directory "$repo_root" >/dev/null 2>&1 || true
+git config user.name "${GIT_AUTHOR_NAME:-synology-dhlottery}"
+git config user.email "${GIT_AUTHOR_EMAIL:-synology-dhlottery@example.local}"
+
+if [[ -z "${GIT_SSH_COMMAND:-}" && -f /root/.ssh/id_ed25519 ]]; then
+  export GIT_SSH_COMMAND="ssh -i /root/.ssh/id_ed25519 -o IdentitiesOnly=yes"
+fi
 
 bash "$repo_root/scripts/scrape-ledger.sh"
 
