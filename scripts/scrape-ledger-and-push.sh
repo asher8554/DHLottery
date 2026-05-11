@@ -10,11 +10,21 @@ account_path="${ACCOUNT_PATH:-data/account.yml}"
 commit_message="${COMMIT_MESSAGE:-구매번호 자동 반영}"
 no_push="${NO_PUSH:-0}"
 lock_dir="${LOCK_DIR:-.state/scrape-ledger.lock}"
+lock_stale_minutes="${LOCK_STALE_MINUTES:-60}"
 
 mkdir -p "$(dirname "$lock_dir")"
 if ! mkdir "$lock_dir" 2>/dev/null; then
-  echo "이미 스크래퍼가 실행 중입니다."
-  exit 0
+  if find "$lock_dir" -maxdepth 0 -mmin +"$lock_stale_minutes" 2>/dev/null | grep -q .; then
+    echo "오래된 스크래퍼 lock을 정리합니다. $lock_dir"
+    rmdir "$lock_dir" 2>/dev/null || {
+      echo "스크래퍼 lock을 정리하지 못했습니다. $lock_dir"
+      exit 0
+    }
+    mkdir "$lock_dir"
+  else
+    echo "이미 스크래퍼가 실행 중입니다."
+    exit 0
+  fi
 fi
 trap 'rmdir "$lock_dir"' EXIT
 
