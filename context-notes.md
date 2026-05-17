@@ -528,3 +528,4 @@
 - 기본값은 `notify_pending: false`로 두고, 결과가 확정된 항목의 당첨/미당첨 알림은 기존처럼 보낸다.
 - `check` CLI에 `--notify-pending`을 추가했고, Pages와 Actions는 `notify_pending` 체크박스와 설정값을 이 옵션으로 전달한다.
 - 검증은 전체 unittest 64개, workflow YAML 파싱, Pages 스크립트 문법 확인, `git diff --check`로 진행했다.
+- 원격에 먼저 들어온 `7fbf2b8 구매번호 정리`를 rebase로 반영한 뒤 구현 커밋 `161edfd`를 푸시했다.
