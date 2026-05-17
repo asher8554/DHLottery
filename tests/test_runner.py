@@ -11,7 +11,8 @@ from unittest.mock import patch
 
 from dhlottery_checker.config import LottoTicket
 from dhlottery_checker.http import HttpError, HttpTimeoutError
-from dhlottery_checker.runner import Outcome, _format_messages, _run_balance_alert, _run_check
+from dhlottery_checker.runner import Outcome, _format_messages, _run_balance_alert, _run_check, prune_sent_tickets
+from dhlottery_checker.state import fingerprint_ticket
 
 
 class RunnerTest(unittest.TestCase):
@@ -259,6 +260,75 @@ class RunnerTest(unittest.TestCase):
         self.assertEqual(status["sent_pending_count"], 1)
         self.assertEqual(status["pending_not_ready_count"], 1)
         self.assertFalse(status["clear_tickets"])
+
+    def test_status_json_marks_resolved_ticket_removable_when_pending_remains(self):
+        status_path = Path(self.temp_dir.name) / "check-status.json"
+        resolved = Outcome("pension", 315, "연금복권 315회 1", "연금복권 315회 1. 미당첨.", "done-ticket", True)
+        pending = Outcome(
+            "pension",
+            316,
+            "연금복권 316회 1",
+            "연금복권 316회 1. 결과 대기 중입니다.",
+            "pending-ticket",
+            False,
+        )
+
+        with patch("dhlottery_checker.runner.load_ticket_config", return_value=SimpleNamespace(lotto=[], pension=[])):
+            with patch("dhlottery_checker.runner._build_outcomes", return_value=[resolved, pending]):
+                with patch("dhlottery_checker.runner.send_kakao_text"):
+                    with patch("builtins.print"):
+                        result = _run_check(self._args(force_notify=False, status_json=str(status_path)))
+
+        self.assertEqual(result, 0)
+        status = json.loads(status_path.read_text(encoding="utf-8"))
+        self.assertEqual(status["sent_resolved_count"], 1)
+        self.assertEqual(status["pending_count"], 1)
+        self.assertFalse(status["clear_tickets"])
+        self.assertEqual(status["removable_resolved_fingerprints"], ["done-ticket"])
+
+    def test_prune_sent_tickets_removes_only_completed_entries(self):
+        ticket_path = Path(self.temp_dir.name) / "tickets.yml"
+        status_path = Path(self.temp_dir.name) / "check-status.json"
+        ticket_path.write_text(
+            "\n".join(
+                [
+                    "pension:",
+                    "  tickets:",
+                    "    - label: 연금복권 315회 1",
+                    "      round: 315",
+                    "      group: 1",
+                    "      number: '111111'",
+                    "    - label: 연금복권 316회 1",
+                    "      round: 316",
+                    "      group: 1",
+                    "      number: '222222'",
+                    "",
+                ]
+            ),
+            encoding="utf-8",
+        )
+        done_fingerprint = fingerprint_ticket(
+            {
+                "game": "pension",
+                "round": 315,
+                "group": 1,
+                "number": "111111",
+                "label": "연금복권 315회 1",
+            },
+            "",
+        )
+        status_path.write_text(
+            json.dumps({"removable_resolved_fingerprints": [done_fingerprint]}, ensure_ascii=False),
+            encoding="utf-8",
+        )
+
+        removed = prune_sent_tickets(ticket_path, status_path)
+
+        self.assertEqual(removed, 1)
+        updated = ticket_path.read_text(encoding="utf-8")
+        self.assertNotIn("315", updated)
+        self.assertIn("316", updated)
+        self.assertIn("222222", updated)
 
     def test_balance_alert_sends_when_balance_is_low(self):
         account_path = Path(self.temp_dir.name) / "account.yml"

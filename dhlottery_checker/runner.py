@@ -9,6 +9,8 @@ from pathlib import Path
 import sys
 from typing import Iterable
 
+import yaml
+
 from .account import (
     DEFAULT_BALANCE_THRESHOLD,
     DEFAULT_CHARGE_AMOUNT,
@@ -106,6 +108,10 @@ def main(argv: list[str] | None = None) -> int:
     schedule_parser.add_argument("--force-notify", action="store_true", help="저장된 시간과 무관하게 이번 실행을 통과시킵니다.")
     schedule_parser.add_argument("--github-output", help="GitHub Actions output 파일 경로입니다.")
 
+    prune_parser = subparsers.add_parser("prune-sent-tickets", help="알림이 끝난 구매번호만 YAML에서 제거합니다.")
+    prune_parser.add_argument("--tickets", default="data/tickets.yml", help="정리할 구매번호 YAML 파일 경로입니다.")
+    prune_parser.add_argument("--status-json", default=".state/check-status.json", help="검사 상태 JSON 파일 경로입니다.")
+
     args = parser.parse_args(argv)
     if args.command == "check":
         return _run_check(args)
@@ -117,6 +123,8 @@ def main(argv: list[str] | None = None) -> int:
         return _run_balance_alert(args)
     if args.command == "schedule-due":
         return _run_schedule_due(args)
+    if args.command == "prune-sent-tickets":
+        return _run_prune_sent_tickets(args)
     return 1
 
 
@@ -222,6 +230,16 @@ def _run_schedule_due(args: argparse.Namespace) -> int:
     return 0
 
 
+def _run_prune_sent_tickets(args: argparse.Namespace) -> int:
+    try:
+        removed = prune_sent_tickets(args.tickets, args.status_json)
+    except ValueError as exc:
+        print(f"구매번호 정리 실패. {exc}", file=sys.stderr)
+        return 2
+    print(f"정리한 구매번호 {removed}개.")
+    return 0
+
+
 def _run_check(args: argparse.Namespace) -> int:
     config = load_ticket_config(args.tickets)
     state = None if args.no_state else SentState.load(args.state)
@@ -253,6 +271,12 @@ def _run_check(args: argparse.Namespace) -> int:
     elif state is not None and not Path(args.state).exists():
         state.save()
 
+    removable_resolved = _removable_resolved_outcomes(
+        resolved,
+        unsent,
+        state,
+        notified=args.notify and not args.dry_run,
+    )
     _write_status_json(
         args.status_json,
         resolved_count=len(resolved),
@@ -261,9 +285,111 @@ def _run_check(args: argparse.Namespace) -> int:
         pending_not_ready_count=len(pending_to_notify),
         sent_resolved_count=sent_resolved_count,
         sent_pending_count=sent_pending_count,
-        clear_tickets=sent_resolved_count > 0 and len(pending) == 0,
+        removable_resolved_fingerprints=[outcome.fingerprint for outcome in removable_resolved],
+        clear_tickets=bool(removable_resolved) and len(pending) == 0,
     )
     return 0
+
+
+def _removable_resolved_outcomes(
+    resolved: list[Outcome],
+    unsent: list[Outcome],
+    state: SentState | None,
+    *,
+    notified: bool,
+) -> list[Outcome]:
+    unsent_fingerprints = {outcome.fingerprint for outcome in unsent}
+    removable = []
+    for outcome in resolved:
+        if state is not None and state.is_sent(outcome.fingerprint):
+            removable.append(outcome)
+        elif notified and outcome.fingerprint in unsent_fingerprints:
+            removable.append(outcome)
+    return removable
+
+
+def prune_sent_tickets(ticket_path: str | Path, status_path: str | Path) -> int:
+    status_file = Path(status_path)
+    if not status_file.exists():
+        return 0
+    status = json.loads(status_file.read_text(encoding="utf-8"))
+    fingerprints = set(status.get("removable_resolved_fingerprints") or [])
+    if not fingerprints:
+        return 0
+
+    target = Path(ticket_path)
+    if not target.exists() or not target.read_text(encoding="utf-8").strip():
+        return 0
+
+    source = yaml.safe_load(target.read_text(encoding="utf-8")) or {}
+    if not isinstance(source, dict):
+        raise ValueError("구매번호 설정은 YAML 객체여야 합니다.")
+
+    salt = os.environ.get("STATE_HASH_SALT", "")
+    removed = 0
+    for game in ("lotto", "pension"):
+        section = source.get(game, {})
+        if section is None:
+            continue
+        if not isinstance(section, dict):
+            raise ValueError(f"{game} 설정은 객체여야 합니다.")
+        tickets = section.get("tickets", [])
+        if tickets is None:
+            continue
+        if not isinstance(tickets, list):
+            raise ValueError(f"{game}.tickets 설정은 목록이어야 합니다.")
+
+        remaining = []
+        for item in tickets:
+            if not isinstance(item, dict):
+                raise ValueError(f"{game}.tickets 항목은 객체여야 합니다.")
+            fingerprint = _ticket_item_fingerprint(game, item, salt)
+            if fingerprint in fingerprints:
+                removed += 1
+            else:
+                remaining.append(item)
+        section["tickets"] = remaining
+
+    if removed:
+        if _ticket_count(source) == 0:
+            target.write_text("", encoding="utf-8")
+        else:
+            target.write_text(yaml.safe_dump(source, allow_unicode=True, sort_keys=False), encoding="utf-8")
+    return removed
+
+
+def _ticket_item_fingerprint(game: str, item: dict, salt: str) -> str:
+    if game == "lotto":
+        ticket = LottoTicket(
+            round=_status_round_value(item.get("round")),
+            numbers=tuple(int(number) for number in item.get("numbers", [])),  # type: ignore[arg-type]
+            label=str(item.get("label", "")).strip(),
+        )
+        return fingerprint_ticket(ticket.state_payload(), salt)
+    if game == "pension":
+        ticket = PensionTicket(
+            round=_status_round_value(item.get("round")),
+            group=int(item.get("group")),
+            number=str(item.get("number", "")).strip(),
+            label=str(item.get("label", "")).strip(),
+        )
+        return fingerprint_ticket(ticket.state_payload(), salt)
+    raise ValueError(f"알 수 없는 복권 종류입니다. {game}")
+
+
+def _status_round_value(value):
+    if isinstance(value, str) and value.strip().lower() == "latest":
+        return "latest"
+    return int(value)
+
+
+def _ticket_count(source: dict) -> int:
+    total = 0
+    for game in ("lotto", "pension"):
+        section = source.get(game, {})
+        if isinstance(section, dict) and isinstance(section.get("tickets"), list):
+            total += len(section["tickets"])
+    return total
 
 
 def _build_outcomes(

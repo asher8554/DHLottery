@@ -509,3 +509,13 @@
 - 버튼은 폼 입력값만 발표 시간으로 바꾸고, 실제 `data/notification-settings.yml` 반영은 사용자가 `알림 시간 저장`을 눌렀을 때만 진행하게 한다.
 - 검증은 Pages 스크립트 문법 확인, 전체 unittest, `git diff --check`로 진행했다.
 - 구현 커밋은 `6ee8095`로 원격 `main`에 푸시했다.
+
+## 2026-05-17 해결된 구매번호 부분 삭제
+
+- 사용자는 연금복권 315회 결과가 이미 나왔는데 GitHub Pages에 계속 표시된다고 보고했다.
+- 원인은 `check-results.yml`이 `clear_tickets=true`일 때만 `data/tickets.yml` 전체를 비우는 방식이었기 때문이다.
+- 316회처럼 아직 pending인 항목이 있으면 `pending_count > 0`이라 315회 resolved 항목도 함께 남았다.
+- 해결 방향은 결과가 확정되고 이미 알림 상태에 들어간 항목만 `data/tickets.yml`에서 부분 삭제하고, 아직 결과 대기인 항목은 보존하는 것이다.
+- `check` 상태 JSON에 `removable_resolved_fingerprints`를 기록하고, `prune-sent-tickets` 명령이 해당 항목만 `data/tickets.yml`에서 제거하도록 구현했다.
+- `check-results.yml`과 `update-ticket.yml`은 전체 초기화 대신 `prune-sent-tickets`를 호출하도록 바꿨다.
+- 검증은 `python -m unittest discover -s tests`, workflow YAML 파싱, `git diff --check`로 진행했고 62개 테스트가 통과했다.
