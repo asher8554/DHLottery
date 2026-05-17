@@ -500,3 +500,4 @@
 - 구매번호 요약과 상태값은 계속 기본 노출하고, 실제 조작이 필요한 설정만 `details`로 감춘다.
 - `docs/ticket-entry.html`의 세 설정 영역을 `details.foldout`으로 감쌌고, 현재 저장된 `data/notification-settings.yml` 값은 변경하지 않았다.
 - 검증은 Pages 스크립트 문법 확인, 전체 unittest, `git diff --check`로 진행했다.
+- 원격에 먼저 들어온 `9020417 카카오 알림 시간 설정 갱신`을 `git pull --rebase`로 반영한 뒤 UI 커밋을 푸시했다.
