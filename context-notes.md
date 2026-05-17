@@ -501,3 +501,10 @@
 - `docs/ticket-entry.html`의 세 설정 영역을 `details.foldout`으로 감쌌고, 현재 저장된 `data/notification-settings.yml` 값은 변경하지 않았다.
 - 검증은 Pages 스크립트 문법 확인, 전체 unittest, `git diff --check`로 진행했다.
 - 원격에 먼저 들어온 `9020417 카카오 알림 시간 설정 갱신`을 `git pull --rebase`로 반영한 뒤 UI 커밋을 푸시했다.
+
+## 2026-05-17 발표 시간 초기화 버튼
+
+- 사용자는 현재 저장된 카카오톡 알림 시간은 그대로 두되, 설정 화면에서 발표 시간으로 되돌리는 버튼을 원한다.
+- 동행복권 공식 안내 기준 추첨시간은 로또6/45 매주 토요일 20:35경, 연금복권720+ 매주 목요일 19:05경이다.
+- 버튼은 폼 입력값만 발표 시간으로 바꾸고, 실제 `data/notification-settings.yml` 반영은 사용자가 `알림 시간 저장`을 눌렀을 때만 진행하게 한다.
+- 검증은 Pages 스크립트 문법 확인, 전체 unittest, `git diff --check`로 진행했다.

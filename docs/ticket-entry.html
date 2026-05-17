@@ -544,6 +544,7 @@
                   <input id="scheduleWindowMinutes" type="number" min="1" max="360" step="5">
                 </label>
                 <div class="actions">
+                  <button type="button" id="resetScheduleToAnnouncement">발표 시간으로 초기화</button>
                   <button type="button" id="saveSchedule">알림 시간 저장</button>
                 </div>
               </div>
@@ -578,6 +579,12 @@
     const balanceAlertThreshold = 50000;
     const tokenStorageKey = "dhlottery.githubToken";
     const themeStorageKey = "dhlottery.theme";
+    const announcementSchedule = {
+      timezone: "Asia/Seoul",
+      windowMinutes: 30,
+      lotto: { enabled: true, day: "saturday", time: "20:35" },
+      pension: { enabled: true, day: "thursday", time: "19:05" },
+    };
 
     const themeToggle = document.querySelector("#themeToggle");
     const balanceAmount = document.querySelector("#balanceAmount");
@@ -602,6 +609,7 @@
     const pensionScheduleDay = document.querySelector("#pensionScheduleDay");
     const pensionScheduleTime = document.querySelector("#pensionScheduleTime");
     const scheduleWindowMinutes = document.querySelector("#scheduleWindowMinutes");
+    const resetScheduleToAnnouncement = document.querySelector("#resetScheduleToAnnouncement");
     const saveSchedule = document.querySelector("#saveSchedule");
     const runCheck = document.querySelector("#runCheck");
     const clearToken = document.querySelector("#clearToken");
@@ -734,7 +742,7 @@
       return parts.length ? `${parts.join(", ")} · ${settings.windowMinutes}분` : "꺼짐";
     }
 
-    function renderNotificationSettings(settings) {
+    function applyNotificationSettingsForm(settings) {
       lottoScheduleEnabled.checked = settings.lotto.enabled;
       lottoScheduleDay.value = settings.lotto.day;
       lottoScheduleTime.value = settings.lotto.time;
@@ -742,6 +750,10 @@
       pensionScheduleDay.value = settings.pension.day;
       pensionScheduleTime.value = settings.pension.time;
       scheduleWindowMinutes.value = settings.windowMinutes;
+    }
+
+    function renderNotificationSettings(settings) {
+      applyNotificationSettingsForm(settings);
       notificationScheduleSummary.textContent = scheduleSummary(settings);
     }
 
@@ -767,6 +779,11 @@
           time: pensionScheduleTime.value,
         },
       };
+    }
+
+    function resetScheduleFormToAnnouncement() {
+      applyNotificationSettingsForm(announcementSchedule);
+      setStatus("발표 시간으로 입력했습니다. 실제 반영하려면 알림 시간 저장을 누르세요.", "");
     }
 
     function parseTicketsYaml(yaml) {
@@ -1169,6 +1186,7 @@
     reloadTickets.addEventListener("click", loadDashboard);
     copyYaml.addEventListener("click", handleCopy);
     downloadYaml.addEventListener("click", handleDownload);
+    resetScheduleToAnnouncement.addEventListener("click", resetScheduleFormToAnnouncement);
     saveSchedule.addEventListener("click", handleSaveSchedule);
     runCheck.addEventListener("click", handleRunCheck);
     clearToken.addEventListener("click", clearSavedToken);
