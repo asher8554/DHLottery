@@ -474,3 +474,11 @@
 - 예약 실행이 설정 시간 밖이면 Actions가 의존성 설치와 카카오 API 호출을 건너뛰도록 workflow 초반에 판정한다.
 - 검증은 `python -m unittest discover -s tests`, workflow YAML 파싱, `docs/ticket-entry.html` 스크립트 문법 확인, `git diff --check`로 진행했다.
 - 구현 커밋은 `ba9e41d`로 원격 `main`에 푸시했다.
+
+## 2026-05-17 Pages 생성 결과 UI 정리와 시놀로지 운영 안내
+
+- 사용자는 Pages의 생성 결과에 원본 YAML이 길게 노출되는 것이 불편하고, 색깔 공 표시가 당첨처럼 보일 수 있다고 피드백했다.
+- 원본 YAML은 복사와 디버깅용으로는 쓸모가 있으므로 삭제하지 않고 기본 접힘 상태의 `원본 YAML 보기` 안으로 옮긴다.
+- 색깔 공 표시는 실제 당첨 여부와 무관한 장식이므로 제거한다.
+- 카카오 알림 시간 설정은 GitHub Actions가 결과를 확인하는 시간이고, 시놀로지 작업은 그 전에 구매내역을 `data/tickets.yml`로 올려두는 역할임을 문서에 분리해서 설명한다.
+- 검증은 색깔 공 관련 코드 검색, `docs/ticket-entry.html` 스크립트 문법 확인, `python -m unittest discover -s tests`, `git diff --check`로 진행했다.

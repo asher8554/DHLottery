@@ -22,11 +22,6 @@
       --yaml-bg: #101828;
       --yaml-text: #e8eef8;
       --shadow: 0 10px 26px rgba(24, 34, 48, 0.07);
-      --ball-yellow: #f2b705;
-      --ball-blue: #3578d4;
-      --ball-red: #d94a38;
-      --ball-gray: #667085;
-      --ball-green: #2c9b60;
     }
 
     body.theme-dark {
@@ -306,30 +301,6 @@
       color: var(--bad);
     }
 
-    .balls {
-      display: grid;
-      grid-template-columns: repeat(6, 40px);
-      gap: 7px;
-      justify-content: end;
-    }
-
-    .ball {
-      display: grid;
-      place-items: center;
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      color: #ffffff;
-      font-weight: 900;
-      box-shadow: inset 0 -5px 0 rgba(0, 0, 0, 0.14);
-    }
-
-    .ball.empty {
-      color: var(--muted);
-      background: var(--soft);
-      box-shadow: none;
-    }
-
     .ticket-summary {
       display: grid;
       gap: 8px;
@@ -353,6 +324,23 @@
       border-radius: 999px;
       background: var(--soft);
       color: var(--primary);
+    }
+
+    .yaml-details {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--surface);
+    }
+
+    .yaml-details summary {
+      min-height: 42px;
+      padding: 10px 12px;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+      user-select: none;
     }
 
     .yaml {
@@ -381,8 +369,7 @@
         flex-direction: column;
       }
 
-      .top-actions,
-      .balls {
+      .top-actions {
         justify-content: start;
       }
 
@@ -402,9 +389,6 @@
         justify-content: center;
       }
 
-      .balls {
-        grid-template-columns: repeat(3, 40px);
-      }
     }
   </style>
 </head>
@@ -545,11 +529,13 @@
       <section class="panel" aria-labelledby="output-title">
         <div class="panel-header">
           <h2 id="output-title">생성 결과</h2>
-          <div id="balls" class="balls" aria-label="로또 번호 미리보기"></div>
         </div>
         <div class="panel-body">
           <div id="ticketSummary" class="ticket-summary" aria-label="구매번호 목록"></div>
-          <pre id="yamlOutput" class="yaml"></pre>
+          <details class="yaml-details">
+            <summary>원본 YAML 보기</summary>
+            <pre id="yamlOutput" class="yaml"></pre>
+          </details>
         </div>
       </section>
     </div>
@@ -564,7 +550,6 @@
     const balanceAlertThreshold = 50000;
     const tokenStorageKey = "dhlottery.githubToken";
     const themeStorageKey = "dhlottery.theme";
-    const ballColors = ["#f2b705", "#3578d4", "#d94a38", "#667085", "#2c9b60"];
 
     const themeToggle = document.querySelector("#themeToggle");
     const balanceAmount = document.querySelector("#balanceAmount");
@@ -574,7 +559,6 @@
     const loadedAt = document.querySelector("#loadedAt");
     const ticketCount = document.querySelector("#ticketCount");
     const ticketSummary = document.querySelector("#ticketSummary");
-    const ballsEl = document.querySelector("#balls");
     const yamlOutput = document.querySelector("#yamlOutput");
     const statusEl = document.querySelector("#status");
     const reloadTickets = document.querySelector("#reloadTickets");
@@ -853,20 +837,6 @@
       return match ? match[1] : String(fallback);
     }
 
-    function renderBalls(numbers) {
-      ballsEl.innerHTML = "";
-      for (let index = 0; index < 6; index += 1) {
-        const value = numbers[index];
-        const ball = document.createElement("span");
-        ball.className = value ? "ball" : "ball empty";
-        ball.textContent = value || "-";
-        if (value) {
-          ball.style.background = ballColors[Math.min(Math.floor((value - 1) / 10), ballColors.length - 1)];
-        }
-        ballsEl.appendChild(ball);
-      }
-    }
-
     function appendTicketRow(slotText, numberText) {
       const row = document.createElement("div");
       row.className = "ticket-row";
@@ -892,7 +862,6 @@
         const slot = slotFromLabel(ticket.label, index + 1);
         appendTicketRow(`연금 ${slot}`, `${ticket.round}회 ${ticket.group}조 ${ticket.number}`);
       });
-      renderBalls(tickets.lotto[0]?.numbers || []);
     }
 
     function renderEmpty(message) {
@@ -901,7 +870,6 @@
       yamlOutput.textContent = "";
       ticketSummary.innerHTML = "";
       ticketCount.textContent = "0개";
-      renderBalls([]);
       setButtonsEnabled(false);
       setStatus(message, "");
     }
