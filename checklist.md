@@ -404,3 +404,12 @@
 - [x] 시놀로지 스크래퍼와 카카오 알림 스케줄의 관계를 문서에 보강한다.
 - [x] HTML 스크립트 문법과 전체 테스트를 검증한다.
 - [x] 변경사항을 커밋하고 원격에 푸시한다.
+
+## 2026-05-17 Pages 알림 시간 저장 403 개선
+
+- [x] `Resource not accessible by personal access token` 원인을 Contents API 권한 문제로 좁힌다.
+- [x] Pages의 알림 시간 저장을 Contents API 직접 쓰기에서 workflow dispatch 방식으로 바꾼다.
+- [x] 알림 시간 설정 파일을 갱신하는 GitHub Actions workflow를 추가한다.
+- [x] 문서의 token 권한 안내를 `Actions: Read and write` 중심으로 정리한다.
+- [x] HTML 스크립트 문법, workflow YAML, 전체 테스트를 검증한다.
+- [ ] 변경사항을 커밋하고 원격에 푸시한다.

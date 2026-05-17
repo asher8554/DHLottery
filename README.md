@@ -100,10 +100,10 @@ Pages 화면은 [docs/ticket-entry.html](docs/ticket-entry.html)에 있습니다
 
 웹에서 당첨 검사를 바로 실행하려면 GitHub fine-grained token을 입력합니다.
 토큰은 기본적으로 요청에만 사용하고, `이 브라우저에 토큰 저장`을 체크하면 현재 브라우저에 저장합니다.
-토큰 권한은 저장소 `asher8554/DHLottery`에 대해 `Actions: Read and write`, `Contents: Read and write`가 필요합니다.
+토큰 권한은 저장소 `asher8554/DHLottery`에 대해 `Actions: Read and write`가 필요합니다.
 `당첨 검사 실행` 버튼은 `Check lottery results` 워크플로를 실행합니다.
 이미 보낸 결과를 카카오톡으로 다시 받고 싶으면 `카카오톡 강제 재전송`을 체크합니다.
-`카카오톡 알림 시간`에서 로또와 연금복권의 요일, 시간, 확인 허용 시간을 바꾼 뒤 `알림 시간 저장`을 누르면 `data/notification-settings.yml`이 갱신됩니다.
+`카카오톡 알림 시간`에서 로또와 연금복권의 요일, 시간, 확인 허용 시간을 바꾼 뒤 `알림 시간 저장`을 누르면 설정 갱신 워크플로가 실행되고 `data/notification-settings.yml`이 갱신됩니다.
 카카오 알림은 전체 결과를 빠르게 보는 요약 메시지와 맞은 번호를 확인하는 상세 메시지로 나뉘어 발송됩니다.
 요약 메시지는 당첨 항목이 있을 때 로또 A-E 슬롯이나 연금복권 번호와 등수를 함께 보여줍니다.
 요약 메시지에는 동행복권 결과 페이지 링크도 함께 포함됩니다.

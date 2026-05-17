@@ -483,3 +483,11 @@
 - 카카오 알림 시간 설정은 GitHub Actions가 결과를 확인하는 시간이고, 시놀로지 작업은 그 전에 구매내역을 `data/tickets.yml`로 올려두는 역할임을 문서에 분리해서 설명한다.
 - 검증은 색깔 공 관련 코드 검색, `docs/ticket-entry.html` 스크립트 문법 확인, `python -m unittest discover -s tests`, `git diff --check`로 진행했다.
 - 구현 커밋은 `b1790ea`로 원격 `main`에 푸시했다.
+
+## 2026-05-17 Pages 알림 시간 저장 403 개선
+
+- 사용자가 Pages에서 알림 시간 저장 시 `Resource not accessible by personal access token` 403을 만났다.
+- 현재 구현은 GitHub Contents API로 `data/notification-settings.yml`을 직접 수정하므로 token에 `Contents: Read and write`가 없으면 실패한다.
+- 사용자가 이미 `당첨 검사 실행`에 필요한 `Actions: Read and write` token을 쓰고 있으므로, 저장도 workflow dispatch로 처리하면 token 권한 요구를 줄일 수 있다.
+- 새 workflow는 `workflow_dispatch` 입력을 검증한 뒤 GitHub Actions의 `GITHUB_TOKEN`과 `contents: write` 권한으로 설정 파일을 커밋한다.
+- 검증은 Pages 스크립트 문법 확인, workflow YAML 파싱, 전체 unittest, `git diff --check`로 진행했다.

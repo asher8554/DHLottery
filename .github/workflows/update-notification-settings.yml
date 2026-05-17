@@ -1,0 +1,153 @@
+name: Update notification settings
+
+on:
+  workflow_dispatch:
+    inputs:
+      lotto_enabled:
+        description: "Enable Lotto Kakao notification schedule."
+        required: true
+        default: true
+        type: boolean
+      lotto_day:
+        description: "Lotto notification weekday."
+        required: true
+        default: saturday
+        type: choice
+        options:
+          - monday
+          - tuesday
+          - wednesday
+          - thursday
+          - friday
+          - saturday
+          - sunday
+      lotto_time:
+        description: "Lotto notification time in HH:MM KST."
+        required: true
+        default: "21:45"
+        type: string
+      pension_enabled:
+        description: "Enable Pension Kakao notification schedule."
+        required: true
+        default: true
+        type: boolean
+      pension_day:
+        description: "Pension notification weekday."
+        required: true
+        default: thursday
+        type: choice
+        options:
+          - monday
+          - tuesday
+          - wednesday
+          - thursday
+          - friday
+          - saturday
+          - sunday
+      pension_time:
+        description: "Pension notification time in HH:MM KST."
+        required: true
+        default: "20:10"
+        type: string
+      window_minutes:
+        description: "Allowed schedule window in minutes."
+        required: true
+        default: "30"
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: dhlottery-update-notification-settings
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Write notification settings
+        env:
+          LOTTO_ENABLED: ${{ inputs.lotto_enabled }}
+          LOTTO_DAY: ${{ inputs.lotto_day }}
+          LOTTO_TIME: ${{ inputs.lotto_time }}
+          PENSION_ENABLED: ${{ inputs.pension_enabled }}
+          PENSION_DAY: ${{ inputs.pension_day }}
+          PENSION_TIME: ${{ inputs.pension_time }}
+          WINDOW_MINUTES: ${{ inputs.window_minutes }}
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import os
+          import re
+
+          days = {"monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"}
+
+          def boolean(name: str) -> bool:
+              value = os.environ[name].strip().lower()
+              if value in {"true", "1", "yes", "on"}:
+                  return True
+              if value in {"false", "0", "no", "off"}:
+                  return False
+              raise SystemExit(f"{name} must be true or false.")
+
+          def day(name: str) -> str:
+              value = os.environ[name].strip().lower()
+              if value not in days:
+                  raise SystemExit(f"{name} has an invalid day. {value}")
+              return value
+
+          def time_value(name: str) -> str:
+              value = os.environ[name].strip()
+              if not re.fullmatch(r"\d{2}:\d{2}", value):
+                  raise SystemExit(f"{name} must be HH:MM.")
+              hour, minute = (int(part) for part in value.split(":"))
+              if hour > 23 or minute > 59:
+                  raise SystemExit(f"{name} must be a valid time.")
+              return f"{hour:02d}:{minute:02d}"
+
+          try:
+              window_minutes = int(os.environ["WINDOW_MINUTES"])
+          except ValueError as exc:
+              raise SystemExit("WINDOW_MINUTES must be a number.") from exc
+          if window_minutes < 1 or window_minutes > 360:
+              raise SystemExit("WINDOW_MINUTES must be between 1 and 360.")
+
+          lines = [
+              "notification_schedule:",
+              "  timezone: Asia/Seoul",
+              f"  window_minutes: {window_minutes}",
+              "  lotto:",
+              f"    enabled: {str(boolean('LOTTO_ENABLED')).lower()}",
+              f"    day: {day('LOTTO_DAY')}",
+              f"    time: \"{time_value('LOTTO_TIME')}\"",
+              "  pension:",
+              f"    enabled: {str(boolean('PENSION_ENABLED')).lower()}",
+              f"    day: {day('PENSION_DAY')}",
+              f"    time: \"{time_value('PENSION_TIME')}\"",
+              "",
+          ]
+
+          target = Path("data/notification-settings.yml")
+          target.parent.mkdir(parents=True, exist_ok=True)
+          target.write_text("\n".join(lines), encoding="utf-8")
+          PY
+
+      - name: Commit notification settings
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/notification-settings.yml
+          if git diff --cached --quiet; then
+            echo "No notification setting changes to commit."
+          else
+            git commit -m "카카오 알림 시간 설정 갱신"
+            git pull --rebase
+            git push
+          fi

@@ -170,9 +170,8 @@ Pages 화면에서 `당첨 검사 실행`과 `알림 시간 저장`을 쓰려면
 토큰은 저장소 `asher8554/DHLottery` 하나에만 접근하도록 만들고, 아래 권한만 부여하세요.
 
 - `Actions`: Read and write.
-- `Contents`: Read and write.
 
-`Contents` 권한은 Pages 화면이 `data/notification-settings.yml`을 저장할 때 필요합니다.
+알림 시간 저장은 `Update notification settings` 워크플로를 실행하고, 실제 파일 커밋은 GitHub Actions의 기본 토큰이 처리합니다.
 토큰은 기본적으로 브라우저 요청에만 사용되며, `이 브라우저에 토큰 저장`을 체크한 경우에만 현재 브라우저의 localStorage에 저장됩니다.
 
 ## 스케줄 변경

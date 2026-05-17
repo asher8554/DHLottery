@@ -545,8 +545,8 @@
     const ticketsRawUrl = "https://raw.githubusercontent.com/asher8554/DHLottery/main/data/tickets.yml";
     const accountRawUrl = "https://raw.githubusercontent.com/asher8554/DHLottery/main/data/account.yml";
     const notificationSettingsRawUrl = "https://raw.githubusercontent.com/asher8554/DHLottery/main/data/notification-settings.yml";
-    const notificationSettingsContentsUrl = "https://api.github.com/repos/asher8554/DHLottery/contents/data/notification-settings.yml";
     const checkWorkflowDispatchUrl = "https://api.github.com/repos/asher8554/DHLottery/actions/workflows/check-results.yml/dispatches";
+    const updateNotificationWorkflowDispatchUrl = "https://api.github.com/repos/asher8554/DHLottery/actions/workflows/update-notification-settings.yml/dispatches";
     const balanceAlertThreshold = 50000;
     const tokenStorageKey = "dhlottery.githubToken";
     const themeStorageKey = "dhlottery.theme";
@@ -684,23 +684,6 @@
       }
 
       return settings;
-    }
-
-    function notificationSettingsToYaml(settings) {
-      return [
-        "notification_schedule:",
-        `  timezone: ${settings.timezone || "Asia/Seoul"}`,
-        `  window_minutes: ${settings.windowMinutes}`,
-        "  lotto:",
-        `    enabled: ${settings.lotto.enabled ? "true" : "false"}`,
-        `    day: ${settings.lotto.day}`,
-        `    time: "${settings.lotto.time}"`,
-        "  pension:",
-        `    enabled: ${settings.pension.enabled ? "true" : "false"}`,
-        `    day: ${settings.pension.day}`,
-        `    time: "${settings.pension.time}"`,
-        "",
-      ].join("\n");
     }
 
     function scheduleSummary(settings) {
@@ -1026,34 +1009,6 @@
       setStatus("저장된 토큰을 지웠습니다.", "good");
     }
 
-    function utf8ToBase64(text) {
-      const bytes = new TextEncoder().encode(text);
-      let binary = "";
-      for (const byte of bytes) {
-        binary += String.fromCharCode(byte);
-      }
-      return btoa(binary);
-    }
-
-    async function fetchNotificationSettingsSha(token) {
-      const response = await fetch(`${notificationSettingsContentsUrl}?ref=main`, {
-        headers: {
-          "Accept": "application/vnd.github+json",
-          "Authorization": `Bearer ${token}`,
-          "X-GitHub-Api-Version": "2022-11-28",
-        },
-      });
-      if (response.status === 404) {
-        return "";
-      }
-      if (!response.ok) {
-        const detail = await response.text();
-        throw new Error(`${response.status} ${detail}`);
-      }
-      const payload = await response.json();
-      return payload.sha || "";
-    }
-
     async function handleSaveSchedule() {
       const token = githubToken.value.trim();
       if (!token) {
@@ -1071,38 +1026,38 @@
 
       saveTokenPreference();
       saveSchedule.disabled = true;
-      setStatus("알림 시간 설정을 저장하는 중입니다.", "");
+      setStatus("알림 시간 저장 워크플로를 실행하는 중입니다.", "");
       try {
-        const yaml = notificationSettingsToYaml(settings);
-        const sha = await fetchNotificationSettingsSha(token);
-        const body = {
-          message: "카카오 알림 시간 설정 업데이트",
-          content: utf8ToBase64(yaml),
-          branch: "main",
-        };
-        if (sha) {
-          body.sha = sha;
-        }
-
-        const response = await fetch(notificationSettingsContentsUrl, {
-          method: "PUT",
+        const response = await fetch(updateNotificationWorkflowDispatchUrl, {
+          method: "POST",
           headers: {
             "Accept": "application/vnd.github+json",
             "Authorization": `Bearer ${token}`,
             "Content-Type": "application/json",
             "X-GitHub-Api-Version": "2022-11-28",
           },
-          body: JSON.stringify(body),
+          body: JSON.stringify({
+            ref: "main",
+            inputs: {
+              lotto_enabled: settings.lotto.enabled ? "true" : "false",
+              lotto_day: settings.lotto.day,
+              lotto_time: settings.lotto.time,
+              pension_enabled: settings.pension.enabled ? "true" : "false",
+              pension_day: settings.pension.day,
+              pension_time: settings.pension.time,
+              window_minutes: String(settings.windowMinutes),
+            },
+          }),
         });
 
         if (response.ok) {
           renderNotificationSettings(settings);
-          setStatus("알림 시간 설정을 저장했습니다.", "good");
+          setStatus("알림 시간 저장 워크플로를 실행했습니다. 잠시 후 새로고침하면 저장된 설정이 반영됩니다.", "good");
           return;
         }
 
         const detail = await response.text();
-        const hint = response.status === 403 ? " Contents: Read and write 권한을 확인하세요." : "";
+        const hint = response.status === 403 ? " Actions: Read and write 권한을 확인하세요." : "";
         setStatus(`알림 시간 저장 실패. ${response.status} ${detail}${hint}`, "bad");
       } catch (error) {
         setStatus(`알림 시간 저장 실패. ${error.message}`, "bad");
