@@ -67,23 +67,3 @@ pension:
     round: 316
     group: 5
     number: '877478'
-  - label: 연금복권 315회 1
-    round: 315
-    group: 1
-    number: '052414'
-  - label: 연금복권 315회 2
-    round: 315
-    group: 2
-    number: '052414'
-  - label: 연금복권 315회 3
-    round: 315
-    group: 3
-    number: '052414'
-  - label: 연금복권 315회 4
-    round: 315
-    group: 4
-    number: '052414'
-  - label: 연금복권 315회 5
-    round: 315
-    group: 5
-    number: '052414'
