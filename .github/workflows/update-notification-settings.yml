@@ -54,6 +54,11 @@ on:
         required: true
         default: "30"
         type: string
+      notify_pending:
+        description: "Send Kakao notification when lottery results are not ready yet."
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   contents: write
@@ -79,6 +84,7 @@ jobs:
           PENSION_DAY: ${{ inputs.pension_day }}
           PENSION_TIME: ${{ inputs.pension_time }}
           WINDOW_MINUTES: ${{ inputs.window_minutes }}
+          NOTIFY_PENDING: ${{ inputs.notify_pending }}
         shell: bash
         run: |
           python3 - <<'PY'
@@ -122,6 +128,7 @@ jobs:
               "notification_schedule:",
               "  timezone: Asia/Seoul",
               f"  window_minutes: {window_minutes}",
+              f"  notify_pending: {str(boolean('NOTIFY_PENDING')).lower()}",
               "  lotto:",
               f"    enabled: {str(boolean('LOTTO_ENABLED')).lower()}",
               f"    day: {day('LOTTO_DAY')}",

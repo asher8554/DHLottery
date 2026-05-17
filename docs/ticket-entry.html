@@ -543,6 +543,10 @@
                   확인 허용 시간(분)
                   <input id="scheduleWindowMinutes" type="number" min="1" max="360" step="5">
                 </label>
+                <label class="inline-toggle">
+                  <input id="notifyPendingResults" type="checkbox">
+                  발표 전 대기 상태도 카카오톡 알림
+                </label>
                 <div class="actions">
                   <button type="button" id="resetScheduleToAnnouncement">발표 시간으로 초기화</button>
                   <button type="button" id="saveSchedule">알림 시간 저장</button>
@@ -582,6 +586,7 @@
     const announcementSchedule = {
       timezone: "Asia/Seoul",
       windowMinutes: 30,
+      notifyPending: false,
       lotto: { enabled: true, day: "saturday", time: "20:35" },
       pension: { enabled: true, day: "thursday", time: "19:05" },
     };
@@ -609,6 +614,7 @@
     const pensionScheduleDay = document.querySelector("#pensionScheduleDay");
     const pensionScheduleTime = document.querySelector("#pensionScheduleTime");
     const scheduleWindowMinutes = document.querySelector("#scheduleWindowMinutes");
+    const notifyPendingResults = document.querySelector("#notifyPendingResults");
     const resetScheduleToAnnouncement = document.querySelector("#resetScheduleToAnnouncement");
     const saveSchedule = document.querySelector("#saveSchedule");
     const runCheck = document.querySelector("#runCheck");
@@ -660,6 +666,7 @@
       return {
         timezone: "Asia/Seoul",
         windowMinutes: 30,
+        notifyPending: false,
         lotto: { enabled: true, day: "saturday", time: "21:45" },
         pension: { enabled: true, day: "thursday", time: "20:10" },
       };
@@ -694,6 +701,12 @@
         const windowMatch = line.match(/^  window_minutes:\s*(\d+)\s*$/);
         if (windowMatch) {
           settings.windowMinutes = Number(windowMatch[1]);
+          continue;
+        }
+
+        const notifyPendingMatch = line.match(/^  notify_pending:\s*(true|false)\s*$/i);
+        if (notifyPendingMatch) {
+          settings.notifyPending = notifyPendingMatch[1].toLowerCase() === "true";
           continue;
         }
 
@@ -739,7 +752,8 @@
       if (settings.pension.enabled) {
         parts.push(`연금 ${dayLabels[settings.pension.day] || settings.pension.day} ${settings.pension.time}`);
       }
-      return parts.length ? `${parts.join(", ")} · ${settings.windowMinutes}분` : "꺼짐";
+      const pendingText = settings.notifyPending ? "대기 알림 켬" : "대기 알림 끔";
+      return parts.length ? `${parts.join(", ")} · ${settings.windowMinutes}분 · ${pendingText}` : "꺼짐";
     }
 
     function applyNotificationSettingsForm(settings) {
@@ -750,6 +764,7 @@
       pensionScheduleDay.value = settings.pension.day;
       pensionScheduleTime.value = settings.pension.time;
       scheduleWindowMinutes.value = settings.windowMinutes;
+      notifyPendingResults.checked = settings.notifyPending;
     }
 
     function renderNotificationSettings(settings) {
@@ -768,6 +783,7 @@
       return {
         timezone: "Asia/Seoul",
         windowMinutes,
+        notifyPending: notifyPendingResults.checked,
         lotto: {
           enabled: lottoScheduleEnabled.checked,
           day: lottoScheduleDay.value,
@@ -1091,6 +1107,7 @@
               pension_day: settings.pension.day,
               pension_time: settings.pension.time,
               window_minutes: String(settings.windowMinutes),
+              notify_pending: settings.notifyPending ? "true" : "false",
             },
           }),
         });
@@ -1133,6 +1150,7 @@
             ref: "main",
             inputs: {
               force_notify: forceNotify.checked ? "true" : "false",
+              notify_pending: notifyPendingResults.checked ? "true" : "false",
             },
           }),
         });

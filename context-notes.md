@@ -520,3 +520,11 @@
 - `check-results.yml`과 `update-ticket.yml`은 전체 초기화 대신 `prune-sent-tickets`를 호출하도록 바꿨다.
 - 검증은 `python -m unittest discover -s tests`, workflow YAML 파싱, `git diff --check`로 진행했고 62개 테스트가 통과했다.
 - 원격에 먼저 들어온 `105a36e 카카오 알림 시간 설정 갱신`을 rebase로 반영한 뒤 구현 커밋 `eb73301`을 푸시했다.
+
+## 2026-05-17 발표 전 대기 알림 선택화
+
+- 사용자는 발표 전 또는 결과 미반영 상태에서 "발표 후 다시 검사" 카카오톡 메시지가 기본 발송되지 않기를 원한다.
+- 대기 알림은 사용자가 체크박스로 명시한 경우에만 발송되어야 한다.
+- 기본값은 `notify_pending: false`로 두고, 결과가 확정된 항목의 당첨/미당첨 알림은 기존처럼 보낸다.
+- `check` CLI에 `--notify-pending`을 추가했고, Pages와 Actions는 `notify_pending` 체크박스와 설정값을 이 옵션으로 전달한다.
+- 검증은 전체 unittest 64개, workflow YAML 파싱, Pages 스크립트 문법 확인, `git diff --check`로 진행했다.

@@ -15,8 +15,15 @@ class NotificationScheduleConfigTest(unittest.TestCase):
 
         self.assertEqual(schedule.timezone, "Asia/Seoul")
         self.assertEqual(schedule.window_minutes, 30)
+        self.assertFalse(schedule.notify_pending)
         self.assertEqual(schedule.games[0].game, "lotto")
         self.assertEqual(schedule.games[0].time_text, "21:45")
+
+    def test_loads_notify_pending_setting(self):
+        settings_path = self._settings(extra_lines=["  notify_pending: true"])
+        schedule = load_notification_schedule(settings_path)
+
+        self.assertTrue(schedule.notify_pending)
 
     def test_scheduled_lotto_window_is_due(self):
         settings_path = self._settings()
@@ -65,7 +72,7 @@ class NotificationScheduleConfigTest(unittest.TestCase):
         self.assertEqual(decision.local_time.hour, 21)
         self.assertEqual(decision.local_time.minute, 50)
 
-    def _settings(self) -> Path:
+    def _settings(self, extra_lines: list[str] | None = None) -> Path:
         path = Path(self.temp_dir.name) / "notification-settings.yml"
         path.write_text(
             "\n".join(
@@ -73,6 +80,7 @@ class NotificationScheduleConfigTest(unittest.TestCase):
                     "notification_schedule:",
                     "  timezone: Asia/Seoul",
                     "  window_minutes: 30",
+                    *(extra_lines or []),
                     "  lotto:",
                     "    enabled: true",
                     "    day: saturday",

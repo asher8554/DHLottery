@@ -14,6 +14,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 DEFAULT_SETTINGS_PATH = "data/notification-settings.yml"
 DEFAULT_TIMEZONE = "Asia/Seoul"
 DEFAULT_WINDOW_MINUTES = 30
+DEFAULT_NOTIFY_PENDING = False
 
 
 DAY_INDEXES = {
@@ -68,6 +69,7 @@ class GameNotificationSchedule:
 class NotificationSchedule:
     timezone: str
     window_minutes: int
+    notify_pending: bool
     games: tuple[GameNotificationSchedule, ...]
 
 
@@ -91,10 +93,12 @@ def load_notification_schedule(path: str | Path = DEFAULT_SETTINGS_PATH) -> Noti
         raise ValueError(f"알 수 없는 timezone입니다. {timezone_name}") from exc
 
     window_minutes = _parse_window_minutes(raw_schedule.get("window_minutes", DEFAULT_WINDOW_MINUTES))
+    notify_pending = _parse_bool(raw_schedule.get("notify_pending", DEFAULT_NOTIFY_PENDING))
     games = tuple(_parse_game_schedule(raw_schedule, game) for game in DEFAULT_GAME_SETTINGS)
     return NotificationSchedule(
         timezone=timezone_name,
         window_minutes=window_minutes,
+        notify_pending=notify_pending,
         games=games,
     )
 
@@ -132,6 +136,7 @@ def decision_payload(decision: NotificationDecision) -> dict[str, Any]:
         "local_time": decision.local_time.isoformat(),
         "timezone": decision.schedule.timezone,
         "window_minutes": decision.schedule.window_minutes,
+        "notify_pending": decision.schedule.notify_pending,
     }
 
 
@@ -142,6 +147,7 @@ def write_github_output(path: str | Path, decision: NotificationDecision) -> Non
         output.write(f"reason={decision.reason}\n")
         output.write(f"due_games={','.join(decision.due_games)}\n")
         output.write(f"local_time={decision.local_time.isoformat()}\n")
+        output.write(f"notify_pending={str(decision.schedule.notify_pending).lower()}\n")
 
 
 def main(argv: list[str] | None = None) -> int:

@@ -179,6 +179,8 @@ Pages 화면에서 `당첨 검사 실행`과 `알림 시간 저장`을 쓰려면
 기본적으로 `.github/workflows/check-results.yml`은 10분마다 실행됩니다.
 다만 실제 당첨 검사와 카카오톡 발송은 `data/notification-settings.yml`의 시간 설정에 맞을 때만 진행됩니다.
 GitHub Pages 화면의 `카카오톡 알림 시간`에서 요일, 시간, 확인 허용 시간을 바꾼 뒤 `알림 시간 저장`을 누르세요.
+발표 전 또는 사이트 결과 미반영 상태도 카카오톡으로 받고 싶다면 `발표 전 대기 상태도 카카오톡 알림`을 체크한 뒤 저장합니다.
+체크하지 않으면 결과가 아직 준비되지 않았을 때는 카카오톡을 보내지 않고, 다음 실행에서 다시 확인합니다.
 
 설정 파일을 직접 수정하고 싶다면 아래 형식을 사용합니다.
 
@@ -186,6 +188,7 @@ GitHub Pages 화면의 `카카오톡 알림 시간`에서 요일, 시간, 확인
 notification_schedule:
   timezone: Asia/Seoul
   window_minutes: 30
+  notify_pending: false
   lotto:
     enabled: true
     day: saturday

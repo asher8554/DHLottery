@@ -8,6 +8,11 @@ on:
         required: false
         default: false
         type: boolean
+      notify_pending:
+        description: "Send Kakao notification when lottery results are not ready yet."
+        required: false
+        default: false
+        type: boolean
   schedule:
     # Poll every 10 minutes. The actual Kakao send time is controlled by data/notification-settings.yml.
     - cron: "*/10 * * * *"
@@ -96,11 +101,20 @@ jobs:
         if: ${{ steps.ticket-file.outputs.has_tickets == 'true' && steps.notification_schedule.outputs.should_run == 'true' }}
         env:
           FORCE_NOTIFY: ${{ inputs.force_notify || 'false' }}
+          INPUT_NOTIFY_PENDING: ${{ inputs.notify_pending || 'false' }}
+          SCHEDULE_NOTIFY_PENDING: ${{ steps.notification_schedule.outputs.notify_pending || 'false' }}
         shell: bash
         run: |
           args=(python -m dhlottery_checker check --tickets data/tickets.yml --notify --state .state/sent-results.json --status-json .state/check-status.json)
           if [ "$FORCE_NOTIFY" = "true" ]; then
             args+=(--force-notify)
+          fi
+          notify_pending="$SCHEDULE_NOTIFY_PENDING"
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            notify_pending="$INPUT_NOTIFY_PENDING"
+          fi
+          if [ "$notify_pending" = "true" ]; then
+            args+=(--notify-pending)
           fi
           "${args[@]}"
 

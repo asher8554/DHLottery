@@ -72,6 +72,7 @@ def main(argv: list[str] | None = None) -> int:
     check_parser.add_argument("--state", default=".state/sent-results.json", help="중복 알림 방지 상태 파일입니다.")
     check_parser.add_argument("--no-state", action="store_true", help="중복 알림 방지 상태를 사용하지 않습니다.")
     check_parser.add_argument("--force-notify", action="store_true", help="이미 알린 결과도 이번 실행에 다시 포함합니다.")
+    check_parser.add_argument("--notify-pending", action="store_true", help="발표 전 또는 결과 대기 상태도 카카오톡으로 알립니다.")
     check_parser.add_argument("--status-json", help="이번 검사 실행 요약을 JSON 파일로 저장합니다.")
 
     import_parser = subparsers.add_parser("import-ticket", help="동행복권 티켓 보기 텍스트를 구매번호 YAML에 저장합니다.")
@@ -251,7 +252,8 @@ def _run_check(args: argparse.Namespace) -> int:
         outcome for outcome in resolved if state is None or not state.is_sent(outcome.fingerprint)
     ]
     pending = [outcome for outcome in outcomes if not outcome.resolved]
-    pending_to_notify = [outcome for outcome in pending if _is_result_not_ready(outcome)]
+    pending_not_ready = [outcome for outcome in pending if _is_result_not_ready(outcome)]
+    pending_to_notify = pending_not_ready if args.notify_pending else []
     sent_resolved_count = 0
     sent_pending_count = 0
 
@@ -282,7 +284,8 @@ def _run_check(args: argparse.Namespace) -> int:
         resolved_count=len(resolved),
         unsent_resolved_count=len(unsent),
         pending_count=len(pending),
-        pending_not_ready_count=len(pending_to_notify),
+        pending_not_ready_count=len(pending_not_ready),
+        notify_pending=args.notify_pending,
         sent_resolved_count=sent_resolved_count,
         sent_pending_count=sent_pending_count,
         removable_resolved_fingerprints=[outcome.fingerprint for outcome in removable_resolved],
