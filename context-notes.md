@@ -519,3 +519,4 @@
 - `check` 상태 JSON에 `removable_resolved_fingerprints`를 기록하고, `prune-sent-tickets` 명령이 해당 항목만 `data/tickets.yml`에서 제거하도록 구현했다.
 - `check-results.yml`과 `update-ticket.yml`은 전체 초기화 대신 `prune-sent-tickets`를 호출하도록 바꿨다.
 - 검증은 `python -m unittest discover -s tests`, workflow YAML 파싱, `git diff --check`로 진행했고 62개 테스트가 통과했다.
+- 원격에 먼저 들어온 `105a36e 카카오 알림 시간 설정 갱신`을 rebase로 반영한 뒤 구현 커밋 `eb73301`을 푸시했다.
