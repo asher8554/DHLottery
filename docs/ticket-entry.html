@@ -1009,7 +1009,7 @@
     function renderTickets(tickets) {
       ticketSummary.innerHTML = "";
       tickets.lotto.forEach((ticket, index) => {
-        appendTicketRow(`로또 ${ticket.round}회 ${slotFromLabel(ticket.label, index + 1)}`, ticket.numbers.join("  "));
+        appendTicketRow(`로또 ${slotFromLabel(ticket.label, index + 1)}`, `${ticket.round}회 ${ticket.numbers.join("  ")}`);
       });
       tickets.pension.forEach((ticket, index) => {
         const slot = slotFromLabel(ticket.label, index + 1);
