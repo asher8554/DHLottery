@@ -164,13 +164,38 @@ Set-Location E:\Github\DHLottery
 
 처음 설정한 뒤에는 수동 실행으로 카카오톡 알림이 정상 동작하는지 확인하세요.
 
+## Pages에서 사용할 GitHub token 권한
+
+Pages 화면에서 `당첨 검사 실행`과 `알림 시간 저장`을 쓰려면 GitHub fine-grained personal access token이 필요합니다.
+토큰은 저장소 `asher8554/DHLottery` 하나에만 접근하도록 만들고, 아래 권한만 부여하세요.
+
+- `Actions`: Read and write.
+- `Contents`: Read and write.
+
+`Contents` 권한은 Pages 화면이 `data/notification-settings.yml`을 저장할 때 필요합니다.
+토큰은 기본적으로 브라우저 요청에만 사용되며, `이 브라우저에 토큰 저장`을 체크한 경우에만 현재 브라우저의 localStorage에 저장됩니다.
+
 ## 스케줄 변경
 
-`.github/workflows/check-results.yml`의 cron 값을 바꾸면 됩니다.
-GitHub Actions cron은 UTC 기준입니다.
+기본적으로 `.github/workflows/check-results.yml`은 10분마다 실행됩니다.
+다만 실제 당첨 검사와 카카오톡 발송은 `data/notification-settings.yml`의 시간 설정에 맞을 때만 진행됩니다.
+GitHub Pages 화면의 `카카오톡 알림 시간`에서 요일, 시간, 확인 허용 시간을 바꾼 뒤 `알림 시간 저장`을 누르세요.
 
-예를 들어 한국시간 토요일 21시 20분은 UTC 토요일 12시 20분입니다.
+설정 파일을 직접 수정하고 싶다면 아래 형식을 사용합니다.
 
 ```yaml
-- cron: "20 12 * * 6"
+notification_schedule:
+  timezone: Asia/Seoul
+  window_minutes: 30
+  lotto:
+    enabled: true
+    day: saturday
+    time: "21:45"
+  pension:
+    enabled: true
+    day: thursday
+    time: "20:10"
 ```
+
+`window_minutes`는 예약 실행이 조금 늦거나 동행복권 결과 반영이 늦을 때를 감안한 허용 시간입니다.
+예를 들어 `time`이 `"21:45"`이고 `window_minutes`가 `30`이면 한국시간 21시 45분부터 22시 15분 전까지 실행된 작업만 실제 검사를 진행합니다.

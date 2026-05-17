@@ -462,3 +462,14 @@
 - `docs/synology-setup.md`에 카카오톡 알림이 오지 않을 때 시놀로지 로그, Actions 로그, `Print check status`, 강제 재전송, Remote-SSH 확인 순서를 추가했다.
 - `python -m unittest discover -s tests` 결과 55개 테스트가 통과했고, workflow YAML 4개 파싱을 확인했다.
 - 시놀로지 무알림 진단 보강 커밋을 생성하고 원격에 푸시할 예정이다.
+
+## 2026-05-17 Pages 카카오 알림 시간 설정
+
+- 사용자는 GitHub 원격 내용을 현재 프로젝트에 반영한 뒤, GitHub Pages에서 카카오톡 메시지 발송 시간을 설정할 수 있기를 원한다.
+- GitHub Pages는 정적 사이트라 workflow cron 자체를 안전하게 직접 수정하기 어렵다.
+- 대신 `check-results.yml`을 짧은 주기로 실행하고, 저장소의 `data/notification-settings.yml` 설정이 현재 KST 시간과 맞을 때만 실제 당첨 검사를 수행하는 방식으로 설계한다.
+- Pages 화면은 기존 GitHub fine-grained token을 사용해 `data/notification-settings.yml`을 GitHub Contents API로 저장한다.
+- 이 토큰에는 기존 `Actions: Read and write` 외에 `Contents: Read and write` 권한이 필요하다.
+- 스케줄 판정은 `dhlottery_checker.schedule_config`에서 표준 라이브러리만 사용하도록 구현했다.
+- 예약 실행이 설정 시간 밖이면 Actions가 의존성 설치와 카카오 API 호출을 건너뛰도록 workflow 초반에 판정한다.
+- 검증은 `python -m unittest discover -s tests`, workflow YAML 파싱, `docs/ticket-entry.html` 스크립트 문법 확인, `git diff --check`로 진행했다.

@@ -1,0 +1,11 @@
+notification_schedule:
+  timezone: Asia/Seoul
+  window_minutes: 30
+  lotto:
+    enabled: true
+    day: saturday
+    time: "21:45"
+  pension:
+    enabled: true
+    day: thursday
+    time: "20:10"

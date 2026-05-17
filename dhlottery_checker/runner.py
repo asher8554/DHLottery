@@ -34,6 +34,7 @@ from .pension import (
     fetch_latest_pension_round,
     fetch_pension_winning,
 )
+from .schedule_config import DEFAULT_SETTINGS_PATH, decide_notification_schedule, decision_payload, write_github_output
 from .state import SentState, fingerprint_ticket
 from .ticket_import import parse_lotto_ticket_text, write_lotto_tickets
 
@@ -99,6 +100,12 @@ def main(argv: list[str] | None = None) -> int:
     balance_parser.add_argument("--no-state", action="store_true", help="중복 알림 방지 상태를 사용하지 않습니다.")
     balance_parser.add_argument("--force-notify", action="store_true", help="이미 보낸 예치금 부족 알림도 다시 보냅니다.")
 
+    schedule_parser = subparsers.add_parser("schedule-due", help="저장된 카카오 알림 시간 기준으로 지금 검사할지 판단합니다.")
+    schedule_parser.add_argument("--settings", default=DEFAULT_SETTINGS_PATH, help="카카오 알림 시간 YAML 파일 경로입니다.")
+    schedule_parser.add_argument("--event-name", default=os.environ.get("GITHUB_EVENT_NAME", "schedule"), help="GitHub Actions 이벤트 이름입니다.")
+    schedule_parser.add_argument("--force-notify", action="store_true", help="저장된 시간과 무관하게 이번 실행을 통과시킵니다.")
+    schedule_parser.add_argument("--github-output", help="GitHub Actions output 파일 경로입니다.")
+
     args = parser.parse_args(argv)
     if args.command == "check":
         return _run_check(args)
@@ -108,6 +115,8 @@ def main(argv: list[str] | None = None) -> int:
         return _run_scrape_ledger(args)
     if args.command == "balance-alert":
         return _run_balance_alert(args)
+    if args.command == "schedule-due":
+        return _run_schedule_due(args)
     return 1
 
 
@@ -193,6 +202,23 @@ def _run_balance_alert(args: argparse.Namespace) -> int:
             state.save()
     elif state is not None and not Path(args.state).exists():
         state.save()
+    return 0
+
+
+def _run_schedule_due(args: argparse.Namespace) -> int:
+    try:
+        decision = decide_notification_schedule(
+            args.settings,
+            event_name=args.event_name,
+            force_notify=args.force_notify,
+        )
+    except ValueError as exc:
+        print(f"알림 시간 설정 오류. {exc}", file=sys.stderr)
+        return 2
+
+    print(json.dumps(decision_payload(decision), ensure_ascii=False, indent=2))
+    if args.github_output:
+        write_github_output(args.github_output, decision)
     return 0
 
 

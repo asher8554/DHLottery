@@ -9,10 +9,8 @@ on:
         default: false
         type: boolean
   schedule:
-    # KST Thursday 20:10 for Pension 720+ result checks after site reflection delay.
-    - cron: "10 11 * * 4"
-    # KST Saturday 21:45 for Lotto 6/45 result checks after site reflection delay.
-    - cron: "45 12 * * 6"
+    # Poll every 10 minutes. The actual Kakao send time is controlled by data/notification-settings.yml.
+    - cron: "*/10 * * * *"
 
 permissions:
   contents: write
@@ -45,18 +43,31 @@ jobs:
             echo "has_tickets=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Set up Python
+      - name: Check notification schedule
+        id: notification_schedule
         if: ${{ steps.ticket-file.outputs.has_tickets == 'true' }}
+        env:
+          FORCE_NOTIFY: ${{ inputs.force_notify || 'false' }}
+        shell: bash
+        run: |
+          args=(python3 -m dhlottery_checker.schedule_config --settings data/notification-settings.yml --event-name "$GITHUB_EVENT_NAME" --github-output "$GITHUB_OUTPUT")
+          if [ "$FORCE_NOTIFY" = "true" ]; then
+            args+=(--force-notify)
+          fi
+          "${args[@]}"
+
+      - name: Set up Python
+        if: ${{ steps.ticket-file.outputs.has_tickets == 'true' && steps.notification_schedule.outputs.should_run == 'true' }}
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
       - name: Install dependencies
-        if: ${{ steps.ticket-file.outputs.has_tickets == 'true' }}
+        if: ${{ steps.ticket-file.outputs.has_tickets == 'true' && steps.notification_schedule.outputs.should_run == 'true' }}
         run: python -m pip install -r requirements.txt
 
       - name: Restore sent state
-        if: ${{ steps.ticket-file.outputs.has_tickets == 'true' }}
+        if: ${{ steps.ticket-file.outputs.has_tickets == 'true' && steps.notification_schedule.outputs.should_run == 'true' }}
         uses: actions/cache/restore@v4
         with:
           path: .state
@@ -65,11 +76,11 @@ jobs:
             dhlottery-state-
 
       - name: Prepare state directory
-        if: ${{ steps.ticket-file.outputs.has_tickets == 'true' }}
+        if: ${{ steps.ticket-file.outputs.has_tickets == 'true' && steps.notification_schedule.outputs.should_run == 'true' }}
         run: mkdir -p .state
 
       - name: Validate required secrets
-        if: ${{ steps.ticket-file.outputs.has_tickets == 'true' }}
+        if: ${{ steps.ticket-file.outputs.has_tickets == 'true' && steps.notification_schedule.outputs.should_run == 'true' }}
         shell: bash
         run: |
           missing=0
@@ -82,9 +93,9 @@ jobs:
           exit "$missing"
 
       - name: Check results and send Kakao message
-        if: ${{ steps.ticket-file.outputs.has_tickets == 'true' }}
+        if: ${{ steps.ticket-file.outputs.has_tickets == 'true' && steps.notification_schedule.outputs.should_run == 'true' }}
         env:
-          FORCE_NOTIFY: ${{ inputs.force_notify }}
+          FORCE_NOTIFY: ${{ inputs.force_notify || 'false' }}
         shell: bash
         run: |
           args=(python -m dhlottery_checker check --tickets data/tickets.yml --notify --state .state/sent-results.json --status-json .state/check-status.json)
@@ -94,7 +105,7 @@ jobs:
           "${args[@]}"
 
       - name: Print check status
-        if: ${{ always() && steps.ticket-file.outputs.has_tickets == 'true' }}
+        if: ${{ always() && steps.ticket-file.outputs.has_tickets == 'true' && steps.notification_schedule.outputs.should_run == 'true' }}
         shell: bash
         run: |
           if [ -s .state/check-status.json ]; then
@@ -104,7 +115,7 @@ jobs:
           fi
 
       - name: Clear ticket file after completed notification
-        if: ${{ steps.ticket-file.outputs.has_tickets == 'true' }}
+        if: ${{ steps.ticket-file.outputs.has_tickets == 'true' && steps.notification_schedule.outputs.should_run == 'true' }}
         shell: bash
         run: |
           should_clear="$(python - <<'PY'
@@ -136,7 +147,7 @@ jobs:
           fi
 
       - name: Save sent state
-        if: ${{ always() && steps.ticket-file.outputs.has_tickets == 'true' }}
+        if: ${{ always() && steps.ticket-file.outputs.has_tickets == 'true' && steps.notification_schedule.outputs.should_run == 'true' }}
         uses: actions/cache/save@v4
         with:
           path: .state
