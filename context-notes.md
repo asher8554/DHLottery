@@ -540,3 +540,11 @@
 - Pages는 `data/result-history.yml`을 원격 raw URL로 읽어 `지난 당첨결과 이력` 접힘 영역에 최대 20건을 표시한다.
 - 검증은 전체 unittest 66개, workflow 및 data YAML 파싱, Pages 스크립트 문법 확인, `git diff --check`로 진행했다.
 - 구현 커밋은 `a3c121b`이다.
+
+## 2026-05-17 생성 결과 로또 회차 표시
+
+- 사용자는 Pages의 생성 결과에서 로또 구매번호에도 회차가 보이길 원한다.
+- 기존 연금복권 줄은 `316회 1조 ...`처럼 회차가 보였지만 로또 줄은 `로또 A`처럼 슬롯만 보여 회차 확인이 어려웠다.
+- `docs/ticket-entry.html`의 `renderTickets`에서 로또 슬롯을 `로또 {round}회 {slot}` 형태로 표시한다.
+- 당첨결과 이력 보존 흐름을 다시 확인했다. `_run_check`가 `data/result-history.yml`을 먼저 갱신하고, workflow의 이후 단계가 완료된 구매번호만 `data/tickets.yml`에서 정리한 뒤 두 파일을 함께 커밋한다.
+- 검증은 Pages 스크립트 문법 확인, 전체 unittest 66개, workflow YAML 파싱, `git diff --check`로 진행했다.
