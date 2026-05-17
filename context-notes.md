@@ -492,3 +492,11 @@
 - 새 workflow는 `workflow_dispatch` 입력을 검증한 뒤 GitHub Actions의 `GITHUB_TOKEN`과 `contents: write` 권한으로 설정 파일을 커밋한다.
 - 검증은 Pages 스크립트 문법 확인, workflow YAML 파싱, 전체 unittest, `git diff --check`로 진행했다.
 - 구현 커밋은 `db9496f`로 원격 `main`에 푸시했다.
+
+## 2026-05-17 Pages 설정 영역 접기
+
+- 사용자는 현재 저장된 알림 시간 값은 그대로 두고, 화면에 항상 보일 필요가 없는 설정성 정보만 접었다 펼칠 수 있기를 원한다.
+- 대상은 로컬 스크래퍼 명령, GitHub token 및 수동 실행 영역, 카카오톡 알림 시간 설정 영역이다.
+- 구매번호 요약과 상태값은 계속 기본 노출하고, 실제 조작이 필요한 설정만 `details`로 감춘다.
+- `docs/ticket-entry.html`의 세 설정 영역을 `details.foldout`으로 감쌌고, 현재 저장된 `data/notification-settings.yml` 값은 변경하지 않았다.
+- 검증은 Pages 스크립트 문법 확인, 전체 unittest, `git diff --check`로 진행했다.
