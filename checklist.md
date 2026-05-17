@@ -412,4 +412,4 @@
 - [x] 알림 시간 설정 파일을 갱신하는 GitHub Actions workflow를 추가한다.
 - [x] 문서의 token 권한 안내를 `Actions: Read and write` 중심으로 정리한다.
 - [x] HTML 스크립트 문법, workflow YAML, 전체 테스트를 검증한다.
-- [ ] 변경사항을 커밋하고 원격에 푸시한다.
+- [x] 변경사항을 커밋하고 원격에 푸시한다.

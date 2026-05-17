@@ -491,3 +491,4 @@
 - 사용자가 이미 `당첨 검사 실행`에 필요한 `Actions: Read and write` token을 쓰고 있으므로, 저장도 workflow dispatch로 처리하면 token 권한 요구를 줄일 수 있다.
 - 새 workflow는 `workflow_dispatch` 입력을 검증한 뒤 GitHub Actions의 `GITHUB_TOKEN`과 `contents: write` 권한으로 설정 파일을 커밋한다.
 - 검증은 Pages 스크립트 문법 확인, workflow YAML 파싱, 전체 unittest, `git diff --check`로 진행했다.
+- 구현 커밋은 `db9496f`로 원격 `main`에 푸시했다.
