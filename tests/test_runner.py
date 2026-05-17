@@ -9,9 +9,18 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
+import yaml
+
 from dhlottery_checker.config import LottoTicket
 from dhlottery_checker.http import HttpError, HttpTimeoutError
-from dhlottery_checker.runner import Outcome, _format_messages, _run_balance_alert, _run_check, prune_sent_tickets
+from dhlottery_checker.runner import (
+    Outcome,
+    _format_messages,
+    _run_balance_alert,
+    _run_check,
+    prune_sent_tickets,
+    write_result_history,
+)
 from dhlottery_checker.state import fingerprint_ticket
 
 
@@ -352,6 +361,67 @@ class RunnerTest(unittest.TestCase):
         self.assertIn("316", updated)
         self.assertIn("222222", updated)
 
+    def test_write_result_history_summarizes_resolved_groups_without_numbers(self):
+        history_path = Path(self.temp_dir.name) / "result-history.yml"
+        outcomes = [
+            Outcome(
+                "lotto",
+                1225,
+                "로또 1225회 A",
+                "로또 1225회 A. 5등 5,000원. 내 번호 1, 2, 3, 4, 5, 6.",
+                "lotto-a",
+                True,
+                won=True,
+                result_label="5등 5,000원",
+            ),
+            Outcome(
+                "lotto",
+                1225,
+                "로또 1225회 B",
+                "로또 1225회 B. 미당첨. 내 번호 7, 8, 9, 10, 11, 12.",
+                "lotto-b",
+                True,
+                result_label="미당첨",
+            ),
+            Outcome(
+                "pension",
+                316,
+                "연금복권 316회 1",
+                "연금복권 316회 1. 미당첨. 내 번호 1조 123456.",
+                "pension-a",
+                True,
+                result_label="미당첨",
+            ),
+        ]
+
+        written = write_result_history(history_path, outcomes, checked_at="2026-05-17T21:45:00+09:00")
+
+        self.assertEqual(written, 2)
+        history = history_path.read_text(encoding="utf-8")
+        self.assertIn("로또 1225회", history)
+        self.assertIn("미당첨 1개, 당첨 5등 1개", history)
+        self.assertIn("연금복권 316회", history)
+        self.assertIn("미당첨 1개", history)
+        self.assertNotIn("1, 2, 3", history)
+        self.assertNotIn("123456", history)
+
+    def test_write_result_history_replaces_same_game_round(self):
+        history_path = Path(self.temp_dir.name) / "result-history.yml"
+        first = [
+            Outcome("lotto", 1225, "로또 1225회 A", "A. 미당첨.", "lotto-a", True, result_label="미당첨")
+        ]
+        second = [
+            Outcome("lotto", 1225, "로또 1225회 A", "A. 미당첨.", "lotto-a", True, result_label="미당첨"),
+            Outcome("lotto", 1225, "로또 1225회 B", "B. 미당첨.", "lotto-b", True, result_label="미당첨"),
+        ]
+
+        write_result_history(history_path, first, checked_at="2026-05-17T21:45:00+09:00")
+        write_result_history(history_path, second, checked_at="2026-05-17T21:50:00+09:00")
+
+        data = yaml.safe_load(history_path.read_text(encoding="utf-8"))
+        self.assertEqual(len(data["history"]), 1)
+        self.assertEqual(data["history"][0]["summary"], "2026.05.17 로또 1225회 미당첨 2개")
+
     def test_balance_alert_sends_when_balance_is_low(self):
         account_path = Path(self.temp_dir.name) / "account.yml"
         account_path.write_text("balance:\n  amount: 40000\n  currency: KRW\n", encoding="utf-8")
@@ -403,6 +473,7 @@ class RunnerTest(unittest.TestCase):
             force_notify=force_notify,
             notify_pending=notify_pending,
             status_json=status_json,
+            history=None,
         )
 
     def _balance_args(self, account_path: Path) -> argparse.Namespace:

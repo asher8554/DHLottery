@@ -529,3 +529,12 @@
 - `check` CLI에 `--notify-pending`을 추가했고, Pages와 Actions는 `notify_pending` 체크박스와 설정값을 이 옵션으로 전달한다.
 - 검증은 전체 unittest 64개, workflow YAML 파싱, Pages 스크립트 문법 확인, `git diff --check`로 진행했다.
 - 원격에 먼저 들어온 `7fbf2b8 구매번호 정리`를 rebase로 반영한 뒤 구현 커밋 `161edfd`를 푸시했다.
+
+## 2026-05-17 당첨결과 이력 표시
+
+- 사용자는 지난 당첨결과 요약을 GitHub Pages 안에서 쉽게 확인하고 싶어 한다.
+- 이력에는 실제 구매번호를 저장하거나 표시하지 않고, 검사 날짜, 게임, 회차, 미당첨 개수, 당첨 등수 개수만 저장한다.
+- 저장 파일은 `data/result-history.yml`로 둔다. `data/tickets.yml`은 발표 후 정리되므로 과거 이력을 별도 파일로 남겨야 Pages에서 이전 결과를 볼 수 있다.
+- 같은 게임과 회차가 다시 검사되면 새 줄을 추가하지 않고 기존 이력 항목을 교체해 중복 표시를 막는다.
+- `check-results.yml`과 `update-ticket.yml`은 검사 직후 `--history data/result-history.yml`을 넘기고, 구매번호 정리 커밋에 이력 파일도 함께 포함한다.
+- Pages는 `data/result-history.yml`을 원격 raw URL로 읽어 `지난 당첨결과 이력` 접힘 영역에 최대 20건을 표시한다.

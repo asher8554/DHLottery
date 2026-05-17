@@ -163,6 +163,8 @@ Set-Location E:\Github\DHLottery
 3. `Run workflow`를 누릅니다.
 
 처음 설정한 뒤에는 수동 실행으로 카카오톡 알림이 정상 동작하는지 확인하세요.
+검사가 확정한 회차 요약은 `data/result-history.yml`에 누적되고, GitHub Pages의 `지난 당첨결과 이력` 영역에서 볼 수 있습니다.
+이 파일에는 구매번호 원문을 저장하지 않고 날짜, 게임, 회차, 미당첨 개수, 당첨 등수 개수만 저장합니다.
 
 ## Pages에서 사용할 GitHub token 권한
 

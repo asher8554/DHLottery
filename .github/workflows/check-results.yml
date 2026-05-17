@@ -105,7 +105,7 @@ jobs:
           SCHEDULE_NOTIFY_PENDING: ${{ steps.notification_schedule.outputs.notify_pending || 'false' }}
         shell: bash
         run: |
-          args=(python -m dhlottery_checker check --tickets data/tickets.yml --notify --state .state/sent-results.json --status-json .state/check-status.json)
+          args=(python -m dhlottery_checker check --tickets data/tickets.yml --notify --state .state/sent-results.json --status-json .state/check-status.json --history data/result-history.yml)
           if [ "$FORCE_NOTIFY" = "true" ]; then
             args+=(--force-notify)
           fi
@@ -128,18 +128,18 @@ jobs:
             echo "No check status file was created."
           fi
 
-      - name: Prune completed ticket entries
+      - name: Commit result history and completed ticket cleanup
         if: ${{ steps.ticket-file.outputs.has_tickets == 'true' && steps.notification_schedule.outputs.should_run == 'true' }}
         shell: bash
         run: |
           python -m dhlottery_checker prune-sent-tickets --tickets data/tickets.yml --status-json .state/check-status.json
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/tickets.yml
+          git add data/tickets.yml data/result-history.yml
           if git diff --cached --quiet; then
-            echo "No completed ticket entries to commit."
+            echo "No result history or completed ticket entries to commit."
           else
-            git commit -m "구매번호 정리"
+            git commit -m "당첨결과 이력 갱신"
             git pull --rebase
             git push
           fi

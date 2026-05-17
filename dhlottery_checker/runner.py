@@ -2,12 +2,16 @@
 from __future__ import annotations
 
 import argparse
+from collections import Counter
 from dataclasses import dataclass
+from datetime import datetime
 import json
 import os
 from pathlib import Path
+import re
 import sys
 from typing import Iterable
+from zoneinfo import ZoneInfo
 
 import yaml
 
@@ -42,6 +46,7 @@ from .ticket_import import parse_lotto_ticket_text, write_lotto_tickets
 
 
 PENSION_RESULT_PAGE = "https://www.dhlottery.co.kr/pt720/result"
+RESULT_HISTORY_LIMIT = 80
 
 
 @dataclass(frozen=True)
@@ -74,6 +79,7 @@ def main(argv: list[str] | None = None) -> int:
     check_parser.add_argument("--force-notify", action="store_true", help="이미 알린 결과도 이번 실행에 다시 포함합니다.")
     check_parser.add_argument("--notify-pending", action="store_true", help="발표 전 또는 결과 대기 상태도 카카오톡으로 알립니다.")
     check_parser.add_argument("--status-json", help="이번 검사 실행 요약을 JSON 파일로 저장합니다.")
+    check_parser.add_argument("--history", help="확정된 검사 결과 요약 이력을 YAML 파일로 저장합니다.")
 
     import_parser = subparsers.add_parser("import-ticket", help="동행복권 티켓 보기 텍스트를 구매번호 YAML에 저장합니다.")
     import_parser.add_argument("--input", help="붙여넣기 텍스트 파일 경로입니다. 생략하면 표준 입력을 읽습니다.")
@@ -291,6 +297,7 @@ def _run_check(args: argparse.Namespace) -> int:
         removable_resolved_fingerprints=[outcome.fingerprint for outcome in removable_resolved],
         clear_tickets=bool(removable_resolved) and len(pending) == 0,
     )
+    write_result_history(args.history, resolved)
     return 0
 
 
@@ -359,6 +366,128 @@ def prune_sent_tickets(ticket_path: str | Path, status_path: str | Path) -> int:
         else:
             target.write_text(yaml.safe_dump(source, allow_unicode=True, sort_keys=False), encoding="utf-8")
     return removed
+
+
+def write_result_history(path: str | Path | None, outcomes: Iterable[Outcome], checked_at: str | None = None) -> int:
+    if not path:
+        return 0
+    resolved = [outcome for outcome in outcomes if outcome.resolved]
+    if not resolved:
+        return 0
+
+    timestamp = checked_at or datetime.now(ZoneInfo("Asia/Seoul")).isoformat(timespec="seconds")
+    new_entries = _result_history_entries(resolved, timestamp)
+    if not new_entries:
+        return 0
+
+    target = Path(path)
+    existing_entries = _load_result_history_entries(target)
+    replaced_keys = {(entry["game"], entry["round"]) for entry in new_entries}
+    kept_entries = [
+        entry
+        for entry in existing_entries
+        if (entry.get("game"), entry.get("round")) not in replaced_keys
+    ]
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(
+        yaml.safe_dump(
+            {"history": (new_entries + kept_entries)[:RESULT_HISTORY_LIMIT]},
+            allow_unicode=True,
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+    return len(new_entries)
+
+
+def _load_result_history_entries(path: Path) -> list[dict]:
+    if not path.exists() or not path.read_text(encoding="utf-8").strip():
+        return []
+    payload = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    if not isinstance(payload, dict):
+        return []
+    entries = payload.get("history", [])
+    if not isinstance(entries, list):
+        return []
+    return [entry for entry in entries if isinstance(entry, dict)]
+
+
+def _result_history_entries(outcomes: list[Outcome], checked_at: str) -> list[dict]:
+    entries = []
+    for group in _group_outcomes(outcomes):
+        first = group[0]
+        winning_count = sum(1 for outcome in group if outcome.won)
+        losing_count = len(group) - winning_count
+        prizes = _history_prizes(group)
+        summary = _history_summary(first, checked_at, losing_count, prizes)
+        entries.append(
+            {
+                "checked_at": checked_at,
+                "game": first.game,
+                "round": first.round,
+                "title": _group_title(first),
+                "total_count": len(group),
+                "winning_count": winning_count,
+                "losing_count": losing_count,
+                "prizes": prizes,
+                "summary": summary,
+            }
+        )
+    return entries
+
+
+def _history_prizes(outcomes: list[Outcome]) -> list[dict]:
+    counts: Counter[str] = Counter()
+    amounts: dict[str, str] = {}
+    for outcome in outcomes:
+        if not outcome.won:
+            continue
+        for part in _result_label_parts(outcome.result_label):
+            rank, amount = _split_prize_label(part)
+            counts[rank] += 1
+            if amount and rank not in amounts:
+                amounts[rank] = amount
+    return [
+        {"rank": rank, "count": count, **({"amount": amounts[rank]} if rank in amounts else {})}
+        for rank, count in counts.items()
+    ]
+
+
+def _result_label_parts(result_label: str) -> list[str]:
+    if not result_label or result_label == "미당첨":
+        return []
+    return [
+        part.strip()
+        for part in re.split(r",\s+(?=(?:\d+등|보너스))", result_label)
+        if part.strip()
+    ]
+
+
+def _split_prize_label(result_label: str) -> tuple[str, str]:
+    match = re.match(r"^(\S+)\s*(.*)$", result_label.strip())
+    if not match:
+        return result_label.strip(), ""
+    return match.group(1), match.group(2).strip()
+
+
+def _history_summary(outcome: Outcome, checked_at: str, losing_count: int, prizes: list[dict]) -> str:
+    parts = []
+    if losing_count:
+        parts.append(f"미당첨 {losing_count}개")
+    if prizes:
+        prize_text = ", ".join(f"{prize['rank']} {prize['count']}개" for prize in prizes)
+        parts.append(f"당첨 {prize_text}")
+    if not parts:
+        parts.append("확정 결과 없음")
+    return f"{_history_date_text(checked_at)} {_group_title(outcome)} {', '.join(parts)}"
+
+
+def _history_date_text(checked_at: str) -> str:
+    normalized = checked_at.replace("Z", "+00:00")
+    try:
+        return datetime.fromisoformat(normalized).astimezone(ZoneInfo("Asia/Seoul")).strftime("%Y.%m.%d")
+    except ValueError:
+        return checked_at[:10].replace("-", ".")
 
 
 def _ticket_item_fingerprint(game: str, item: dict, salt: str) -> str:

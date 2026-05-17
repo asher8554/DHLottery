@@ -319,6 +319,32 @@
       gap: 8px;
     }
 
+    .history-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .history-row {
+      min-height: 38px;
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--soft);
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .history-empty {
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .history-count {
+      color: var(--muted);
+      font-weight: 700;
+    }
+
     .ticket-row {
       display: grid;
       grid-template-columns: auto 1fr;
@@ -564,6 +590,12 @@
           <h2 id="output-title">생성 결과</h2>
         </div>
         <div class="panel-body">
+          <details class="foldout" open>
+            <summary>지난 당첨결과 이력 <span id="resultHistoryCount" class="history-count">-</span></summary>
+            <div class="foldout-body">
+              <div id="resultHistoryList" class="history-list" aria-label="지난 당첨결과 이력"></div>
+            </div>
+          </details>
           <div id="ticketSummary" class="ticket-summary" aria-label="구매번호 목록"></div>
           <details class="yaml-details">
             <summary>원본 YAML 보기</summary>
@@ -578,6 +610,7 @@
     const ticketsRawUrl = "https://raw.githubusercontent.com/asher8554/DHLottery/main/data/tickets.yml";
     const accountRawUrl = "https://raw.githubusercontent.com/asher8554/DHLottery/main/data/account.yml";
     const notificationSettingsRawUrl = "https://raw.githubusercontent.com/asher8554/DHLottery/main/data/notification-settings.yml";
+    const resultHistoryRawUrl = "https://raw.githubusercontent.com/asher8554/DHLottery/main/data/result-history.yml";
     const checkWorkflowDispatchUrl = "https://api.github.com/repos/asher8554/DHLottery/actions/workflows/check-results.yml/dispatches";
     const updateNotificationWorkflowDispatchUrl = "https://api.github.com/repos/asher8554/DHLottery/actions/workflows/update-notification-settings.yml/dispatches";
     const balanceAlertThreshold = 50000;
@@ -599,6 +632,8 @@
     const loadedAt = document.querySelector("#loadedAt");
     const ticketCount = document.querySelector("#ticketCount");
     const ticketSummary = document.querySelector("#ticketSummary");
+    const resultHistoryCount = document.querySelector("#resultHistoryCount");
+    const resultHistoryList = document.querySelector("#resultHistoryList");
     const yamlOutput = document.querySelector("#yamlOutput");
     const statusEl = document.querySelector("#status");
     const reloadTickets = document.querySelector("#reloadTickets");
@@ -622,6 +657,7 @@
 
     let currentYaml = "";
     let currentTickets = { lotto: [], pension: [] };
+    let currentHistory = [];
 
     function setStatus(message, tone) {
       statusEl.textContent = message;
@@ -733,6 +769,79 @@
       }
 
       return settings;
+    }
+
+    function parseResultHistoryYaml(yaml) {
+      const entries = [];
+      let current = null;
+
+      for (const line of yaml.split(/\r?\n/)) {
+        const entryMatch = line.match(/^\s*-\s+checked_at:\s*(.+?)\s*$/);
+        if (entryMatch) {
+          current = { checkedAt: cleanYamlValue(entryMatch[1]) };
+          entries.push(current);
+          continue;
+        }
+
+        if (!current) {
+          continue;
+        }
+
+        const fieldMatch = line.match(/^\s*(game|round|title|total_count|winning_count|losing_count|summary):\s*(.*?)\s*$/);
+        if (!fieldMatch) {
+          continue;
+        }
+
+        const key = fieldMatch[1];
+        const value = cleanYamlValue(fieldMatch[2]);
+        if (["round", "total_count", "winning_count", "losing_count"].includes(key)) {
+          current[key] = Number(value);
+        } else {
+          current[key] = value;
+        }
+      }
+
+      return entries.filter((entry) => entry.summary || entry.title);
+    }
+
+    function historyGameLabel(game) {
+      if (game === "lotto") {
+        return "로또";
+      }
+      if (game === "pension") {
+        return "연금복권";
+      }
+      return game || "복권";
+    }
+
+    function historyDateText(value) {
+      if (!value) {
+        return "";
+      }
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) {
+        return String(value).slice(0, 10).replace(/-/g, ".");
+      }
+      return date.toLocaleDateString("ko-KR", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).replace(/\.\s?/g, ".").replace(/\.$/, "");
+    }
+
+    function historySummary(entry) {
+      if (entry.summary) {
+        return entry.summary;
+      }
+      const title = entry.title || `${historyGameLabel(entry.game)} ${entry.round || ""}회`;
+      const parts = [];
+      if (entry.losing_count) {
+        parts.push(`미당첨 ${entry.losing_count}개`);
+      }
+      if (entry.winning_count) {
+        parts.push(`당첨 ${entry.winning_count}개`);
+      }
+      return `${historyDateText(entry.checkedAt)} ${title} ${parts.join(", ") || "확정 결과 없음"}`.trim();
     }
 
     function scheduleSummary(settings) {
@@ -908,6 +1017,27 @@
       });
     }
 
+    function renderResultHistory(entries) {
+      currentHistory = entries;
+      resultHistoryList.innerHTML = "";
+      resultHistoryCount.textContent = entries.length ? `(${entries.length}건)` : "(없음)";
+
+      if (!entries.length) {
+        const empty = document.createElement("div");
+        empty.className = "history-row history-empty";
+        empty.textContent = "아직 저장된 당첨결과 이력이 없습니다.";
+        resultHistoryList.appendChild(empty);
+        return;
+      }
+
+      entries.slice(0, 20).forEach((entry) => {
+        const row = document.createElement("div");
+        row.className = "history-row";
+        row.textContent = historySummary(entry);
+        resultHistoryList.appendChild(row);
+      });
+    }
+
     function renderEmpty(message) {
       currentYaml = "";
       currentTickets = { lotto: [], pension: [] };
@@ -987,8 +1117,20 @@
       }
     }
 
+    async function loadResultHistory() {
+      try {
+        const response = await fetch(`${resultHistoryRawUrl}?t=${Date.now()}`, { cache: "no-store" });
+        if (!response.ok) {
+          throw new Error(`${response.status} ${response.statusText}`);
+        }
+        renderResultHistory(parseResultHistoryYaml(await response.text()));
+      } catch {
+        renderResultHistory([]);
+      }
+    }
+
     async function loadDashboard() {
-      await Promise.all([loadTickets(), loadAccount(), loadNotificationSettings()]);
+      await Promise.all([loadTickets(), loadAccount(), loadNotificationSettings(), loadResultHistory()]);
     }
 
     async function copyText(text) {
@@ -1218,6 +1360,7 @@
 
     loadTheme();
     loadSavedToken();
+    renderResultHistory([]);
     renderEmpty("저장된 구매번호를 불러오는 중입니다.");
     loadDashboard();
   </script>
