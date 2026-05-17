@@ -482,3 +482,4 @@
 - 색깔 공 표시는 실제 당첨 여부와 무관한 장식이므로 제거한다.
 - 카카오 알림 시간 설정은 GitHub Actions가 결과를 확인하는 시간이고, 시놀로지 작업은 그 전에 구매내역을 `data/tickets.yml`로 올려두는 역할임을 문서에 분리해서 설명한다.
 - 검증은 색깔 공 관련 코드 검색, `docs/ticket-entry.html` 스크립트 문법 확인, `python -m unittest discover -s tests`, `git diff --check`로 진행했다.
+- 구현 커밋은 `b1790ea`로 원격 `main`에 푸시했다.
