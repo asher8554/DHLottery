@@ -4,8 +4,8 @@ notification_schedule:
   lotto:
     enabled: true
     day: saturday
-    time: "21:45"
+    time: "22:05"
   pension:
     enabled: true
     day: thursday
-    time: "20:10"
+    time: "20:35"
