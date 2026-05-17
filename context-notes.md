@@ -538,3 +538,5 @@
 - 같은 게임과 회차가 다시 검사되면 새 줄을 추가하지 않고 기존 이력 항목을 교체해 중복 표시를 막는다.
 - `check-results.yml`과 `update-ticket.yml`은 검사 직후 `--history data/result-history.yml`을 넘기고, 구매번호 정리 커밋에 이력 파일도 함께 포함한다.
 - Pages는 `data/result-history.yml`을 원격 raw URL로 읽어 `지난 당첨결과 이력` 접힘 영역에 최대 20건을 표시한다.
+- 검증은 전체 unittest 66개, workflow 및 data YAML 파싱, Pages 스크립트 문법 확인, `git diff --check`로 진행했다.
+- 구현 커밋은 `a3c121b`이다.
