@@ -449,3 +449,16 @@
 - 기본 경로는 `/volume1/docker/Github/DHLottery`, 실행 사용자는 root, Git 명령은 컨테이너 기반으로 안내한다.
 - 실패했던 `alpine/git`, `ssh-keyscan`, Docker socket 권한, pull rebase 충돌은 문제 해결 섹션에 모아둔다.
 - 문서 검증으로 `git diff --check`를 실행했고, 전체 테스트는 `python -m unittest discover -s tests` 기준 55개가 통과했다.
+
+## 2026-05-17 시놀로지 무알림 진단 보강
+
+- 사용자는 SSH로 한 번 실행했지만 1주일 뒤 시놀로지 작업 스케줄은 도는 것 같은데 카카오톡 메시지가 오지 않는다고 했다.
+- VS Code Remote-SSH 화면은 `192.168.35.131 port 22: Permission denied`로, 저장소 코드가 아니라 시놀로지 SSH 접근 자체가 막힌 상태로 보인다.
+- `gh run list --workflow check-results.yml`로 확인한 결과 2026-05-16 23:08 KST 실행된 `Check lottery results`는 성공했다.
+- 해당 실행 로그에는 `새로 알릴 결과가 없습니다.`와 `Keeping ticket file for a later result check.`가 있었다.
+- 따라서 적어도 최근 결과 확인 워크플로 자체가 실패해서 카카오톡이 안 간 상황은 아니다. 새로 보낼 결과가 없다고 판단했거나 이미 보낸 상태 캐시가 복원된 가능성이 크다.
+- `Check balance` 최근 실행은 push 이벤트로 성공했고 로그에 예치금 부족 메시지 본문이 출력되었다. 이 경우 카카오 API 호출은 성공한 것으로 보인다.
+- 앞으로 원인 파악이 쉽도록 `check-results.yml`에 `.state/check-status.json` 내용을 출력하는 `Print check status` 단계를 추가했다.
+- `docs/synology-setup.md`에 카카오톡 알림이 오지 않을 때 시놀로지 로그, Actions 로그, `Print check status`, 강제 재전송, Remote-SSH 확인 순서를 추가했다.
+- `python -m unittest discover -s tests` 결과 55개 테스트가 통과했고, workflow YAML 4개 파싱을 확인했다.
+- 시놀로지 무알림 진단 보강 커밋을 생성하고 원격에 푸시할 예정이다.

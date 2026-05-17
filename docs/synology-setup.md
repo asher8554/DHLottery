@@ -217,6 +217,58 @@ tail -n 120 logs/scrape-ledger.log
 - `.browser/debug/ledger-candidates.txt`.
 - `.browser/debug/ledger-page.png`.
 
+## 카카오톡 알림이 오지 않을 때
+
+시놀로지 작업 스케줄러와 카카오톡 알림은 같은 단계가 아닙니다.
+시놀로지는 구매내역과 예치금을 읽어 `data/tickets.yml`, `data/account.yml`을 GitHub에 푸시합니다.
+카카오톡 결과 알림은 추첨 결과 발표 후 GitHub Actions의 `Check lottery results` 워크플로가 보냅니다.
+
+먼저 아래 순서로 확인합니다.
+
+1. DSM 작업 스케줄러의 마지막 실행 시간이 갱신되었는지 확인합니다.
+2. `logs/scrape-ledger.log` 마지막 120줄을 확인합니다.
+3. GitHub 저장소의 `Actions` 탭에서 `Check lottery results` 최근 실행이 성공했는지 확인합니다.
+4. 해당 실행 로그에 `새로 알릴 결과가 없습니다.`가 있는지 확인합니다.
+5. 해당 실행의 `Print check status` 단계에서 아래 값을 확인합니다.
+
+```json
+{
+  "resolved_count": 10,
+  "unsent_resolved_count": 0,
+  "pending_count": 0,
+  "pending_not_ready_count": 0,
+  "sent_resolved_count": 0,
+  "sent_pending_count": 0,
+  "clear_tickets": false
+}
+```
+
+`resolved_count`가 0보다 큰데 `unsent_resolved_count`가 0이면 결과는 확인됐지만 이미 보낸 것으로 판단한 상태입니다.
+이 경우 다시 받고 싶다면 GitHub Pages에서 `카카오톡 강제 재전송`을 체크하고 `당첨 검사 실행`을 누르거나, GitHub Actions에서 `Check lottery results`를 수동 실행할 때 `force_notify`를 켭니다.
+
+`pending_not_ready_count`가 0보다 크면 동행복권 사이트에 결과가 아직 반영되지 않았거나 일시적으로 조회에 실패한 상태입니다.
+다음 스케줄 실행을 기다리거나 수동으로 다시 실행합니다.
+
+`No ticket file. Nothing to check.`가 나오면 원격 `data/tickets.yml`이 비어 있거나 아직 푸시되지 않은 상태입니다.
+시놀로지 작업 로그에서 `git push`가 성공했는지 확인합니다.
+
+예치금 부족 알림은 `Check balance` 워크플로가 담당합니다.
+최근 `Check balance` 실행 로그에서 `현재 예치금 ... 기준 ... 이하입니다.`가 출력되고 워크플로가 성공했다면 카카오 API 호출 자체는 성공한 것입니다.
+휴대폰에서 나와의 채팅방 알림이 꺼져 있거나 이미 읽은 메시지로 처리되었는지도 확인합니다.
+
+## VS Code Remote-SSH가 연결되지 않을 때
+
+VS Code에서 `ssh: connect to host ... port 22: Permission denied`가 나오면 저장소 코드 문제가 아니라 시놀로지 SSH 접속 자체가 막힌 상태입니다.
+아래를 DSM에서 확인합니다.
+
+- `제어판`, `터미널 및 SNMP`에서 SSH 서비스가 켜져 있는지 확인합니다.
+- SSH 포트가 22가 맞는지 확인합니다. 포트를 바꿨다면 VS Code SSH 설정에도 같은 포트를 넣어야 합니다.
+- `제어판`, `보안`, `방화벽`에서 현재 PC IP가 SSH 포트에 접근 가능한지 확인합니다.
+- `제어판`, `보안`, `계정`, 자동 차단 또는 허용/차단 목록에 현재 PC IP가 차단되어 있지 않은지 확인합니다.
+- SSH 접속에 쓰는 사용자가 DSM에서 비활성화되지 않았는지 확인합니다.
+
+SSH가 막혀도 DSM의 `File Station`에서 `logs/scrape-ledger.log`를 내려받거나, 작업 스케줄러의 실행 결과 화면으로 기본 진단은 가능합니다.
+
 ## 자주 생기는 문제
 
 `/volume1/docker/DHLottery`로 이동할 수 없다는 오류가 나오면 실제 경로가 `/volume1/docker/Github/DHLottery`인지 확인합니다.

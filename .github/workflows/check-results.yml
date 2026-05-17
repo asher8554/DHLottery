@@ -93,6 +93,16 @@ jobs:
           fi
           "${args[@]}"
 
+      - name: Print check status
+        if: ${{ always() && steps.ticket-file.outputs.has_tickets == 'true' }}
+        shell: bash
+        run: |
+          if [ -s .state/check-status.json ]; then
+            cat .state/check-status.json
+          else
+            echo "No check status file was created."
+          fi
+
       - name: Clear ticket file after completed notification
         if: ${{ steps.ticket-file.outputs.has_tickets == 'true' }}
         shell: bash
