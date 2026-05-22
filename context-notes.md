@@ -548,3 +548,10 @@
 - `docs/ticket-entry.html`의 `renderTickets`에서 로또 슬롯을 `로또 {round}회 {slot}` 형태로 표시한다.
 - 당첨결과 이력 보존 흐름을 다시 확인했다. `_run_check`가 `data/result-history.yml`을 먼저 갱신하고, workflow의 이후 단계가 완료된 구매번호만 `data/tickets.yml`에서 정리한 뒤 두 파일을 함께 커밋한다.
 - 검증은 Pages 스크립트 문법 확인, 전체 unittest 66개, workflow YAML 파싱, `git diff --check`로 진행했다.
+
+## 2026-05-22 Ouroboros setup
+
+- `ooo setup`은 현재 Codex 세션에서 요청되었으므로, setup skill의 안내에 따라 Claude Code 내장 wizard 대신 `ouroboros setup --runtime codex` CLI 경로를 사용한다.
+- 로컬 환경에는 `ouroboros.exe`, `uvx.exe`, Python 3.13.7, Python 3.12.8이 모두 있어 setup 실행 전제 조건은 충족된 것으로 보인다.
+- `ouroboros setup --runtime codex` 실행 결과 Codex runtime 설정이 완료되었고, 설정은 `C:\Users\asher\.ouroboros\config.yaml`에 저장되었다. Codex rules와 20개 Ouroboros skills 설치 메시지도 확인했다.
+- 검증 결과 `runtime_backend: codex`, `backend: codex`, Codex skill directory 21개, `Ouroboros version 0.39.0`을 확인했다.

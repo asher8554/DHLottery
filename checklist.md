@@ -466,3 +466,9 @@
 - [x] 로또 생성 결과에 회차를 함께 표시한다.
 - [x] Pages 스크립트 문법과 테스트를 검증한다.
 - [ ] 변경사항을 커밋하고 원격에 푸시한다.
+
+## 2026-05-22 Ouroboros setup
+
+- [x] Codex용 setup 경로를 확인한다.
+- [x] `ouroboros setup --runtime codex`를 실행한다.
+- [x] 설정 결과를 검증한다.
