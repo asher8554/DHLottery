@@ -63,6 +63,10 @@ class Outcome:
     summary_text: str = ""
     detail_header: str = ""
     detail_text: str = ""
+    winning_numbers: tuple[int, ...] = ()
+    bonus_number: int | str | None = None
+    winning_group: int | None = None
+    winning_number: str = ""
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -420,20 +424,57 @@ def _result_history_entries(outcomes: list[Outcome], checked_at: str) -> list[di
         losing_count = len(group) - winning_count
         prizes = _history_prizes(group)
         summary = _history_summary(first, checked_at, losing_count, prizes)
-        entries.append(
-            {
-                "checked_at": checked_at,
-                "game": first.game,
-                "round": first.round,
-                "title": _group_title(first),
-                "total_count": len(group),
-                "winning_count": winning_count,
-                "losing_count": losing_count,
-                "prizes": prizes,
-                "summary": summary,
-            }
-        )
+        entry = {
+            "checked_at": checked_at,
+            "game": first.game,
+            "round": first.round,
+            "title": _group_title(first),
+            "total_count": len(group),
+            "winning_count": winning_count,
+            "losing_count": losing_count,
+            "prizes": prizes,
+            "summary": summary,
+        }
+        winning = _history_winning(first)
+        if winning:
+            entry["winning"] = winning
+        ticket_details = _history_ticket_details(group)
+        if ticket_details:
+            entry["tickets"] = ticket_details
+        entries.append(entry)
     return entries
+
+
+def _history_winning(outcome: Outcome) -> dict[str, object]:
+    if outcome.game == "lotto" and outcome.winning_numbers and outcome.bonus_number is not None:
+        return {"numbers": list(outcome.winning_numbers), "bonus": outcome.bonus_number}
+    if (
+        outcome.game == "pension"
+        and outcome.winning_group is not None
+        and outcome.winning_number
+        and outcome.bonus_number is not None
+    ):
+        return {
+            "group": outcome.winning_group,
+            "number": outcome.winning_number,
+            "bonus_number": str(outcome.bonus_number),
+        }
+    return {}
+
+
+def _history_ticket_details(outcomes: list[Outcome]) -> list[dict[str, object]]:
+    details = []
+    for outcome in outcomes:
+        result = outcome.result_label or ("당첨" if outcome.won else "미당첨")
+        detail: dict[str, object] = {
+            "label": _short_label(outcome.label, outcome.game, outcome.round),
+            "won": outcome.won,
+            "result": result,
+        }
+        if outcome.match_count is not None:
+            detail["match_count"] = outcome.match_count
+        details.append(detail)
+    return details
 
 
 def _history_prizes(outcomes: list[Outcome]) -> list[dict]:
@@ -599,6 +640,8 @@ def _lotto_outcomes(tickets: Iterable[LottoTicket], salt: str) -> Iterable[Outco
             summary_text=f"{short_label} {result_label}",
             detail_header=detail_header,
             detail_text=detail_text,
+            winning_numbers=winning.numbers,
+            bonus_number=winning.bonus,
         )
 
 
@@ -651,6 +694,9 @@ def _pension_outcomes(tickets: Iterable[PensionTicket], salt: str) -> Iterable[O
             summary_text=f"{short_label} {selected} {result_text}",
             detail_header=detail_header,
             detail_text=f"{short_label}. {result_text}. 내 번호 {selected}.",
+            winning_group=winning.group,
+            winning_number=winning.number,
+            bonus_number=winning.bonus_number,
         )
 
 

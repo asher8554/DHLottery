@@ -405,6 +405,56 @@ class RunnerTest(unittest.TestCase):
         self.assertNotIn("1, 2, 3", history)
         self.assertNotIn("123456", history)
 
+    def test_write_result_history_includes_page_result_details(self):
+        history_path = Path(self.temp_dir.name) / "result-history.yml"
+        outcomes = [
+            Outcome(
+                "lotto",
+                1225,
+                "로또 1225회 A",
+                "로또 1225회 A. 5등 5,000원. 내 번호 1, 2, 3, 4, 5, 6.",
+                "lotto-a",
+                True,
+                won=True,
+                result_label="5등 5,000원",
+                match_count=3,
+                winning_numbers=(1, 2, 3, 10, 20, 30),
+                bonus_number=7,
+            ),
+            Outcome(
+                "pension",
+                316,
+                "연금복권 316회 1",
+                "연금복권 316회 1. 미당첨. 내 번호 1조 123456.",
+                "pension-a",
+                True,
+                result_label="미당첨",
+                winning_group=2,
+                winning_number="060727",
+                bonus_number="293160",
+            ),
+        ]
+
+        written = write_result_history(history_path, outcomes, checked_at="2026-05-17T21:45:00+09:00")
+
+        self.assertEqual(written, 2)
+        data = yaml.safe_load(history_path.read_text(encoding="utf-8"))
+        lotto = data["history"][0]
+        pension = data["history"][1]
+        self.assertEqual(lotto["winning"], {"numbers": [1, 2, 3, 10, 20, 30], "bonus": 7})
+        self.assertEqual(
+            lotto["tickets"],
+            [{"label": "A", "won": True, "result": "5등 5,000원", "match_count": 3}],
+        )
+        self.assertEqual(
+            pension["winning"],
+            {"group": 2, "number": "060727", "bonus_number": "293160"},
+        )
+        self.assertEqual(pension["tickets"], [{"label": "1", "won": False, "result": "미당첨"}])
+        history = history_path.read_text(encoding="utf-8")
+        self.assertNotIn("1, 2, 3, 4, 5, 6", history)
+        self.assertNotIn("123456", history)
+
     def test_write_result_history_replaces_same_game_round(self):
         history_path = Path(self.temp_dir.name) / "result-history.yml"
         first = [

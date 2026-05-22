@@ -335,6 +335,49 @@
       font-weight: 800;
     }
 
+    .history-card {
+      display: grid;
+      gap: 8px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--soft);
+    }
+
+    .history-summary {
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .history-winning {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .history-ticket-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .history-ticket {
+      min-height: 28px;
+      padding: 4px 8px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .history-ticket.won {
+      border-color: var(--good);
+      color: var(--good);
+    }
+
     .history-empty {
       color: var(--muted);
       font-weight: 700;
@@ -774,17 +817,84 @@
     function parseResultHistoryYaml(yaml) {
       const entries = [];
       let current = null;
+      let mode = "";
+      let currentTicket = null;
+      let collectingWinningNumbers = false;
 
       for (const line of yaml.split(/\r?\n/)) {
         const entryMatch = line.match(/^\s*-\s+checked_at:\s*(.+?)\s*$/);
         if (entryMatch) {
           current = { checkedAt: cleanYamlValue(entryMatch[1]) };
           entries.push(current);
+          mode = "";
+          currentTicket = null;
+          collectingWinningNumbers = false;
           continue;
         }
 
         if (!current) {
           continue;
+        }
+
+        const sectionMatch = line.match(/^\s*(winning|tickets|prizes):\s*$/);
+        if (sectionMatch) {
+          mode = sectionMatch[1];
+          currentTicket = null;
+          collectingWinningNumbers = false;
+          if (mode === "winning") {
+            current.winning = {};
+          }
+          if (mode === "tickets") {
+            current.tickets = [];
+          }
+          continue;
+        }
+
+        if (mode === "winning") {
+          const numbersStartMatch = line.match(/^\s*numbers:\s*(?:\[(.*?)\])?\s*$/);
+          if (numbersStartMatch) {
+            current.winning.numbers = numbersStartMatch[1] ? parseNumberList(numbersStartMatch[1]) : [];
+            collectingWinningNumbers = true;
+            continue;
+          }
+
+          const numberListMatch = line.match(/^\s*-\s*(\d+)\s*$/);
+          if (collectingWinningNumbers && numberListMatch) {
+            current.winning.numbers.push(Number(numberListMatch[1]));
+            continue;
+          }
+
+          const winningMatch = line.match(/^\s*(bonus|group|number|bonus_number):\s*(.*?)\s*$/);
+          if (winningMatch) {
+            const key = winningMatch[1];
+            const value = cleanYamlValue(winningMatch[2]);
+            current.winning[key] = ["bonus", "group"].includes(key) ? Number(value) : value;
+            collectingWinningNumbers = false;
+            continue;
+          }
+        }
+
+        if (mode === "tickets") {
+          const ticketMatch = line.match(/^\s*-\s+label:\s*(.*?)\s*$/);
+          if (ticketMatch) {
+            currentTicket = { label: cleanYamlValue(ticketMatch[1]) };
+            current.tickets.push(currentTicket);
+            continue;
+          }
+
+          const ticketFieldMatch = line.match(/^\s*(won|result|match_count):\s*(.*?)\s*$/);
+          if (currentTicket && ticketFieldMatch) {
+            const key = ticketFieldMatch[1];
+            const value = cleanYamlValue(ticketFieldMatch[2]);
+            if (key === "won") {
+              currentTicket[key] = value.toLowerCase() === "true";
+            } else if (key === "match_count") {
+              currentTicket[key] = Number(value);
+            } else {
+              currentTicket[key] = value;
+            }
+            continue;
+          }
         }
 
         const fieldMatch = line.match(/^\s*(game|round|title|total_count|winning_count|losing_count|summary):\s*(.*?)\s*$/);
@@ -842,6 +952,27 @@
         parts.push(`당첨 ${entry.winning_count}개`);
       }
       return `${historyDateText(entry.checkedAt)} ${title} ${parts.join(", ") || "확정 결과 없음"}`.trim();
+    }
+
+    function historyWinningText(entry) {
+      if (!entry.winning) {
+        return "";
+      }
+      if (entry.game === "lotto" && Array.isArray(entry.winning.numbers) && entry.winning.numbers.length) {
+        return `당첨번호 ${entry.winning.numbers.join("  ")} + 보너스 ${entry.winning.bonus}`;
+      }
+      if (entry.game === "pension" && entry.winning.number) {
+        return `당첨번호 ${entry.winning.group}조 ${entry.winning.number} · 보너스 각조 ${entry.winning.bonus_number}`;
+      }
+      return "";
+    }
+
+    function appendHistoryTicketBadge(container, ticket) {
+      const badge = document.createElement("span");
+      badge.className = ticket.won ? "history-ticket won" : "history-ticket";
+      const matchText = Number.isInteger(ticket.match_count) ? ` · ${ticket.match_count}개 일치` : "";
+      badge.textContent = `${ticket.label || "번호"} ${ticket.result || "결과 없음"}${matchText}`;
+      container.appendChild(badge);
     }
 
     function scheduleSummary(settings) {
@@ -1031,10 +1162,30 @@
       }
 
       entries.slice(0, 20).forEach((entry) => {
-        const row = document.createElement("div");
-        row.className = "history-row";
-        row.textContent = historySummary(entry);
-        resultHistoryList.appendChild(row);
+        const card = document.createElement("div");
+        card.className = "history-card";
+
+        const summary = document.createElement("div");
+        summary.className = "history-summary";
+        summary.textContent = historySummary(entry);
+        card.appendChild(summary);
+
+        const winningText = historyWinningText(entry);
+        if (winningText) {
+          const winning = document.createElement("div");
+          winning.className = "history-winning";
+          winning.textContent = winningText;
+          card.appendChild(winning);
+        }
+
+        if (Array.isArray(entry.tickets) && entry.tickets.length) {
+          const tickets = document.createElement("div");
+          tickets.className = "history-ticket-list";
+          entry.tickets.forEach((ticket) => appendHistoryTicketBadge(tickets, ticket));
+          card.appendChild(tickets);
+        }
+
+        resultHistoryList.appendChild(card);
       });
     }
 

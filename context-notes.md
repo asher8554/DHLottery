@@ -555,3 +555,17 @@
 - 로컬 환경에는 `ouroboros.exe`, `uvx.exe`, Python 3.13.7, Python 3.12.8이 모두 있어 setup 실행 전제 조건은 충족된 것으로 보인다.
 - `ouroboros setup --runtime codex` 실행 결과 Codex runtime 설정이 완료되었고, 설정은 `C:\Users\asher\.ouroboros\config.yaml`에 저장되었다. Codex rules와 20개 Ouroboros skills 설치 메시지도 확인했다.
 - 검증 결과 `runtime_backend: codex`, `backend: codex`, Codex skill directory 21개, `Ouroboros version 0.39.0`을 확인했다.
+
+## 2026-05-22 Pages 당첨 결과 상세 표시
+
+- 사용자는 Pages에서 당첨 결과도 같이 확인할 수 있기를 원한다.
+- 현재 Pages는 `data/tickets.yml` 구매번호와 `data/result-history.yml`의 짧은 요약만 보여준다.
+- 브라우저에서 동행복권 API를 직접 호출하는 방식은 CORS와 외부 사이트 변경에 취약하므로 기존 GitHub Actions 검사 결과를 `data/result-history.yml`에 더 풍부하게 저장하는 방향을 택한다.
+- 이력 파일에는 공개 당첨번호와 티켓별 결과 라벨만 저장하고, 구매번호 원문 전체는 저장하지 않는다.
+- 기존 카카오 알림, 중복 알림 상태, 완료 구매번호 정리 흐름은 그대로 유지한다.
+- 기준 baseline은 `python -m unittest discover -s tests` 66개 통과 상태다.
+- 구현 후 결과 이력에는 `winning`과 `tickets` 필드가 추가된다. 로또는 당첨번호 6개와 보너스 번호를 저장하고, 연금복권은 조, 당첨번호, 보너스 번호를 저장한다.
+- `tickets` 항목은 라벨, 당첨 여부, 결과 라벨, 로또 일치 개수만 저장한다.
+- Pages는 기존 한 줄 이력을 결과 카드로 렌더링하고, 기존 이력처럼 새 필드가 없는 항목도 요약만 표시할 수 있게 유지한다.
+- 검증은 새 unittest 포함 전체 68개 통과, UTF-8 파일 직접 읽기 방식의 inline script 문법 검사, `git diff --check`로 진행했다.
+- PowerShell 파이프로 script를 Node에 넘긴 문법 검사는 한글 정규식의 `회`가 `?`로 깨져 실패했다. 파일을 UTF-8로 직접 읽는 방식에서는 통과하므로 코드 문제가 아니라 검증 명령의 인코딩 문제로 판단했다.
