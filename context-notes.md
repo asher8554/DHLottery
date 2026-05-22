@@ -569,3 +569,15 @@
 - Pages는 기존 한 줄 이력을 결과 카드로 렌더링하고, 기존 이력처럼 새 필드가 없는 항목도 요약만 표시할 수 있게 유지한다.
 - 검증은 새 unittest 포함 전체 68개 통과, UTF-8 파일 직접 읽기 방식의 inline script 문법 검사, `git diff --check`로 진행했다.
 - PowerShell 파이프로 script를 Node에 넘긴 문법 검사는 한글 정규식의 `회`가 `?`로 깨져 실패했다. 파일을 UTF-8로 직접 읽는 방식에서는 통과하므로 코드 문제가 아니라 검증 명령의 인코딩 문제로 판단했다.
+
+## 2026-05-22 예약 실행 대상 복권 제한
+
+- 사용자는 프로그램 전반의 리팩터링과 보완점을 살펴보고 고치길 원한다.
+- baseline은 깨끗했다. 작업 시작 시 `git status --short`는 출력이 없었고, `python -m unittest discover -s tests`는 68개 통과였다.
+- 가장 직접적인 보완점은 `schedule_config`가 `due_games`를 계산하지만 `.github/workflows/check-results.yml`의 실제 검사 명령이 항상 전체 검사로 실행되는 점이다.
+- 로또 예약 시간에 연금복권 pending 또는 결과까지 같이 처리될 수 있으므로, 예약 실행에서는 도래한 게임 하나만 `--game`으로 넘기도록 보완한다.
+- 수동 실행은 사용자가 명시적으로 누른 검사이므로 기존처럼 전체 검사를 유지한다.
+- `check-results.yml`의 검사 단계에 `DUE_GAMES` 환경값을 추가하고, 예약 실행에서 `lotto` 또는 `pension` 단일 값일 때만 `--game` 인자를 해당 값으로 바꾸도록 했다.
+- `due_games`가 `lotto,pension`처럼 복수이거나 수동 실행이면 `--game all`을 유지한다.
+- 새 테스트 `tests/test_workflows.py`는 workflow가 `due_games` output을 읽고 `--game "$game_arg"`를 넘기는 계약을 확인한다.
+- 검증은 focused workflow 테스트, 전체 unittest 69개, workflow YAML 파싱, `git diff --check`로 진행했다.

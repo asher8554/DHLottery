@@ -103,9 +103,17 @@ jobs:
           FORCE_NOTIFY: ${{ inputs.force_notify || 'false' }}
           INPUT_NOTIFY_PENDING: ${{ inputs.notify_pending || 'false' }}
           SCHEDULE_NOTIFY_PENDING: ${{ steps.notification_schedule.outputs.notify_pending || 'false' }}
+          DUE_GAMES: ${{ steps.notification_schedule.outputs.due_games || 'all' }}
         shell: bash
         run: |
-          args=(python -m dhlottery_checker check --tickets data/tickets.yml --notify --state .state/sent-results.json --status-json .state/check-status.json --history data/result-history.yml)
+          game_arg="all"
+          if [ "$GITHUB_EVENT_NAME" = "schedule" ]; then
+            case "$DUE_GAMES" in
+              lotto) game_arg="lotto" ;;
+              pension) game_arg="pension" ;;
+            esac
+          fi
+          args=(python -m dhlottery_checker check --tickets data/tickets.yml --game "$game_arg" --notify --state .state/sent-results.json --status-json .state/check-status.json --history data/result-history.yml)
           if [ "$FORCE_NOTIFY" = "true" ]; then
             args+=(--force-notify)
           fi
