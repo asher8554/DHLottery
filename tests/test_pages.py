@@ -72,6 +72,13 @@ class PagesHtmlTest(unittest.TestCase):
         self.assertIn('appendHistoryColumn("lotto"', html)
         self.assertIn('appendHistoryColumn("pension"', html)
 
+    def test_result_history_uses_smaller_text_scale(self):
+        html = Path("docs/ticket-entry.html").read_text(encoding="utf-8")
+
+        self.assertIn(".history-summary {\n      color: var(--text);\n      font-size: 13px;", html)
+        self.assertIn(".history-winning {\n      color: var(--muted);\n      font-size: 12px;", html)
+        self.assertIn(".history-ticket {\n      display: inline-grid;\n      grid-template-columns: auto auto;\n      align-items: stretch;\n      min-height: 28px;\n      border: 1px solid var(--line);\n      border-radius: 8px;\n      background: var(--surface);\n      color: var(--muted);\n      font-size: 12px;", html)
+
     def test_ticket_entry_surfaces_scraper_run_status(self):
         html = Path("docs/ticket-entry.html").read_text(encoding="utf-8")
 
