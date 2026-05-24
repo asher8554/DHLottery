@@ -56,7 +56,7 @@
     }
 
     main {
-      width: min(1480px, calc(100% - 24px));
+      width: min(1120px, calc(100% - 32px));
       margin: 0 auto;
       padding: 28px 0;
     }
@@ -124,7 +124,7 @@
 
     .workspace {
       display: grid;
-      grid-template-columns: minmax(300px, 0.32fr) minmax(780px, 1fr);
+      grid-template-columns: minmax(0, 0.74fr) minmax(380px, 1fr);
       gap: 16px;
       align-items: start;
     }
@@ -408,14 +408,6 @@
       gap: 6px;
     }
 
-    .history-ticket-list.five-up {
-      display: grid;
-      grid-template-columns: repeat(5, max-content);
-      gap: 6px;
-      justify-content: start;
-      overflow-x: auto;
-    }
-
     .history-ticket {
       display: inline-grid;
       grid-template-columns: auto auto;
@@ -445,17 +437,11 @@
 
     .history-ticket-number {
       justify-content: center;
-      min-width: 50px;
+      min-width: 30px;
       border-right: 1px solid var(--line);
       background: var(--soft);
       color: var(--text);
       font-variant-numeric: tabular-nums;
-      white-space: nowrap;
-    }
-
-    .history-ticket-result {
-      justify-content: center;
-      white-space: nowrap;
     }
 
     .history-ticket.won .history-ticket-number {
@@ -524,9 +510,9 @@
       white-space: pre;
     }
 
-    @media (max-width: 1140px) {
+    @media (max-width: 860px) {
       main {
-        width: min(100% - 20px, 860px);
+        width: min(100% - 20px, 720px);
         padding: 18px 0;
       }
 
@@ -546,12 +532,6 @@
 
       .schedule-grid {
         grid-template-columns: 1fr;
-      }
-    }
-
-    @media (max-width: 720px) {
-      .history-ticket-list.five-up {
-        grid-template-columns: repeat(auto-fit, minmax(126px, 1fr));
       }
     }
 
@@ -734,7 +714,7 @@
         </div>
       </section>
 
-      <section class="panel output-panel" aria-labelledby="output-title">
+      <section class="panel" aria-labelledby="output-title">
         <div class="panel-header">
           <h2 id="output-title">생성 결과</h2>
         </div>
@@ -1384,7 +1364,7 @@
 
         if (Array.isArray(entry.tickets) && entry.tickets.length) {
           const tickets = document.createElement("div");
-          tickets.className = entry.tickets.length === 5 ? "history-ticket-list five-up" : "history-ticket-list";
+          tickets.className = "history-ticket-list";
           entry.tickets.forEach((ticket, index) => appendHistoryTicketBadge(tickets, entry, ticket, index));
           card.appendChild(tickets);
         }

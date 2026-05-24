@@ -688,3 +688,12 @@
 - 좁은 화면에서는 기존처럼 1열로 내려가되, 데스크톱 폭에서는 생성 결과가 오른쪽에 남아야 한다.
 - 구현은 `grid-column: 1 / -1`을 제거하고, workspace를 `minmax(300px, 0.32fr) minmax(780px, 1fr)`로 바꿔 오른쪽 생성 결과 열이 더 넓게 잡히도록 했다.
 - 검증은 focused 실패 테스트 확인 뒤 전체 unittest 82개 통과, HTML inline script 구문 검사 통과, `git diff --check` 통과, Playwright에서 생성 결과 패널이 동기화 오른쪽에 있고 폭이 동기화보다 2배 이상임을 확인하는 방식으로 진행했다.
+
+## 2026-05-24 UI 크기 조정 원복
+
+- 사용자는 UI를 원래 스타일로 돌리되, 지금까지 바꾼 크기 조절만 되돌리라고 요청했다.
+- 유지할 것은 결과 이력 배지의 `연금 1`, `로또 1` 라벨 표시다.
+- 원복 대상은 `main` 폭 확장, workspace 열 비율 변경, `output-panel` 클래스, five-up 강제 grid, 배지 폭 강제 조정이다.
+- 목표 상태는 기존 `main` 1120px, 기존 workspace 2열, flex-wrap 배지 리스트다.
+- 구현 후 `output-panel` 클래스가 제거됐고, 생성 결과 패널은 다시 동기화 패널 오른쪽에 배치된다.
+- 검증은 전체 unittest 82개 통과, HTML inline script 문법 검사 통과, `git diff --check` 통과, 브라우저에서 `outputClass: "panel"`과 `outputIsRightOfSync: true` 확인으로 진행했다.

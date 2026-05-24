@@ -512,3 +512,14 @@
    검증은 기존 구현에서 focused unittest가 실패하는 것으로 진행한다.
 3. workspace 열 비율을 동기화 좁게, 생성 결과 넓게 조정하고 좁은 화면에서만 1열로 전환한다.
    검증은 전체 unittest, HTML 스크립트 구문 검사, Playwright 렌더 확인으로 진행한다.
+
+## 2026-05-24 UI 크기 조정 원복
+
+목표는 생성 결과 라벨 개선은 유지하고, 최근 변경한 폭과 배치 크기 조정만 기존 스타일로 되돌리는 것이다.
+
+1. 원복 대상 CSS를 확인한다.
+   검증은 `main`, `.workspace`, `.history-ticket-list.five-up`, `.output-panel` 주변 코드 확인으로 진행한다.
+2. 원래 크기와 배치 계약 테스트로 바꾼다.
+   검증은 기존 구현에서 focused unittest가 실패하는 것으로 진행한다.
+3. 크기 조정 CSS와 five-up 강제 배치를 제거하고 기존 2열 레이아웃으로 돌린다.
+   검증은 전체 unittest, HTML 스크립트 구문 검사, Playwright 렌더 확인으로 진행한다.

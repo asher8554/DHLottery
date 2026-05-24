@@ -36,23 +36,21 @@ class PagesHtmlTest(unittest.TestCase):
         self.assertIn('return `로또 ${ticketNumberText}`;', html)
         self.assertIn("appendHistoryTicketBadge(tickets, entry, ticket, index)", html)
 
-    def test_history_ticket_badges_fit_five_items_on_desktop(self):
+    def test_history_ticket_badges_use_default_wrapping_layout(self):
         html = Path("docs/ticket-entry.html").read_text(encoding="utf-8")
 
-        self.assertIn(".history-ticket-list.five-up", html)
-        self.assertIn("grid-template-columns: repeat(5, max-content);", html)
-        self.assertIn('tickets.className = entry.tickets.length === 5 ? "history-ticket-list five-up" : "history-ticket-list";', html)
-        self.assertIn("justify-content: start;", html)
-        self.assertIn("@media (max-width: 720px)", html)
+        self.assertIn(".history-ticket-list {\n      display: flex;\n      flex-wrap: wrap;\n      gap: 6px;\n    }", html)
+        self.assertIn('tickets.className = "history-ticket-list";', html)
+        self.assertNotIn("five-up", html)
 
-    def test_output_panel_stays_to_the_right_on_desktop(self):
+    def test_output_panel_uses_original_two_column_layout(self):
         html = Path("docs/ticket-entry.html").read_text(encoding="utf-8")
 
-        self.assertIn('class="panel output-panel"', html)
-        self.assertIn("grid-template-columns: minmax(300px, 0.32fr) minmax(780px, 1fr);", html)
-        self.assertIn("width: min(1480px, calc(100% - 24px));", html)
-        self.assertNotIn("grid-column: 1 / -1;", html)
-        self.assertIn("@media (max-width: 1140px)", html)
+        self.assertIn('<section class="panel" aria-labelledby="output-title">', html)
+        self.assertIn("grid-template-columns: minmax(0, 0.74fr) minmax(380px, 1fr);", html)
+        self.assertIn("width: min(1120px, calc(100% - 32px));", html)
+        self.assertIn("@media (max-width: 860px)", html)
+        self.assertNotIn("output-panel", html)
 
     def test_ticket_entry_surfaces_scraper_run_status(self):
         html = Path("docs/ticket-entry.html").read_text(encoding="utf-8")
