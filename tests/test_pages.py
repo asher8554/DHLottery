@@ -71,6 +71,18 @@ class PagesHtmlTest(unittest.TestCase):
         self.assertIn('[string]$ScraperSource = "windows"', powershell)
         self.assertIn("Write-ScraperStatus", powershell)
 
+    def test_scraper_push_scripts_prune_completed_history_rounds(self):
+        bash = Path("scripts/scrape-ledger-and-push.sh").read_text(encoding="utf-8")
+        powershell = Path("scripts/scrape-ledger-and-push.ps1").read_text(encoding="utf-8")
+
+        self.assertIn(
+            'prune-sent-tickets --tickets "$ticket_path" --status-json .state/check-status.json --history data/result-history.yml',
+            bash,
+        )
+        self.assertIn("prune-sent-tickets", powershell)
+        self.assertIn("--history", powershell)
+        self.assertIn("data/result-history.yml", powershell)
+
     def test_synology_push_script_checks_git_state_before_scraping(self):
         bash = Path("scripts/scrape-ledger-and-push.sh").read_text(encoding="utf-8")
 

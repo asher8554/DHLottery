@@ -15,6 +15,14 @@ class WorkflowContractTest(unittest.TestCase):
         self.assertIn('pension) game_arg="pension" ;;', workflow)
         self.assertIn('--game "$game_arg"', workflow)
 
+    def test_check_results_prunes_result_history_rounds(self):
+        workflow = Path(".github/workflows/check-results.yml").read_text(encoding="utf-8")
+
+        self.assertIn(
+            "prune-sent-tickets --tickets data/tickets.yml --status-json .state/check-status.json --history data/result-history.yml",
+            workflow,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

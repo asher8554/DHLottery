@@ -122,6 +122,7 @@ def main(argv: list[str] | None = None) -> int:
     prune_parser = subparsers.add_parser("prune-sent-tickets", help="알림이 끝난 구매번호만 YAML에서 제거합니다.")
     prune_parser.add_argument("--tickets", default="data/tickets.yml", help="정리할 구매번호 YAML 파일 경로입니다.")
     prune_parser.add_argument("--status-json", default=".state/check-status.json", help="검사 상태 JSON 파일 경로입니다.")
+    prune_parser.add_argument("--history", help="이미 결과 이력에 있는 회차도 함께 정리합니다.")
 
     args = parser.parse_args(argv)
     if args.command == "check":
@@ -243,7 +244,7 @@ def _run_schedule_due(args: argparse.Namespace) -> int:
 
 def _run_prune_sent_tickets(args: argparse.Namespace) -> int:
     try:
-        removed = prune_sent_tickets(args.tickets, args.status_json)
+        removed = prune_sent_tickets(args.tickets, args.status_json, args.history)
     except ValueError as exc:
         print(f"구매번호 정리 실패. {exc}", file=sys.stderr)
         return 2
@@ -322,13 +323,14 @@ def _removable_resolved_outcomes(
     return removable
 
 
-def prune_sent_tickets(ticket_path: str | Path, status_path: str | Path) -> int:
-    status_file = Path(status_path)
-    if not status_file.exists():
-        return 0
-    status = json.loads(status_file.read_text(encoding="utf-8"))
-    fingerprints = set(status.get("removable_resolved_fingerprints") or [])
-    if not fingerprints:
+def prune_sent_tickets(
+    ticket_path: str | Path,
+    status_path: str | Path,
+    history_path: str | Path | None = None,
+) -> int:
+    fingerprints = _removable_status_fingerprints(status_path)
+    completed_rounds = _completed_history_rounds(history_path)
+    if not fingerprints and not completed_rounds:
         return 0
 
     target = Path(ticket_path)
@@ -357,8 +359,10 @@ def prune_sent_tickets(ticket_path: str | Path, status_path: str | Path) -> int:
         for item in tickets:
             if not isinstance(item, dict):
                 raise ValueError(f"{game}.tickets 항목은 객체여야 합니다.")
-            fingerprint = _ticket_item_fingerprint(game, item, salt)
-            if fingerprint in fingerprints:
+            remove_by_status = bool(fingerprints) and _ticket_item_fingerprint(game, item, salt) in fingerprints
+            round_key = _ticket_history_round_key(game, item)
+            remove_by_history = round_key is not None and round_key in completed_rounds
+            if remove_by_status or remove_by_history:
                 removed += 1
             else:
                 remaining.append(item)
@@ -370,6 +374,40 @@ def prune_sent_tickets(ticket_path: str | Path, status_path: str | Path) -> int:
         else:
             target.write_text(yaml.safe_dump(source, allow_unicode=True, sort_keys=False), encoding="utf-8")
     return removed
+
+
+def _removable_status_fingerprints(status_path: str | Path) -> set[str]:
+    status_file = Path(status_path)
+    if not status_file.exists():
+        return set()
+    status = json.loads(status_file.read_text(encoding="utf-8"))
+    return set(status.get("removable_resolved_fingerprints") or [])
+
+
+def _completed_history_rounds(history_path: str | Path | None) -> set[tuple[str, int]]:
+    if not history_path:
+        return set()
+    rounds = set()
+    for entry in _load_result_history_entries(Path(history_path)):
+        game = str(entry.get("game", "")).strip()
+        if game not in ("lotto", "pension"):
+            continue
+        try:
+            round_no = int(entry.get("round"))
+        except (TypeError, ValueError):
+            continue
+        rounds.add((game, round_no))
+    return rounds
+
+
+def _ticket_history_round_key(game: str, item: dict) -> tuple[str, int] | None:
+    try:
+        round_value = _status_round_value(item.get("round"))
+    except (TypeError, ValueError):
+        return None
+    if not isinstance(round_value, int):
+        return None
+    return game, round_value
 
 
 def write_result_history(path: str | Path | None, outcomes: Iterable[Outcome], checked_at: str | None = None) -> int:

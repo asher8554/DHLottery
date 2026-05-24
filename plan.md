@@ -455,3 +455,16 @@
    검증은 Pages 계약 테스트와 실제 GitHub API 응답 확인으로 진행한다.
 2. GitHub API가 실패할 때는 기존 raw URL을 fallback으로 유지한다.
    검증은 HTML 스크립트 구문 검사와 전체 unittest로 진행한다.
+
+## 2026-05-24 결과 이력 중복 구매번호 정리
+
+목표는 `data/result-history.yml`에 이미 완료로 남은 회차가 스크래퍼 재실행 뒤 `data/tickets.yml`과 Pages 생성 결과에 다시 보이지 않게 하는 것이다.
+
+1. 현재 데이터에서 중복 조건을 확인한다.
+   검증은 `data/result-history.yml`의 연금복권 316회와 `data/tickets.yml`의 연금복권 316회가 동시에 존재하는지 확인한다.
+2. `prune-sent-tickets`가 상태 JSON뿐 아니라 결과 이력의 완료 회차도 정리하도록 테스트를 먼저 추가한다.
+   검증은 기존 구현에서 실패하는 focused unittest로 진행한다.
+3. GitHub Actions, Windows push 스크립트, 시놀로지 Bash push 스크립트가 스크래핑 또는 검사 뒤 결과 이력 기준 정리를 실행하게 한다.
+   검증은 runner 테스트와 스크립트 계약 테스트로 진행한다.
+4. 현재 남아 있는 연금복권 316회 구매번호를 같은 정리 흐름으로 제거한다.
+   검증은 전체 unittest와 `git diff --check`로 진행한다.

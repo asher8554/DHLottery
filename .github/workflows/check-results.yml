@@ -140,7 +140,7 @@ jobs:
         if: ${{ steps.ticket-file.outputs.has_tickets == 'true' && steps.notification_schedule.outputs.should_run == 'true' }}
         shell: bash
         run: |
-          python -m dhlottery_checker prune-sent-tickets --tickets data/tickets.yml --status-json .state/check-status.json
+          python -m dhlottery_checker prune-sent-tickets --tickets data/tickets.yml --status-json .state/check-status.json --history data/result-history.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data/tickets.yml data/result-history.yml

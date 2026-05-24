@@ -361,6 +361,46 @@ class RunnerTest(unittest.TestCase):
         self.assertIn("316", updated)
         self.assertIn("222222", updated)
 
+    def test_prune_sent_tickets_removes_rounds_already_in_result_history(self):
+        ticket_path = Path(self.temp_dir.name) / "tickets.yml"
+        status_path = Path(self.temp_dir.name) / "missing-check-status.json"
+        history_path = Path(self.temp_dir.name) / "result-history.yml"
+        ticket_path.write_text(
+            "\n".join(
+                [
+                    "pension:",
+                    "  tickets:",
+                    "    - label: Pension 316 1",
+                    "      round: 316",
+                    "      group: 1",
+                    "      number: '877478'",
+                    "    - label: Pension 317 1",
+                    "      round: 317",
+                    "      group: 1",
+                    "      number: '160446'",
+                    "",
+                ]
+            ),
+            encoding="utf-8",
+        )
+        history_path.write_text(
+            yaml.safe_dump(
+                {"history": [{"game": "pension", "round": 316, "title": "Pension 316"}]},
+                allow_unicode=True,
+                sort_keys=False,
+            ),
+            encoding="utf-8",
+        )
+
+        removed = prune_sent_tickets(ticket_path, status_path, history_path)
+
+        self.assertEqual(removed, 1)
+        updated = ticket_path.read_text(encoding="utf-8")
+        self.assertNotIn("316", updated)
+        self.assertNotIn("877478", updated)
+        self.assertIn("317", updated)
+        self.assertIn("160446", updated)
+
     def test_write_result_history_summarizes_resolved_groups_without_numbers(self):
         history_path = Path(self.temp_dir.name) / "result-history.yml"
         outcomes = [

@@ -3,6 +3,7 @@
 param(
     [string]$Path = "data/tickets.yml",
     [string]$AccountPath = "data/account.yml",
+    [string]$ResultHistoryPath = "data/result-history.yml",
     [string]$ScraperStatusPath = "data/scraper-status.yml",
     [string]$ScraperSource = "windows",
     [string]$ProfileDir = ".browser/dhlottery",
@@ -96,6 +97,8 @@ try {
     }
 
     & $scrapeScript @scrapeParams
+    Stop-IfNativeFailed
+    python -m dhlottery_checker prune-sent-tickets --tickets $Path --status-json ".state/check-status.json" --history $ResultHistoryPath
     Stop-IfNativeFailed
     Write-ScraperStatus -Path $ScraperStatusPath -Source $ScraperSource
 

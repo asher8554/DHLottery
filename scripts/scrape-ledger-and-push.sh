@@ -119,6 +119,7 @@ write_scraper_status() {
 ensure_git_ready
 
 bash "$repo_root/scripts/scrape-ledger.sh"
+python -m dhlottery_checker prune-sent-tickets --tickets "$ticket_path" --status-json .state/check-status.json --history data/result-history.yml
 write_scraper_status
 
 change_paths=("$ticket_path")

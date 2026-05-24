@@ -646,3 +646,12 @@
 - 원인은 Pages가 raw URL을 읽고 있고, GitHub raw 캐시가 최신 커밋보다 늦게 갱신되는 상황으로 판단했다.
 - 해결은 `data/scraper-status.yml`만 GitHub Contents API를 우선 사용해 읽고, API 실패 시에만 기존 raw URL로 fallback하는 방식으로 한정한다.
 - 검증은 Pages 계약 테스트 포함 전체 unittest 76개 통과, HTML inline script 구문 검사 통과, `git diff --check` 통과, GitHub Contents API가 최신 `updated_at: "2026-05-24T07:50:47Z"`를 반환하는 것으로 진행했다.
+
+## 2026-05-24 결과 이력 중복 구매번호 정리
+
+- 사용자는 지난 당첨결과 이력에 연금복권 316회가 있는데 생성 결과에도 316회가 다시 보인다고 보고했다.
+- 현재 데이터 확인 결과 `data/result-history.yml`에는 연금복권 316회 완료 이력이 있고, `data/tickets.yml`에도 연금복권 316회 구매번호 5개가 남아 있었다.
+- 원인 후보는 스크래퍼가 동행복권 구매내역의 과거 구매를 다시 가져오면서, 기존 결과 이력에 이미 완료된 회차를 가져온 뒤 정리하지 않는 흐름이다.
+- 해결 방향은 `prune-sent-tickets`가 상태 JSON의 알림 완료 fingerprint뿐 아니라 `data/result-history.yml`의 완료 회차도 제거하게 하고, 스크래퍼 push 흐름과 GitHub Actions 모두 이 기준 정리를 호출하게 하는 것이다.
+- 구현 후 `python -m dhlottery_checker prune-sent-tickets --tickets data/tickets.yml --status-json .state/check-status.json --history data/result-history.yml`로 연금복권 316회 구매번호 5개를 제거했다.
+- 검증은 focused 실패 테스트 확인 뒤 전체 unittest 79개 통과, `bash -n`, PowerShell scriptblock 파싱, `git diff --check` 통과로 진행했다.
