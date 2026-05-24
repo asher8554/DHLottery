@@ -56,7 +56,7 @@
     }
 
     main {
-      width: min(1120px, calc(100% - 32px));
+      width: min(1360px, calc(100% - 24px));
       margin: 0 auto;
       padding: 28px 0;
     }
@@ -135,6 +135,10 @@
       background: var(--surface);
       box-shadow: var(--shadow);
       overflow: hidden;
+    }
+
+    .output-panel {
+      grid-column: 1 / -1;
     }
 
     .panel-header {
@@ -410,8 +414,10 @@
 
     .history-ticket-list.five-up {
       display: grid;
-      grid-template-columns: repeat(5, minmax(0, 1fr));
+      grid-template-columns: repeat(5, max-content);
       gap: 6px;
+      justify-content: start;
+      overflow-x: auto;
     }
 
     .history-ticket {
@@ -426,11 +432,6 @@
       font-size: 13px;
       font-weight: 800;
       overflow: hidden;
-    }
-
-    .history-ticket-list.five-up .history-ticket {
-      width: 100%;
-      grid-template-columns: minmax(48px, auto) minmax(0, 1fr);
     }
 
     .history-ticket.won {
@@ -529,7 +530,7 @@
 
     @media (max-width: 860px) {
       main {
-        width: min(100% - 20px, 720px);
+        width: min(100% - 20px, 860px);
         padding: 18px 0;
       }
 
@@ -737,7 +738,7 @@
         </div>
       </section>
 
-      <section class="panel" aria-labelledby="output-title">
+      <section class="panel output-panel" aria-labelledby="output-title">
         <div class="panel-header">
           <h2 id="output-title">생성 결과</h2>
         </div>

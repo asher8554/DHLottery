@@ -671,3 +671,11 @@
 - 해결 방향은 티켓이 5개인 결과 이력 리스트에만 전용 클래스를 붙여 데스크톱에서 5열 grid로 배치하고, 좁은 화면에서는 자동 줄바꿈되게 유지하는 것이다.
 - 구현은 5개 티켓 리스트에 `history-ticket-list five-up` 클래스를 붙이고, 데스크톱에서는 `repeat(5, minmax(0, 1fr))` grid를 사용하게 했다.
 - 검증은 focused 실패 테스트 확인 뒤 전체 unittest 81개 통과, HTML inline script 구문 검사 통과, `git diff --check` 통과, Playwright에서 5개 배지의 top 좌표가 같은 것을 확인하는 방식으로 진행했다.
+
+## 2026-05-24 생성 결과 영역 확장
+
+- 사용자는 글자를 UI 안에 좁게 가두는 것이 아니라 `생성 결과` 영역을 넓혀 글자가 적절히 보이게 하길 원한다고 정정했다.
+- 이전 5열 grid의 `minmax(0, 1fr)`는 한 줄 배치는 만들지만 각 배지의 텍스트 폭을 줄일 수 있어 의도와 맞지 않았다.
+- 해결은 `main` 최대 폭을 넓히고, `생성 결과` 패널에 `output-panel` 클래스를 붙여 workspace 전체 폭을 쓰게 하는 것이다.
+- 5개 배지 grid는 `repeat(5, max-content)`로 바꿔 텍스트가 필요한 실제 폭을 유지하게 했다.
+- 검증은 focused 실패 테스트 확인 뒤 전체 unittest 82개 통과, HTML inline script 구문 검사 통과, `git diff --check` 통과, Playwright에서 `.output-panel`이 `main` 폭과 거의 같고 배지 `scrollWidth`가 `clientWidth` 이하임을 확인하는 방식으로 진행했다.

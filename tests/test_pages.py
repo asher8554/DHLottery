@@ -40,10 +40,18 @@ class PagesHtmlTest(unittest.TestCase):
         html = Path("docs/ticket-entry.html").read_text(encoding="utf-8")
 
         self.assertIn(".history-ticket-list.five-up", html)
-        self.assertIn("grid-template-columns: repeat(5, minmax(0, 1fr));", html)
+        self.assertIn("grid-template-columns: repeat(5, max-content);", html)
         self.assertIn('tickets.className = entry.tickets.length === 5 ? "history-ticket-list five-up" : "history-ticket-list";', html)
-        self.assertIn(".history-ticket-list.five-up .history-ticket", html)
+        self.assertIn("justify-content: start;", html)
         self.assertIn("@media (max-width: 720px)", html)
+
+    def test_output_panel_gets_more_horizontal_space(self):
+        html = Path("docs/ticket-entry.html").read_text(encoding="utf-8")
+
+        self.assertIn('class="panel output-panel"', html)
+        self.assertIn(".output-panel {", html)
+        self.assertIn("grid-column: 1 / -1;", html)
+        self.assertIn("width: min(1360px, calc(100% - 24px));", html)
 
     def test_ticket_entry_surfaces_scraper_run_status(self):
         html = Path("docs/ticket-entry.html").read_text(encoding="utf-8")
