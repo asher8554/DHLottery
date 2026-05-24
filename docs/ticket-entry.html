@@ -196,11 +196,6 @@
       color: var(--good);
     }
 
-    .scraper-status.bad {
-      border-color: var(--bad);
-      color: var(--bad);
-    }
-
     .command {
       margin: 0;
       padding: 12px;
@@ -843,17 +838,15 @@
 
       const date = new Date(updatedAt);
       if (Number.isNaN(date.getTime())) {
-        scraperRunStatus.className = "scraper-status bad";
-        scraperRunStatus.textContent = `확인 필요 · ${updatedAt}`;
+        scraperRunStatus.className = "scraper-status";
+        scraperRunStatus.textContent = `미확인 · ${updatedAt}`;
         scraperRunStatus.title = "data/account.yml의 updated_at 형식을 확인하세요.";
         return;
       }
 
-      const staleMs = 24 * 60 * 60 * 1000;
-      const isFresh = Date.now() - date.getTime() <= staleMs;
-      scraperRunStatus.className = isFresh ? "scraper-status good" : "scraper-status bad";
-      scraperRunStatus.textContent = `${isFresh ? "성공" : "확인 필요"} · ${formatDateTime(updatedAt)}`;
-      scraperRunStatus.title = "data/account.yml updated_at 기준입니다.";
+      scraperRunStatus.className = "scraper-status good";
+      scraperRunStatus.textContent = `성공 · ${formatDateTime(updatedAt)}`;
+      scraperRunStatus.title = "발표 전 구매번호가 남아 있어도 스크래퍼 반영은 성공으로 표시합니다.";
     }
 
     function defaultNotificationSettings() {

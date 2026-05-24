@@ -35,6 +35,13 @@ class PagesHtmlTest(unittest.TestCase):
         self.assertIn("bash scripts/synology-docker-run.sh", html)
         self.assertIn(".\\scripts\\scrape-ledger-and-push.ps1 -ShowProgress", html)
 
+    def test_ticket_entry_does_not_warn_for_old_scraper_timestamp(self):
+        html = Path("docs/ticket-entry.html").read_text(encoding="utf-8")
+
+        self.assertNotIn("staleMs", html)
+        self.assertNotIn("확인 필요", html)
+        self.assertNotIn("scraper-status bad", html)
+
 
 if __name__ == "__main__":
     unittest.main()
