@@ -663,3 +663,11 @@
 - 이번 변경은 배지 구조와 색상은 유지하고, 왼쪽 라벨 계산만 게임 축약명 포함 형태로 바꾸는 범위로 제한한다.
 - 구현은 `historyTicketBadgeLabel`을 추가해 `pension`은 `연금`, `lotto`는 `로또` 접두어를 붙이고, 배지 왼쪽 영역의 최소 폭과 줄바꿈 방지를 조정했다.
 - 검증은 focused Pages 테스트 실패 확인 뒤 전체 unittest 80개 통과, HTML inline script 구문 검사 통과, `git diff --check` 통과, Playwright 렌더 확인으로 진행했다.
+
+## 2026-05-24 연금 결과 배지 한 줄 표시
+
+- 사용자는 지난 당첨결과 이력 카드에서 연금 1~5 배지가 4개와 1개로 줄바꿈되는 점을 보고, 1~5가 한 줄에 보이도록 간격 조정을 요청했다.
+- 기존 `.history-ticket-list`는 flex wrap과 6px gap을 쓰고 있어 카드 폭과 배지 텍스트 폭에 따라 5번째 배지가 다음 줄로 내려갈 수 있다.
+- 해결 방향은 티켓이 5개인 결과 이력 리스트에만 전용 클래스를 붙여 데스크톱에서 5열 grid로 배치하고, 좁은 화면에서는 자동 줄바꿈되게 유지하는 것이다.
+- 구현은 5개 티켓 리스트에 `history-ticket-list five-up` 클래스를 붙이고, 데스크톱에서는 `repeat(5, minmax(0, 1fr))` grid를 사용하게 했다.
+- 검증은 focused 실패 테스트 확인 뒤 전체 unittest 81개 통과, HTML inline script 구문 검사 통과, `git diff --check` 통과, Playwright에서 5개 배지의 top 좌표가 같은 것을 확인하는 방식으로 진행했다.

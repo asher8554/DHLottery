@@ -36,6 +36,15 @@ class PagesHtmlTest(unittest.TestCase):
         self.assertIn('return `로또 ${ticketNumberText}`;', html)
         self.assertIn("appendHistoryTicketBadge(tickets, entry, ticket, index)", html)
 
+    def test_history_ticket_badges_fit_five_items_on_desktop(self):
+        html = Path("docs/ticket-entry.html").read_text(encoding="utf-8")
+
+        self.assertIn(".history-ticket-list.five-up", html)
+        self.assertIn("grid-template-columns: repeat(5, minmax(0, 1fr));", html)
+        self.assertIn('tickets.className = entry.tickets.length === 5 ? "history-ticket-list five-up" : "history-ticket-list";', html)
+        self.assertIn(".history-ticket-list.five-up .history-ticket", html)
+        self.assertIn("@media (max-width: 720px)", html)
+
     def test_ticket_entry_surfaces_scraper_run_status(self):
         html = Path("docs/ticket-entry.html").read_text(encoding="utf-8")
 

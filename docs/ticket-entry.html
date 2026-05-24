@@ -408,6 +408,12 @@
       gap: 6px;
     }
 
+    .history-ticket-list.five-up {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 6px;
+    }
+
     .history-ticket {
       display: inline-grid;
       grid-template-columns: auto auto;
@@ -420,6 +426,11 @@
       font-size: 13px;
       font-weight: 800;
       overflow: hidden;
+    }
+
+    .history-ticket-list.five-up .history-ticket {
+      width: 100%;
+      grid-template-columns: minmax(48px, auto) minmax(0, 1fr);
     }
 
     .history-ticket.won {
@@ -446,6 +457,7 @@
     }
 
     .history-ticket-result {
+      justify-content: center;
       white-space: nowrap;
     }
 
@@ -537,6 +549,12 @@
 
       .schedule-grid {
         grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .history-ticket-list.five-up {
+        grid-template-columns: repeat(auto-fit, minmax(126px, 1fr));
       }
     }
 
@@ -1369,7 +1387,7 @@
 
         if (Array.isArray(entry.tickets) && entry.tickets.length) {
           const tickets = document.createElement("div");
-          tickets.className = "history-ticket-list";
+          tickets.className = entry.tickets.length === 5 ? "history-ticket-list five-up" : "history-ticket-list";
           entry.tickets.forEach((ticket, index) => appendHistoryTicketBadge(tickets, entry, ticket, index));
           card.appendChild(tickets);
         }
