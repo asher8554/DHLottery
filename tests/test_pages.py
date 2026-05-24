@@ -24,7 +24,17 @@ class PagesHtmlTest(unittest.TestCase):
 
         self.assertIn("history-ticket-number", html)
         self.assertIn("history-ticket-result", html)
-        self.assertIn("appendHistoryTicketBadge(tickets, ticket, index)", html)
+        self.assertIn("appendHistoryTicketBadge(tickets, entry, ticket, index)", html)
+
+    def test_history_ticket_badges_include_short_game_label(self):
+        html = Path("docs/ticket-entry.html").read_text(encoding="utf-8")
+
+        self.assertIn("function historyTicketBadgeLabel(entry, ticket, index)", html)
+        self.assertIn('if (entry.game === "pension")', html)
+        self.assertIn('return `연금 ${ticketNumberText}`;', html)
+        self.assertIn('if (entry.game === "lotto")', html)
+        self.assertIn('return `로또 ${ticketNumberText}`;', html)
+        self.assertIn("appendHistoryTicketBadge(tickets, entry, ticket, index)", html)
 
     def test_ticket_entry_surfaces_scraper_run_status(self):
         html = Path("docs/ticket-entry.html").read_text(encoding="utf-8")

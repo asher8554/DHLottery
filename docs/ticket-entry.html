@@ -437,11 +437,16 @@
 
     .history-ticket-number {
       justify-content: center;
-      min-width: 30px;
+      min-width: 50px;
       border-right: 1px solid var(--line);
       background: var(--soft);
       color: var(--text);
       font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .history-ticket-result {
+      white-space: nowrap;
     }
 
     .history-ticket.won .history-ticket-number {
@@ -1126,11 +1131,23 @@
       return "";
     }
 
-    function appendHistoryTicketBadge(container, ticket, index) {
+    function historyTicketBadgeLabel(entry, ticket, index) {
+      const rawLabel = String(ticket.label || index + 1).trim();
+      const ticketNumberText = rawLabel || String(index + 1);
+      if (entry.game === "pension") {
+        return `연금 ${ticketNumberText}`;
+      }
+      if (entry.game === "lotto") {
+        return `로또 ${ticketNumberText}`;
+      }
+      return `${historyGameLabel(entry.game)} ${ticketNumberText}`.trim();
+    }
+
+    function appendHistoryTicketBadge(container, entry, ticket, index) {
       const badge = document.createElement("span");
       badge.className = ticket.won ? "history-ticket won" : "history-ticket";
       const matchText = Number.isInteger(ticket.match_count) ? ` · ${ticket.match_count}개 일치` : "";
-      const ticketNumberText = ticket.label || String(index + 1);
+      const ticketNumberText = historyTicketBadgeLabel(entry, ticket, index);
       const resultText = `${ticket.result || "결과 없음"}${matchText}`;
 
       const ticketNumber = document.createElement("span");
@@ -1141,7 +1158,7 @@
       result.className = "history-ticket-result";
       result.textContent = resultText;
 
-      badge.setAttribute("aria-label", `${ticketNumberText}번 ${resultText}`);
+      badge.setAttribute("aria-label", `${ticketNumberText} ${resultText}`);
       badge.appendChild(ticketNumber);
       badge.appendChild(result);
       container.appendChild(badge);
@@ -1353,7 +1370,7 @@
         if (Array.isArray(entry.tickets) && entry.tickets.length) {
           const tickets = document.createElement("div");
           tickets.className = "history-ticket-list";
-          entry.tickets.forEach((ticket, index) => appendHistoryTicketBadge(tickets, ticket, index));
+          entry.tickets.forEach((ticket, index) => appendHistoryTicketBadge(tickets, entry, ticket, index));
           card.appendChild(tickets);
         }
 

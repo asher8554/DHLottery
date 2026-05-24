@@ -655,3 +655,11 @@
 - 해결 방향은 `prune-sent-tickets`가 상태 JSON의 알림 완료 fingerprint뿐 아니라 `data/result-history.yml`의 완료 회차도 제거하게 하고, 스크래퍼 push 흐름과 GitHub Actions 모두 이 기준 정리를 호출하게 하는 것이다.
 - 구현 후 `python -m dhlottery_checker prune-sent-tickets --tickets data/tickets.yml --status-json .state/check-status.json --history data/result-history.yml`로 연금복권 316회 구매번호 5개를 제거했다.
 - 검증은 focused 실패 테스트 확인 뒤 전체 unittest 79개 통과, `bash -n`, PowerShell scriptblock 파싱, `git diff --check` 통과로 진행했다.
+
+## 2026-05-24 결과 이력 티켓 배지 라벨 개선
+
+- 사용자는 결과 이력 티켓 배지를 `연금 1 | 7등 1천원`, `로또 1 | 몇등 얼마`처럼 게임 종류와 순번이 더 명확한 형태로 보이길 원한다.
+- 기존 Pages 배지는 `.history-ticket-number`와 `.history-ticket-result`를 분리해 세로 구분선을 이미 제공하고 있었다.
+- 이번 변경은 배지 구조와 색상은 유지하고, 왼쪽 라벨 계산만 게임 축약명 포함 형태로 바꾸는 범위로 제한한다.
+- 구현은 `historyTicketBadgeLabel`을 추가해 `pension`은 `연금`, `lotto`는 `로또` 접두어를 붙이고, 배지 왼쪽 영역의 최소 폭과 줄바꿈 방지를 조정했다.
+- 검증은 focused Pages 테스트 실패 확인 뒤 전체 unittest 80개 통과, HTML inline script 구문 검사 통과, `git diff --check` 통과, Playwright 렌더 확인으로 진행했다.
