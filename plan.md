@@ -435,3 +435,14 @@
    검증은 `scripts/synology-docker-run.sh`에 환경값 전달 계약이 있는지 확인한다.
 3. Pages는 새 상태 파일을 읽어 `시놀로지 실행 성공`처럼 출처 포함 문구를 표시하고, 상태 파일이 없으면 기존 `account.yml` 기준 표시로 돌아간다.
    검증은 Pages 계약 테스트, 브라우저 렌더링 확인, 전체 unittest로 진행한다.
+
+## 2026-05-24 시놀로지 Git 상태 복구 보강
+
+목표는 DSM 작업 스케줄러가 detached HEAD나 남은 rebase 상태 때문에 스크래핑 후 push 단계에서 멈추는 일을 줄이는 것이다.
+
+1. 로컬, GitHub 원격, 시놀로지 실행 결과를 비교해 현재 데이터 반영 여부를 확인한다.
+   검증은 원격 `data/scraper-status.yml`, `data/account.yml`, Git 로그로 진행한다.
+2. Bash push 스크립트가 스크래핑 전에 rebase 잔여 상태와 브랜치 상태를 먼저 점검한다.
+   검증은 스크립트 계약 테스트와 `bash -n`으로 진행한다.
+3. pull과 push 대상 브랜치를 명시해 upstream 설정이나 detached 상태에 덜 취약하게 만든다.
+   검증은 전체 unittest와 정적 검증으로 진행한다.

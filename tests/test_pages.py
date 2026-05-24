@@ -67,6 +67,22 @@ class PagesHtmlTest(unittest.TestCase):
         self.assertIn('[string]$ScraperSource = "windows"', powershell)
         self.assertIn("Write-ScraperStatus", powershell)
 
+    def test_synology_push_script_checks_git_state_before_scraping(self):
+        bash = Path("scripts/scrape-ledger-and-push.sh").read_text(encoding="utf-8")
+
+        self.assertIn('target_branch="${TARGET_BRANCH:-main}"', bash)
+        self.assertIn("ensure_git_ready", bash)
+        self.assertIn("rebase-merge", bash)
+        self.assertIn("git branch --show-current", bash)
+        self.assertIn('git checkout "$target_branch"', bash)
+        self.assertIn('git checkout -b "$target_branch" "origin/$target_branch"', bash)
+        self.assertIn('git pull --rebase origin "$target_branch"', bash)
+        self.assertIn('git push origin "$target_branch"', bash)
+        self.assertLess(
+            bash.index("ensure_git_ready"),
+            bash.index('bash "$repo_root/scripts/scrape-ledger.sh"'),
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

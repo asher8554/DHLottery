@@ -13,6 +13,7 @@ commit_message="${COMMIT_MESSAGE:-구매번호 자동 반영}"
 no_push="${NO_PUSH:-0}"
 lock_dir="${LOCK_DIR:-.state/scrape-ledger.lock}"
 lock_stale_minutes="${LOCK_STALE_MINUTES:-60}"
+target_branch="${TARGET_BRANCH:-main}"
 
 mkdir -p "$(dirname "$lock_dir")"
 if ! mkdir "$lock_dir" 2>/dev/null; then
@@ -37,6 +38,44 @@ git config user.email "${GIT_AUTHOR_EMAIL:-synology-dhlottery@example.local}"
 if [[ -z "${GIT_SSH_COMMAND:-}" && -f /root/.ssh/id_ed25519 ]]; then
   export GIT_SSH_COMMAND="ssh -i /root/.ssh/id_ed25519 -o IdentitiesOnly=yes"
 fi
+
+ensure_no_rebase_in_progress() {
+  local rebase_merge rebase_apply
+  rebase_merge="$(git rev-parse --git-path rebase-merge)"
+  rebase_apply="$(git rev-parse --git-path rebase-apply)"
+
+  if [[ -d "$rebase_merge" || -d "$rebase_apply" ]]; then
+    echo "이전 rebase 상태가 남아 있습니다. git rebase --abort 후 다시 실행하세요."
+    exit 1
+  fi
+}
+
+ensure_target_branch() {
+  local current_branch
+  current_branch="$(git branch --show-current || true)"
+  if [[ "$current_branch" == "$target_branch" ]]; then
+    return
+  fi
+
+  if [[ -z "$current_branch" ]]; then
+    echo "detached HEAD 상태입니다. $target_branch 브랜치로 전환합니다."
+  else
+    echo "현재 브랜치가 $current_branch 입니다. $target_branch 브랜치로 전환합니다."
+  fi
+
+  git fetch origin "$target_branch"
+  if git show-ref --verify --quiet "refs/heads/$target_branch"; then
+    git checkout "$target_branch"
+  else
+    git checkout -b "$target_branch" "origin/$target_branch"
+  fi
+}
+
+ensure_git_ready() {
+  ensure_no_rebase_in_progress
+  ensure_target_branch
+  git pull --rebase origin "$target_branch"
+}
 
 yaml_quote() {
   local value="${1//\"/\\\"}"
@@ -77,6 +116,8 @@ write_scraper_status() {
   } > "$status_path"
 }
 
+ensure_git_ready
+
 bash "$repo_root/scripts/scrape-ledger.sh"
 write_scraper_status
 
@@ -102,7 +143,7 @@ if [[ "$no_push" == "1" || "$no_push" == "true" ]]; then
   exit 0
 fi
 
-git pull --rebase
-git push
+git pull --rebase origin "$target_branch"
+git push origin "$target_branch"
 
 echo "GitHub Pages에서 새 구매번호와 예치금을 확인할 수 있습니다."

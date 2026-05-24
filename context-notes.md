@@ -628,3 +628,13 @@
 - 새 상태 파일은 데이터 변경이 없더라도 실행 시각이 바뀌므로, 시놀로지 작업이 정상 push되면 Pages에서 마지막 실행을 확인할 수 있다.
 - 검증은 실패 테스트 확인 후 전체 unittest 75개 통과, Bash 문법 검사, PowerShell scriptblock 파싱, Pages inline script 구문 검사, `git diff --check`로 진행했다.
 - 로컬 브라우저 검증에서는 `data/scraper-status.yml` 응답을 `source: synology`로 제공했을 때 `시놀로지 실행 성공 · 2026. 5. 24. 오전 9:00:00`과 `scraper-status good` 클래스를 확인했다.
+
+## 2026-05-24 시놀로지 Git 상태 복구 보강
+
+- 시놀로지에서 최신 코드로 전환한 뒤 스크래퍼가 `data/scraper-status.yml`을 만들고 커밋 `1388748 구매번호 자동 반영`을 push했다.
+- GitHub 원격의 `data/scraper-status.yml`은 `source: "synology"`, `source_label: "시놀로지 실행"`, `updated_at: "2026-05-24T07:30:37Z"`로 확인됐다.
+- GitHub 원격의 `data/account.yml`도 `updated_at: "2026-05-24T07:30:36Z"`로 같은 실행 흐름을 가리킨다.
+- 이 PC에서 `ssh asher8554@192.168.35.131`은 `Permission denied (publickey,password)`로 실패했다. 직접 SSH 점검을 하려면 Windows 쪽 SSH 키 설정이 필요하다.
+- 재발 원인은 이전 시놀로지 저장소가 detached HEAD와 남은 rebase 상태를 가지고 있었고, 스크립트가 스크래핑 후에야 `git pull --rebase`를 실행해 push 단계에서 멈춘 점이다.
+- `scripts/scrape-ledger-and-push.sh`는 이제 스크래핑 전에 rebase 잔여 상태를 확인하고, 현재 브랜치가 아니면 `main`으로 전환한 뒤 `git pull --rebase origin main`을 먼저 실행한다.
+- 스크래핑 후에도 `git pull --rebase origin main`, `git push origin main`처럼 대상 브랜치를 명시해 upstream 설정에 덜 의존하게 했다.
