@@ -3,6 +3,8 @@
 param(
     [string]$Path = "data/tickets.yml",
     [string]$AccountPath = "data/account.yml",
+    [string]$ScraperStatusPath = "data/scraper-status.yml",
+    [string]$ScraperSource = "windows",
     [string]$ProfileDir = ".browser/dhlottery",
     [string]$EnvFile = ".env",
     [string]$LoginUrl = "https://www.dhlottery.co.kr/login",
@@ -34,6 +36,44 @@ function Stop-IfNativeFailed {
     }
 }
 
+function Get-ScraperSourceLabel {
+    param([string]$Source)
+
+    switch ($Source) {
+        "synology" { return "시놀로지 실행" }
+        "windows" { return "Windows 실행" }
+        "linux" { return "Linux 실행" }
+        default { return $Source }
+    }
+}
+
+function Format-YamlScalar {
+    param([string]$Value)
+
+    return '"' + ($Value -replace '"', '\"') + '"'
+}
+
+function Write-ScraperStatus {
+    param(
+        [string]$Path,
+        [string]$Source
+    )
+
+    $statusDir = Split-Path -Parent $Path
+    if ($statusDir) {
+        New-Item -ItemType Directory -Force -Path $statusDir | Out-Null
+    }
+
+    $updatedAt = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ", [System.Globalization.CultureInfo]::InvariantCulture)
+    $sourceLabel = Get-ScraperSourceLabel -Source $Source
+    $content = @(
+        "source: $(Format-YamlScalar -Value $Source)",
+        "source_label: $(Format-YamlScalar -Value $sourceLabel)",
+        "updated_at: $(Format-YamlScalar -Value $updatedAt)"
+    )
+    Set-Content -LiteralPath $Path -Value $content -Encoding UTF8
+}
+
 Push-Location $repoRoot
 try {
     $scrapeParams = @{
@@ -57,10 +97,14 @@ try {
 
     & $scrapeScript @scrapeParams
     Stop-IfNativeFailed
+    Write-ScraperStatus -Path $ScraperStatusPath -Source $ScraperSource
 
     $changePaths = @($Path)
     if ($AccountPath) {
         $changePaths += $AccountPath
+    }
+    if ($ScraperStatusPath) {
+        $changePaths += $ScraperStatusPath
     }
 
     git add -- $changePaths

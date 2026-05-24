@@ -9,11 +9,12 @@ container_name="${DHLOTTERY_CONTAINER_NAME:-dhlottery-scraper}"
 
 mkdir -p "$repo_root/logs" "$repo_root/.state" "$ssh_dir"
 
-docker_env=("-e" "TZ=Asia/Seoul")
+docker_env=("-e" "TZ=Asia/Seoul" "-e" "SCRAPER_SOURCE=${SCRAPER_SOURCE:-synology}")
 for name in \
   PYTHON_BIN \
   TICKET_PATH \
   ACCOUNT_PATH \
+  SCRAPER_STATUS_PATH \
   PROFILE_DIR \
   ENV_FILE \
   LOGIN_URL \

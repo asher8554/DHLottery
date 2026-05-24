@@ -173,7 +173,8 @@ cd /volume1/docker/Github/DHLottery
 bash scripts/synology-docker-run.sh
 ```
 
-실행 후 Pages에서 새 구매번호와 예치금을 확인합니다.
+실행 후 Pages에서 새 구매번호, 예치금, `스크래퍼 실행` 상태를 확인합니다.
+시놀로지 작업이 정상 push되면 `스크래퍼 실행` 값이 `시놀로지 실행 성공`으로 표시됩니다.
 
 <https://asher8554.github.io/DHLottery/ticket-entry.html>
 
@@ -213,7 +214,7 @@ GitHub Actions는 Pages에서 설정한 카카오톡 알림 시간에 `data/tick
 
 1. 동행복권에서 직접 복권을 구매합니다.
 2. 시놀로지 작업 스케줄러가 구매내역을 읽고 GitHub에 푸시합니다.
-3. Pages 화면에서 최신 구매번호가 보이는지 확인합니다.
+3. Pages 화면에서 최신 구매번호와 `시놀로지 실행 성공` 상태가 보이는지 확인합니다.
 4. 결과 발표 후 Pages에서 설정한 시간에 GitHub Actions가 카카오톡 결과 알림을 보냅니다.
 
 예시 스케줄입니다.

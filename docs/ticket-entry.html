@@ -738,6 +738,7 @@
   <script>
     const ticketsRawUrl = "https://raw.githubusercontent.com/asher8554/DHLottery/main/data/tickets.yml";
     const accountRawUrl = "https://raw.githubusercontent.com/asher8554/DHLottery/main/data/account.yml";
+    const scraperStatusRawUrl = "https://raw.githubusercontent.com/asher8554/DHLottery/main/data/scraper-status.yml";
     const notificationSettingsRawUrl = "https://raw.githubusercontent.com/asher8554/DHLottery/main/data/notification-settings.yml";
     const resultHistoryRawUrl = "https://raw.githubusercontent.com/asher8554/DHLottery/main/data/result-history.yml";
     const checkWorkflowDispatchUrl = "https://api.github.com/repos/asher8554/DHLottery/actions/workflows/check-results.yml/dispatches";
@@ -788,6 +789,7 @@
     let currentYaml = "";
     let currentTickets = { lotto: [], pension: [] };
     let currentHistory = [];
+    let currentAccountUpdatedAt = "";
 
     function setStatus(message, tone) {
       statusEl.textContent = message;
@@ -813,6 +815,45 @@
       };
     }
 
+    function parseScraperStatusYaml(yaml) {
+      const status = {
+        source: "",
+        sourceLabel: "",
+        updatedAt: "",
+      };
+
+      for (const line of yaml.split(/\r?\n/)) {
+        const match = line.match(/^\s*(source|source_label|updated_at):\s*(.*?)\s*$/);
+        if (!match) {
+          continue;
+        }
+
+        const value = cleanYamlValue(match[2]);
+        if (match[1] === "source") {
+          status.source = value;
+        } else if (match[1] === "source_label") {
+          status.sourceLabel = value;
+        } else if (match[1] === "updated_at") {
+          status.updatedAt = value;
+        }
+      }
+
+      return status;
+    }
+
+    function scraperSourceLabel(source) {
+      switch (String(source || "").trim().toLowerCase()) {
+        case "synology":
+          return "시놀로지 실행";
+        case "windows":
+          return "Windows 실행";
+        case "linux":
+          return "Linux 실행";
+        default:
+          return "";
+      }
+    }
+
     function formatKrw(amount) {
       return `${new Intl.NumberFormat("ko-KR").format(amount)}원`;
     }
@@ -828,11 +869,11 @@
       return date.toLocaleString("ko-KR");
     }
 
-    function renderScraperRunStatus(updatedAt) {
+    function renderScraperRunStatus(updatedAt, sourceLabel) {
       if (!updatedAt) {
         scraperRunStatus.className = "scraper-status";
         scraperRunStatus.textContent = "미확인";
-        scraperRunStatus.title = "data/account.yml 갱신 시각을 찾지 못했습니다.";
+        scraperRunStatus.title = "스크래퍼 갱신 시각을 찾지 못했습니다.";
         return;
       }
 
@@ -840,13 +881,16 @@
       if (Number.isNaN(date.getTime())) {
         scraperRunStatus.className = "scraper-status";
         scraperRunStatus.textContent = `미확인 · ${updatedAt}`;
-        scraperRunStatus.title = "data/account.yml의 updated_at 형식을 확인하세요.";
+        scraperRunStatus.title = "스크래퍼 갱신 시각 형식을 확인하세요.";
         return;
       }
 
+      const sourceText = sourceLabel ? `${sourceLabel} 성공` : "성공";
       scraperRunStatus.className = "scraper-status good";
-      scraperRunStatus.textContent = `성공 · ${formatDateTime(updatedAt)}`;
-      scraperRunStatus.title = "발표 전 구매번호가 남아 있어도 스크래퍼 반영은 성공으로 표시합니다.";
+      scraperRunStatus.textContent = `${sourceText} · ${formatDateTime(updatedAt)}`;
+      scraperRunStatus.title = sourceLabel
+        ? "data/scraper-status.yml 기준 마지막 스크래퍼 실행 출처입니다."
+        : "발표 전 구매번호가 남아 있어도 스크래퍼 반영은 성공으로 표시합니다.";
     }
 
     function defaultNotificationSettings() {
@@ -1369,13 +1413,34 @@
         balanceStatus.textContent = isLowBalance ? "충전 필요" : "정상";
         balanceStatus.style.color = isLowBalance ? "var(--bad)" : "var(--good)";
         balanceUpdatedAt.textContent = formatDateTime(account.updatedAt);
-        renderScraperRunStatus(account.updatedAt);
+        currentAccountUpdatedAt = account.updatedAt;
+        renderScraperRunStatus(currentAccountUpdatedAt);
       } catch {
         balanceAmount.textContent = "동기화 전";
         balanceStatus.textContent = "-";
         balanceStatus.style.color = "";
         balanceUpdatedAt.textContent = "-";
+        currentAccountUpdatedAt = "";
         renderScraperRunStatus("");
+      }
+    }
+
+    async function loadScraperStatus() {
+      try {
+        const response = await fetch(`${scraperStatusRawUrl}?t=${Date.now()}`, { cache: "no-store" });
+        if (!response.ok) {
+          throw new Error(`${response.status} ${response.statusText}`);
+        }
+
+        const status = parseScraperStatusYaml(await response.text());
+        if (!status.updatedAt) {
+          renderScraperRunStatus(currentAccountUpdatedAt);
+          return;
+        }
+
+        renderScraperRunStatus(status.updatedAt, status.sourceLabel || scraperSourceLabel(status.source));
+      } catch {
+        renderScraperRunStatus(currentAccountUpdatedAt);
       }
     }
 
@@ -1405,6 +1470,7 @@
 
     async function loadDashboard() {
       await Promise.all([loadTickets(), loadAccount(), loadNotificationSettings(), loadResultHistory()]);
+      await loadScraperStatus();
     }
 
     async function copyText(text) {

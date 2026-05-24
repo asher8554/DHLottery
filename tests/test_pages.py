@@ -42,6 +42,31 @@ class PagesHtmlTest(unittest.TestCase):
         self.assertNotIn("확인 필요", html)
         self.assertNotIn("scraper-status bad", html)
 
+    def test_ticket_entry_loads_scraper_status_metadata(self):
+        html = Path("docs/ticket-entry.html").read_text(encoding="utf-8")
+
+        self.assertIn("const scraperStatusRawUrl", html)
+        self.assertIn("data/scraper-status.yml", html)
+        self.assertIn("function parseScraperStatusYaml", html)
+        self.assertIn("function scraperSourceLabel", html)
+        self.assertIn("function loadScraperStatus", html)
+        self.assertIn("currentAccountUpdatedAt", html)
+        self.assertIn("시놀로지 실행", html)
+
+    def test_scraper_push_scripts_record_execution_source(self):
+        bash = Path("scripts/scrape-ledger-and-push.sh").read_text(encoding="utf-8")
+        synology = Path("scripts/synology-docker-run.sh").read_text(encoding="utf-8")
+        powershell = Path("scripts/scrape-ledger-and-push.ps1").read_text(encoding="utf-8")
+
+        self.assertIn('status_path="${SCRAPER_STATUS_PATH:-data/scraper-status.yml}"', bash)
+        self.assertIn('scraper_source="${SCRAPER_SOURCE:-linux}"', bash)
+        self.assertIn("write_scraper_status", bash)
+        self.assertIn('"SCRAPER_SOURCE=${SCRAPER_SOURCE:-synology}"', synology)
+        self.assertIn("SCRAPER_STATUS_PATH", synology)
+        self.assertIn('[string]$ScraperStatusPath = "data/scraper-status.yml"', powershell)
+        self.assertIn('[string]$ScraperSource = "windows"', powershell)
+        self.assertIn("Write-ScraperStatus", powershell)
+
 
 if __name__ == "__main__":
     unittest.main()

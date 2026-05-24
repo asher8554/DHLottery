@@ -616,3 +616,15 @@
 - 검증은 `python -m unittest discover -s tests`, `git diff --check`, 로컬 Pages 브라우저 렌더링 확인으로 진행했다.
 - 브라우저 확인 결과 `스크래퍼 실행 성공 · 2026. 5. 24. 오후 2:56:41`과 시놀로지, Windows 스크래퍼 명령 2개가 표시되었다.
 - 경고 제거 후 검증은 전체 unittest 73개 통과, `git diff --check` 통과, 브라우저에서 `pageHasCheckNeeded: false`와 `scraper-status good` 확인으로 진행했다.
+
+## 2026-05-24 Pages 시놀로지 스크래퍼 출처 표시
+
+- 사용자는 DSM 작업 스케줄러를 실행했을 때 GitHub Pages에서 시놀로지가 실제로 실행됐는지 확인하고 싶어 한다.
+- 기존 Pages 표시 방식은 `data/account.yml`의 `updated_at`만 사용하므로 Windows 수동 실행과 시놀로지 자동 실행을 구분할 수 없다.
+- 해결 방향은 스크래퍼 push 스크립트가 `data/scraper-status.yml`에 `source`, `source_label`, `updated_at`을 기록하고, Pages가 이 파일을 우선 읽어 실행 출처를 표시하는 것이다.
+- 상태 파일이 아직 없는 배포나 fetch 실패 상황에서는 기존처럼 `data/account.yml`의 갱신 시각으로 일반 성공 상태를 표시하도록 fallback을 유지한다.
+- `scripts/synology-docker-run.sh`는 Docker 컨테이너에 `SCRAPER_SOURCE=synology`를 기본값으로 전달한다.
+- Windows 수동 실행 스크립트는 기본값을 `windows`로 둬서 로컬 수동 실행과 DSM 자동 실행이 Pages에서 구분되게 했다.
+- 새 상태 파일은 데이터 변경이 없더라도 실행 시각이 바뀌므로, 시놀로지 작업이 정상 push되면 Pages에서 마지막 실행을 확인할 수 있다.
+- 검증은 실패 테스트 확인 후 전체 unittest 75개 통과, Bash 문법 검사, PowerShell scriptblock 파싱, Pages inline script 구문 검사, `git diff --check`로 진행했다.
+- 로컬 브라우저 검증에서는 `data/scraper-status.yml` 응답을 `source: synology`로 제공했을 때 `시놀로지 실행 성공 · 2026. 5. 24. 오전 9:00:00`과 `scraper-status good` 클래스를 확인했다.

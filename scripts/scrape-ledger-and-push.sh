@@ -7,6 +7,8 @@ cd "$repo_root"
 
 ticket_path="${TICKET_PATH:-data/tickets.yml}"
 account_path="${ACCOUNT_PATH:-data/account.yml}"
+status_path="${SCRAPER_STATUS_PATH:-data/scraper-status.yml}"
+scraper_source="${SCRAPER_SOURCE:-linux}"
 commit_message="${COMMIT_MESSAGE:-구매번호 자동 반영}"
 no_push="${NO_PUSH:-0}"
 lock_dir="${LOCK_DIR:-.state/scrape-ledger.lock}"
@@ -36,11 +38,54 @@ if [[ -z "${GIT_SSH_COMMAND:-}" && -f /root/.ssh/id_ed25519 ]]; then
   export GIT_SSH_COMMAND="ssh -i /root/.ssh/id_ed25519 -o IdentitiesOnly=yes"
 fi
 
+yaml_quote() {
+  local value="${1//\"/\\\"}"
+  printf '"%s"' "$value"
+}
+
+scraper_source_label() {
+  case "$1" in
+    synology)
+      printf "시놀로지 실행"
+      ;;
+    windows)
+      printf "Windows 실행"
+      ;;
+    linux)
+      printf "Linux 실행"
+      ;;
+    *)
+      printf "%s" "$1"
+      ;;
+  esac
+}
+
+write_scraper_status() {
+  local updated_at source_label
+  updated_at="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+  source_label="$(scraper_source_label "$scraper_source")"
+
+  mkdir -p "$(dirname "$status_path")"
+  {
+    printf "source: "
+    yaml_quote "$scraper_source"
+    printf "\nsource_label: "
+    yaml_quote "$source_label"
+    printf "\nupdated_at: "
+    yaml_quote "$updated_at"
+    printf "\n"
+  } > "$status_path"
+}
+
 bash "$repo_root/scripts/scrape-ledger.sh"
+write_scraper_status
 
 change_paths=("$ticket_path")
 if [[ -n "$account_path" ]]; then
   change_paths+=("$account_path")
+fi
+if [[ -n "$status_path" ]]; then
+  change_paths+=("$status_path")
 fi
 
 git add -- "${change_paths[@]}"
