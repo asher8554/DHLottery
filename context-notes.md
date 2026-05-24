@@ -602,3 +602,14 @@
 - 테스트는 `tests/test_pages.py`에 링크 문구와 정확한 href를 확인하는 방식으로 추가했다.
 - 검증은 `python -m unittest tests.test_pages`, `python -m unittest discover -s tests`, `git diff --check`, Node inline script syntax check로 진행했다.
 - 브라우저 확인은 Codex 앱 보안 정책상 `file://` URL 열기가 차단되어 생략했다.
+
+## 2026-05-24 Pages 스크래퍼 실행 상태 표시
+
+- 사용자는 Pages UI에서 시놀로지 작업 스케줄러가 로컬 스크래퍼를 실행했는지 쉽게 확인하고 싶어 한다.
+- 현재 Pages는 `data/account.yml`의 `updated_at`을 예치금 갱신 시각으로만 보여주므로, 스크래퍼 성공 여부를 한눈에 보기 어렵다.
+- 기존 스크래퍼는 시놀로지와 Windows 수동 실행 모두 성공 시 `data/account.yml`과 `data/tickets.yml`을 같이 갱신한다.
+- 별도 실행 출처 필드가 없으므로, 이번 UI는 "시놀로지 전용 여부"가 아니라 "스크래퍼 마지막 반영 시각"을 명확히 보여주는 방향으로 한정한다.
+- 24시간 이내 갱신은 `성공`, 그보다 오래된 갱신은 `확인 필요`, 갱신 시각 없음은 `미확인`으로 표시한다.
+- 접힘 영역에는 Windows 수동 명령과 DSM 작업 스케줄러 명령을 모두 노출해 사용자가 시놀로지 쪽 실행 경로를 바로 확인할 수 있게 한다.
+- 검증은 `python -m unittest discover -s tests`, `git diff --check`, 로컬 Pages 브라우저 렌더링 확인으로 진행했다.
+- 브라우저 확인 결과 `스크래퍼 실행 성공 · 2026. 5. 24. 오후 2:56:41`과 시놀로지, Windows 스크래퍼 명령 2개가 표시되었다.

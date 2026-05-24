@@ -178,6 +178,29 @@
       text-align: right;
     }
 
+    .scraper-status {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      padding: 4px 8px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--muted);
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .scraper-status.good {
+      border-color: var(--good);
+      color: var(--good);
+    }
+
+    .scraper-status.bad {
+      border-color: var(--bad);
+      color: var(--bad);
+    }
+
     .command {
       margin: 0;
       padding: 12px;
@@ -189,6 +212,17 @@
       font-family: Consolas, "SFMono-Regular", Menlo, monospace;
       font-size: 14px;
       white-space: pre;
+    }
+
+    .command-set {
+      display: grid;
+      gap: 6px;
+    }
+
+    .command-label {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
     }
 
     label {
@@ -555,6 +589,12 @@
               <span class="stat-value" id="balanceUpdatedAt">-</span>
             </div>
             <div class="stat-row">
+              <span class="stat-label">스크래퍼 실행</span>
+              <span class="stat-value">
+                <span id="scraperRunStatus" class="scraper-status">미확인</span>
+              </span>
+            </div>
+            <div class="stat-row">
               <span class="stat-label">마지막 로드</span>
               <span class="stat-value" id="loadedAt">-</span>
             </div>
@@ -569,9 +609,16 @@
           </div>
 
           <details class="foldout">
-            <summary>로컬 스크래퍼 명령 보기</summary>
+            <summary>시놀로지/로컬 스크래퍼 명령 보기</summary>
             <div class="foldout-body">
-              <pre class="command">.\scripts\scrape-ledger-and-push.ps1 -ShowProgress</pre>
+              <div class="command-set">
+                <span class="command-label">시놀로지 DSM 작업 스케줄러</span>
+                <pre class="command">bash scripts/synology-docker-run.sh</pre>
+              </div>
+              <div class="command-set">
+                <span class="command-label">Windows 수동 실행</span>
+                <pre class="command">.\scripts\scrape-ledger-and-push.ps1 -ShowProgress</pre>
+              </div>
             </div>
           </details>
 
@@ -715,6 +762,7 @@
     const balanceAmount = document.querySelector("#balanceAmount");
     const balanceStatus = document.querySelector("#balanceStatus");
     const balanceUpdatedAt = document.querySelector("#balanceUpdatedAt");
+    const scraperRunStatus = document.querySelector("#scraperRunStatus");
     const notificationScheduleSummary = document.querySelector("#notificationScheduleSummary");
     const loadedAt = document.querySelector("#loadedAt");
     const ticketCount = document.querySelector("#ticketCount");
@@ -783,6 +831,29 @@
         return value;
       }
       return date.toLocaleString("ko-KR");
+    }
+
+    function renderScraperRunStatus(updatedAt) {
+      if (!updatedAt) {
+        scraperRunStatus.className = "scraper-status";
+        scraperRunStatus.textContent = "미확인";
+        scraperRunStatus.title = "data/account.yml 갱신 시각을 찾지 못했습니다.";
+        return;
+      }
+
+      const date = new Date(updatedAt);
+      if (Number.isNaN(date.getTime())) {
+        scraperRunStatus.className = "scraper-status bad";
+        scraperRunStatus.textContent = `확인 필요 · ${updatedAt}`;
+        scraperRunStatus.title = "data/account.yml의 updated_at 형식을 확인하세요.";
+        return;
+      }
+
+      const staleMs = 24 * 60 * 60 * 1000;
+      const isFresh = Date.now() - date.getTime() <= staleMs;
+      scraperRunStatus.className = isFresh ? "scraper-status good" : "scraper-status bad";
+      scraperRunStatus.textContent = `${isFresh ? "성공" : "확인 필요"} · ${formatDateTime(updatedAt)}`;
+      scraperRunStatus.title = "data/account.yml updated_at 기준입니다.";
     }
 
     function defaultNotificationSettings() {
@@ -1305,11 +1376,13 @@
         balanceStatus.textContent = isLowBalance ? "충전 필요" : "정상";
         balanceStatus.style.color = isLowBalance ? "var(--bad)" : "var(--good)";
         balanceUpdatedAt.textContent = formatDateTime(account.updatedAt);
+        renderScraperRunStatus(account.updatedAt);
       } catch {
         balanceAmount.textContent = "동기화 전";
         balanceStatus.textContent = "-";
         balanceStatus.style.color = "";
         balanceUpdatedAt.textContent = "-";
+        renderScraperRunStatus("");
       }
     }
 

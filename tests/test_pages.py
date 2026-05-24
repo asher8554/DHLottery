@@ -26,6 +26,15 @@ class PagesHtmlTest(unittest.TestCase):
         self.assertIn("history-ticket-result", html)
         self.assertIn("appendHistoryTicketBadge(tickets, ticket, index)", html)
 
+    def test_ticket_entry_surfaces_scraper_run_status(self):
+        html = Path("docs/ticket-entry.html").read_text(encoding="utf-8")
+
+        self.assertIn('id="scraperRunStatus"', html)
+        self.assertIn("function renderScraperRunStatus", html)
+        self.assertIn("scraper-status good", html)
+        self.assertIn("bash scripts/synology-docker-run.sh", html)
+        self.assertIn(".\\scripts\\scrape-ledger-and-push.ps1 -ShowProgress", html)
+
 
 if __name__ == "__main__":
     unittest.main()
