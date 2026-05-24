@@ -560,6 +560,132 @@
     }
 
     @media (max-width: 440px) {
+      main {
+        width: min(100% - 14px, 720px);
+        padding: 12px 0;
+      }
+
+      .topbar {
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+
+      .top-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        width: 100%;
+        gap: 8px;
+      }
+
+      .top-actions .external-button {
+        grid-column: 1 / -1;
+        width: 100%;
+      }
+
+      .top-actions button,
+      .top-actions .badge {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .panel-header {
+        padding: 14px 16px;
+      }
+
+      .panel-body {
+        gap: 12px;
+        padding: 14px;
+      }
+
+      .stat-list {
+        gap: 6px;
+      }
+
+      .stat-row {
+        min-height: 34px;
+        padding: 7px 9px;
+        gap: 8px;
+      }
+
+      .stat-label {
+        flex: 0 0 auto;
+        font-size: 12px;
+      }
+
+      .stat-value {
+        min-width: 0;
+        font-size: 13px;
+        overflow-wrap: anywhere;
+      }
+
+      .scraper-status {
+        min-height: 26px;
+        justify-content: center;
+        text-align: center;
+        white-space: normal;
+      }
+
+      .foldout summary,
+      .yaml-details summary {
+        min-height: 38px;
+        padding: 8px 10px;
+        font-size: 13px;
+      }
+
+      .history-card {
+        gap: 6px;
+        padding: 8px;
+      }
+
+      .history-ticket-list {
+        gap: 5px;
+      }
+
+      .history-ticket-number,
+      .history-ticket-result {
+        min-height: 26px;
+        padding: 3px 6px;
+      }
+
+      .ticket-summary.split {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .ticket-column {
+        gap: 7px;
+      }
+
+      .ticket-row {
+        align-items: start;
+        grid-template-columns: 1fr;
+        gap: 4px;
+        font-size: 12px;
+        line-height: 1.35;
+      }
+
+      .ticket-slot {
+        justify-self: start;
+        min-width: auto;
+        height: 26px;
+        padding: 0 8px;
+      }
+
+      .ticket-number {
+        display: block;
+        overflow-wrap: anywhere;
+      }
+
+      .actions {
+        display: grid;
+        grid-template-columns: 0.9fr 1.1fr;
+        gap: 8px;
+      }
+
+      .actions .primary {
+        grid-column: 1 / -1;
+      }
+
       .actions button,
       .external-link,
       .external-button {

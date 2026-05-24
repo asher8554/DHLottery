@@ -79,6 +79,17 @@ class PagesHtmlTest(unittest.TestCase):
         self.assertIn(".history-winning {\n      color: var(--muted);\n      font-size: 12px;", html)
         self.assertIn(".history-ticket {\n      display: inline-grid;\n      grid-template-columns: auto auto;\n      align-items: stretch;\n      min-height: 28px;\n      border: 1px solid var(--line);\n      border-radius: 8px;\n      background: var(--surface);\n      color: var(--muted);\n      font-size: 12px;", html)
 
+    def test_mobile_layout_uses_compact_controls_and_results(self):
+        html = Path("docs/ticket-entry.html").read_text(encoding="utf-8")
+
+        self.assertIn("@media (max-width: 440px)", html)
+        self.assertIn(".top-actions {\n        display: grid;\n        grid-template-columns: 1fr 1fr;\n        width: 100%;", html)
+        self.assertIn(".top-actions .external-button {\n        grid-column: 1 / -1;\n        width: 100%;", html)
+        self.assertIn(".panel-body {\n        gap: 12px;\n        padding: 14px;", html)
+        self.assertIn(".stat-row {\n        min-height: 34px;\n        padding: 7px 9px;", html)
+        self.assertIn(".ticket-summary.split {\n        grid-template-columns: repeat(2, minmax(0, 1fr));", html)
+        self.assertIn(".ticket-row {\n        align-items: start;\n        grid-template-columns: 1fr;\n        gap: 4px;\n        font-size: 12px;", html)
+
     def test_ticket_entry_surfaces_scraper_run_status(self):
         html = Path("docs/ticket-entry.html").read_text(encoding="utf-8")
 
