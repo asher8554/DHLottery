@@ -380,18 +380,43 @@
     }
 
     .history-ticket {
+      display: inline-grid;
+      grid-template-columns: auto auto;
+      align-items: stretch;
       min-height: 28px;
-      padding: 4px 8px;
       border: 1px solid var(--line);
       border-radius: 8px;
       background: var(--surface);
       color: var(--muted);
       font-size: 13px;
       font-weight: 800;
+      overflow: hidden;
     }
 
     .history-ticket.won {
       border-color: var(--good);
+      color: var(--good);
+    }
+
+    .history-ticket-number,
+    .history-ticket-result {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      padding: 4px 8px;
+    }
+
+    .history-ticket-number {
+      justify-content: center;
+      min-width: 30px;
+      border-right: 1px solid var(--line);
+      background: var(--soft);
+      color: var(--text);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .history-ticket.won .history-ticket-number {
+      border-right-color: var(--good);
       color: var(--good);
     }
 
@@ -986,11 +1011,24 @@
       return "";
     }
 
-    function appendHistoryTicketBadge(container, ticket) {
+    function appendHistoryTicketBadge(container, ticket, index) {
       const badge = document.createElement("span");
       badge.className = ticket.won ? "history-ticket won" : "history-ticket";
       const matchText = Number.isInteger(ticket.match_count) ? ` · ${ticket.match_count}개 일치` : "";
-      badge.textContent = `${ticket.label || "번호"} ${ticket.result || "결과 없음"}${matchText}`;
+      const ticketNumberText = ticket.label || String(index + 1);
+      const resultText = `${ticket.result || "결과 없음"}${matchText}`;
+
+      const ticketNumber = document.createElement("span");
+      ticketNumber.className = "history-ticket-number";
+      ticketNumber.textContent = ticketNumberText;
+
+      const result = document.createElement("span");
+      result.className = "history-ticket-result";
+      result.textContent = resultText;
+
+      badge.setAttribute("aria-label", `${ticketNumberText}번 ${resultText}`);
+      badge.appendChild(ticketNumber);
+      badge.appendChild(result);
       container.appendChild(badge);
     }
 
@@ -1200,7 +1238,7 @@
         if (Array.isArray(entry.tickets) && entry.tickets.length) {
           const tickets = document.createElement("div");
           tickets.className = "history-ticket-list";
-          entry.tickets.forEach((ticket) => appendHistoryTicketBadge(tickets, ticket));
+          entry.tickets.forEach((ticket, index) => appendHistoryTicketBadge(tickets, ticket, index));
           card.appendChild(tickets);
         }
 

@@ -19,6 +19,13 @@ class PagesHtmlTest(unittest.TestCase):
         self.assertIn("entry.winning", html)
         self.assertIn("entry.tickets", html)
 
+    def test_ticket_entry_separates_history_ticket_number_from_result(self):
+        html = Path("docs/ticket-entry.html").read_text(encoding="utf-8")
+
+        self.assertIn("history-ticket-number", html)
+        self.assertIn("history-ticket-result", html)
+        self.assertIn("appendHistoryTicketBadge(tickets, ticket, index)", html)
+
 
 if __name__ == "__main__":
     unittest.main()
