@@ -679,3 +679,12 @@
 - 해결은 `main` 최대 폭을 넓히고, `생성 결과` 패널에 `output-panel` 클래스를 붙여 workspace 전체 폭을 쓰게 하는 것이다.
 - 5개 배지 grid는 `repeat(5, max-content)`로 바꿔 텍스트가 필요한 실제 폭을 유지하게 했다.
 - 검증은 focused 실패 테스트 확인 뒤 전체 unittest 82개 통과, HTML inline script 구문 검사 통과, `git diff --check` 통과, Playwright에서 `.output-panel`이 `main` 폭과 거의 같고 배지 `scrollWidth`가 `clientWidth` 이하임을 확인하는 방식으로 진행했다.
+
+## 2026-05-24 생성 결과 오른쪽 배치 복구
+
+- 사용자는 생성 결과가 동기화 오른쪽에 있어야 하는데 아래로 내려왔다고 지적했다.
+- 원인은 `output-panel`에 `grid-column: 1 / -1`을 적용해 workspace 전체 폭을 차지하게 만든 것이다.
+- 새 방향은 전체 폭 배치를 제거하고, workspace를 `동기화 좁은 열 + 생성 결과 넓은 열`로 조정하는 것이다.
+- 좁은 화면에서는 기존처럼 1열로 내려가되, 데스크톱 폭에서는 생성 결과가 오른쪽에 남아야 한다.
+- 구현은 `grid-column: 1 / -1`을 제거하고, workspace를 `minmax(300px, 0.32fr) minmax(780px, 1fr)`로 바꿔 오른쪽 생성 결과 열이 더 넓게 잡히도록 했다.
+- 검증은 focused 실패 테스트 확인 뒤 전체 unittest 82개 통과, HTML inline script 구문 검사 통과, `git diff --check` 통과, Playwright에서 생성 결과 패널이 동기화 오른쪽에 있고 폭이 동기화보다 2배 이상임을 확인하는 방식으로 진행했다.
