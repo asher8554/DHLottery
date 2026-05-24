@@ -748,6 +748,14 @@
               <span class="stat-value" id="ticketCount">-</span>
             </div>
             <div class="stat-row">
+              <span class="stat-label">누적 당첨금액</span>
+              <span class="stat-value" id="totalPrizeAmount">-</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">누적 복권금액</span>
+              <span class="stat-value" id="totalTicketCost">-</span>
+            </div>
+            <div class="stat-row">
               <span class="stat-label">카카오 알림</span>
               <span class="stat-value" id="notificationScheduleSummary">-</span>
             </div>
@@ -895,6 +903,7 @@
     const checkWorkflowDispatchUrl = "https://api.github.com/repos/asher8554/DHLottery/actions/workflows/check-results.yml/dispatches";
     const updateNotificationWorkflowDispatchUrl = "https://api.github.com/repos/asher8554/DHLottery/actions/workflows/update-notification-settings.yml/dispatches";
     const balanceAlertThreshold = 50000;
+    const ticketPriceKrw = 1000;
     const tokenStorageKey = "dhlottery.githubToken";
     const themeStorageKey = "dhlottery.theme";
     const announcementSchedule = {
@@ -913,6 +922,8 @@
     const notificationScheduleSummary = document.querySelector("#notificationScheduleSummary");
     const loadedAt = document.querySelector("#loadedAt");
     const ticketCount = document.querySelector("#ticketCount");
+    const totalPrizeAmount = document.querySelector("#totalPrizeAmount");
+    const totalTicketCost = document.querySelector("#totalTicketCost");
     const ticketSummary = document.querySelector("#ticketSummary");
     const resultHistoryCount = document.querySelector("#resultHistoryCount");
     const resultHistoryList = document.querySelector("#resultHistoryList");
@@ -1013,6 +1024,10 @@
 
     function formatKrw(amount) {
       return `${new Intl.NumberFormat("ko-KR").format(amount)}원`;
+    }
+
+    function ticketTotalCount(tickets) {
+      return tickets.lotto.length + tickets.pension.length;
     }
 
     function formatDateTime(value) {
@@ -1126,6 +1141,7 @@
     function parseResultHistoryYaml(yaml) {
       const entries = [];
       let current = null;
+      let currentPrize = null;
       let mode = "";
       let currentTicket = null;
       let collectingWinningNumbers = false;
@@ -1135,6 +1151,7 @@
         if (entryMatch) {
           current = { checkedAt: cleanYamlValue(entryMatch[1]) };
           entries.push(current);
+          currentPrize = null;
           mode = "";
           currentTicket = null;
           collectingWinningNumbers = false;
@@ -1148,10 +1165,14 @@
         const sectionMatch = line.match(/^\s*(winning|tickets|prizes):\s*$/);
         if (sectionMatch) {
           mode = sectionMatch[1];
+          currentPrize = null;
           currentTicket = null;
           collectingWinningNumbers = false;
           if (mode === "winning") {
             current.winning = {};
+          }
+          if (mode === "prizes") {
+            current.prizes = [];
           }
           if (mode === "tickets") {
             current.tickets = [];
@@ -1179,6 +1200,23 @@
             const value = cleanYamlValue(winningMatch[2]);
             current.winning[key] = ["bonus", "group"].includes(key) ? Number(value) : value;
             collectingWinningNumbers = false;
+            continue;
+          }
+        }
+
+        if (mode === "prizes") {
+          const prizeMatch = line.match(/^\s*-\s+rank:\s*(.*?)\s*$/);
+          if (prizeMatch) {
+            currentPrize = { rank: cleanYamlValue(prizeMatch[1]) };
+            current.prizes.push(currentPrize);
+            continue;
+          }
+
+          const prizeFieldMatch = line.match(/^\s*(count|amount):\s*(.*?)\s*$/);
+          if (currentPrize && prizeFieldMatch) {
+            const key = prizeFieldMatch[1];
+            const value = cleanYamlValue(prizeFieldMatch[2]);
+            currentPrize[key] = key === "count" ? Number(value) : value;
             continue;
           }
         }
@@ -1221,6 +1259,56 @@
       }
 
       return entries.filter((entry) => entry.summary || entry.title);
+    }
+
+    function parsePrizeAmountKrw(value) {
+      const amountText = String(value || "").replace(/\s+/g, " ").trim();
+      if (!amountText) {
+        return 0;
+      }
+      if (amountText.includes("월")) {
+        const annuityMatch = amountText.match(/^월\s*([\d,]+)\s*만원\s*[xX×]\s*(\d+)\s*년$/);
+        if (!annuityMatch) {
+          return 0;
+        }
+        return Number(annuityMatch[1].replace(/,/g, "")) * 10000 * 12 * Number(annuityMatch[2]);
+      }
+      const wonMatch = amountText.match(/^([\d,]+)\s*원$/);
+      if (wonMatch) {
+        return Number(wonMatch[1].replace(/,/g, ""));
+      }
+      const thousandMatch = amountText.match(/^([\d,]+)\s*천원$/);
+      if (thousandMatch) {
+        return Number(thousandMatch[1].replace(/,/g, "")) * 1000;
+      }
+      const tenThousandMatch = amountText.match(/^([\d,]+)\s*만원$/);
+      if (tenThousandMatch) {
+        return Number(tenThousandMatch[1].replace(/,/g, "")) * 10000;
+      }
+      return 0;
+    }
+
+    function totalPrizeAmountKrw(entries) {
+      return entries.reduce((total, entry) => {
+        if (!Array.isArray(entry.prizes)) {
+          return total;
+        }
+        const entryTotal = entry.prizes.reduce((subtotal, prize) => {
+          const count = Number(prize.count) || 0;
+          return subtotal + parsePrizeAmountKrw(prize.amount) * count;
+        }, 0);
+        return total + entryTotal;
+      }, 0);
+    }
+
+    function totalTicketCostKrw(entries, tickets) {
+      const historyCount = entries.reduce((total, entry) => total + (Number(entry.total_count) || 0), 0);
+      return (historyCount + ticketTotalCount(tickets)) * ticketPriceKrw;
+    }
+
+    function renderMoneySummary(entries = currentHistory, tickets = currentTickets) {
+      totalPrizeAmount.textContent = formatKrw(totalPrizeAmountKrw(entries));
+      totalTicketCost.textContent = formatKrw(totalTicketCostKrw(entries, tickets));
     }
 
     function historyGameLabel(game) {
@@ -1536,6 +1624,7 @@
 
     function renderResultHistory(entries) {
       currentHistory = entries;
+      renderMoneySummary();
       resultHistoryList.innerHTML = "";
       resultHistoryCount.textContent = entries.length ? `(${entries.length}건)` : "(없음)";
 
@@ -1571,6 +1660,7 @@
       ticketSummary.innerHTML = "";
       ticketSummary.className = "ticket-summary";
       ticketCount.textContent = "0개";
+      renderMoneySummary();
       setButtonsEnabled(false);
       setStatus(message, "");
     }
@@ -1597,6 +1687,7 @@
         currentTickets = tickets;
         yamlOutput.textContent = currentYaml;
         ticketCount.textContent = `로또 ${tickets.lotto.length}개, 연금복권 ${tickets.pension.length}개`;
+        renderMoneySummary();
         renderTickets(tickets);
         setButtonsEnabled(totalCount > 0);
         setStatus(totalCount > 0 ? `${totalCount}개 구매번호를 불러왔습니다.` : "구매번호 형식을 확인하지 못했습니다.", totalCount > 0 ? "good" : "bad");

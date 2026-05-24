@@ -90,6 +90,28 @@ class PagesHtmlTest(unittest.TestCase):
         self.assertIn(".ticket-summary.split {\n        grid-template-columns: repeat(2, minmax(0, 1fr));", html)
         self.assertIn(".ticket-row {\n        align-items: start;\n        grid-template-columns: 1fr;\n        gap: 4px;\n        font-size: 12px;", html)
 
+    def test_ticket_entry_shows_money_summary_stats(self):
+        html = Path("docs/ticket-entry.html").read_text(encoding="utf-8")
+
+        self.assertIn('<span class="stat-label">누적 당첨금액</span>', html)
+        self.assertIn('id="totalPrizeAmount"', html)
+        self.assertIn('<span class="stat-label">누적 복권금액</span>', html)
+        self.assertIn('id="totalTicketCost"', html)
+
+    def test_ticket_entry_calculates_money_summary_from_history_and_tickets(self):
+        html = Path("docs/ticket-entry.html").read_text(encoding="utf-8")
+
+        self.assertIn("const ticketPriceKrw = 1000;", html)
+        self.assertIn("const totalPrizeAmount = document.querySelector(\"#totalPrizeAmount\");", html)
+        self.assertIn("const totalTicketCost = document.querySelector(\"#totalTicketCost\");", html)
+        self.assertIn("current.prizes = [];", html)
+        self.assertIn("function parsePrizeAmountKrw", html)
+        self.assertIn("function totalPrizeAmountKrw", html)
+        self.assertIn("function totalTicketCostKrw", html)
+        self.assertIn("function renderMoneySummary", html)
+        self.assertIn("amountText.includes(\"월\")", html)
+        self.assertIn("ticketPriceKrw", html)
+
     def test_ticket_entry_surfaces_scraper_run_status(self):
         html = Path("docs/ticket-entry.html").read_text(encoding="utf-8")
 

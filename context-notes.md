@@ -735,3 +735,13 @@
 - 동행복권 안내의 중복 당첨 시 최상위 당첨금만 지급 규칙을 기준으로, 등위 계산 단계에서 최상위 1개만 반환하도록 보완한다.
 - 구현 후 `check_pension`은 group과 number 값을 명시적으로 검증하고, 보너스가 낮은 suffix 등위와 겹치면 보너스만 반환한다.
 - 검증은 `python -m unittest tests.test_pension`, `python -m unittest tests.test_pages`, `python -m unittest discover -s tests`, `python -m compileall dhlottery_checker`, `git diff --check`로 진행했다.
+
+## 2026-05-24 누적 금액 표시
+
+- 사용자는 당첨된 복권이 있으면 누적 당첨금액과 복권 금액을 숫자로 볼 수 있게 요청했다.
+- 금액 표시는 기존 동기화 통계 행에 추가해 별도 패널을 늘리지 않는다.
+- 누적 당첨금액은 `data/result-history.yml`의 `prizes` 금액과 개수를 합산한다.
+- 복권금액은 지난 결과 이력의 `total_count`와 현재 `data/tickets.yml`에 남은 구매번호 수를 합산해 1장 1,000원으로 계산한다.
+- 연금식 당첨금 문구는 총액 기준 숫자로 환산한다. 예를 들어 `월 100만원 x 10년`은 120,000,000원으로 계산한다.
+- 현재 로컬 데이터 기준 렌더 검증 결과 누적 당첨금액은 5,000원, 누적 복권금액은 20,000원이다.
+- 검증은 focused Pages 테스트, 전체 unittest 91개, HTML inline script Node 구문 검사, desktop과 390px Playwright 렌더, `git diff --check`로 진행했다.

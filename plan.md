@@ -566,3 +566,14 @@
    검증은 focused unittest와 전체 unittest로 진행한다.
 3. Git diff 검사로 공백과 의도치 않은 파일 문제를 확인한다.
    검증은 `git diff --check`로 진행한다.
+
+## 2026-05-24 누적 금액 표시
+
+목표는 Pages 화면에서 당첨된 복권의 누적 당첨금액과 확인 대상 복권 구입금액을 숫자로 바로 볼 수 있게 하는 것이다.
+
+1. 현재 이력과 구매번호 데이터 구조를 확인한다.
+   검증은 `data/result-history.yml`, `data/tickets.yml`, `parseResultHistoryYaml`, `parseTicketsYaml` 확인으로 진행한다.
+2. 금액 표시와 계산 계약 테스트를 먼저 추가한다.
+   검증은 기존 구현에서 focused unittest가 실패하는 것으로 진행한다.
+3. 기존 통계 행 스타일을 재사용해 `누적 당첨금액`, `누적 복권금액`을 표시한다.
+   검증은 전체 unittest, HTML 스크립트 구문 검사, 브라우저 렌더 확인으로 진행한다.
