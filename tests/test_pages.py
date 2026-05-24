@@ -94,9 +94,18 @@ class PagesHtmlTest(unittest.TestCase):
         html = Path("docs/ticket-entry.html").read_text(encoding="utf-8")
 
         self.assertIn('<span class="stat-label">누적 당첨금액</span>', html)
-        self.assertIn('id="totalPrizeAmount"', html)
+        self.assertIn('class="stat-value money-prize" id="totalPrizeAmount"', html)
         self.assertIn('<span class="stat-label">누적 복권금액</span>', html)
-        self.assertIn('id="totalTicketCost"', html)
+        self.assertIn('class="stat-value money-cost" id="totalTicketCost"', html)
+
+    def test_ticket_entry_uses_distinct_money_summary_colors(self):
+        html = Path("docs/ticket-entry.html").read_text(encoding="utf-8")
+
+        self.assertIn("--money-prize: var(--good);", html)
+        self.assertIn("--money-cost: #9a6700;", html)
+        self.assertIn("--money-cost: #f4c95d;", html)
+        self.assertIn(".stat-value.money-prize {\n      color: var(--money-prize);", html)
+        self.assertIn(".stat-value.money-cost {\n      color: var(--money-cost);", html)
 
     def test_ticket_entry_calculates_money_summary_from_history_and_tickets(self):
         html = Path("docs/ticket-entry.html").read_text(encoding="utf-8")
