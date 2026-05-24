@@ -502,3 +502,10 @@
 - [x] Detect local Python, uvx, and Ouroboros availability.
 - [x] Run or verify `ouroboros setup --runtime codex`.
 - [x] Verify resulting config and installed skills.
+
+## 2026-05-24 Pages 동행복권 바로가기
+
+- [x] Pages에 동행복권 사이트 바로가기 계약 테스트를 추가한다.
+- [x] Pages 상단에 동행복권 바로가기 버튼을 추가한다.
+- [x] 테스트와 정적 검증을 실행한다.
+- [x] 변경사항을 커밋한다.

@@ -592,3 +592,13 @@
 - Verified `C:\Users\asher\.ouroboros\config.yaml` has `runtime_backend: codex` and `backend: codex`.
 - Verified `C:\Users\asher\.codex\config.toml` contains the Ouroboros MCP server and task profiles.
 - Verified 20 `ouroboros-*` Codex skills are installed and `ouroboros --version` reports 0.39.0.
+
+## 2026-05-24 Pages 동행복권 바로가기
+
+- 사용자는 GitHub Pages 화면에서 동행복권 사이트로 한 번에 이동할 수 있는 버튼을 원했다.
+- 대상 주소는 `https://www.dhlottery.co.kr/`다.
+- 기존 Pages 화면은 `docs/ticket-entry.html`이며, 외부 이동은 새 탭 링크 패턴을 이미 사용한다.
+- 구현은 상단 액션 영역에 바로가기 링크를 버튼처럼 보이게 추가하는 방향으로 한정한다.
+- 테스트는 `tests/test_pages.py`에 링크 문구와 정확한 href를 확인하는 방식으로 추가했다.
+- 검증은 `python -m unittest tests.test_pages`, `python -m unittest discover -s tests`, `git diff --check`, Node inline script syntax check로 진행했다.
+- 브라우저 확인은 Codex 앱 보안 정책상 `file://` URL 열기가 차단되어 생략했다.

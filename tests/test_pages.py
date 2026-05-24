@@ -4,6 +4,12 @@ import unittest
 
 
 class PagesHtmlTest(unittest.TestCase):
+    def test_ticket_entry_links_to_dhlottery_home(self):
+        html = Path("docs/ticket-entry.html").read_text(encoding="utf-8")
+
+        self.assertIn("동행복권 바로가기", html)
+        self.assertIn('href="https://www.dhlottery.co.kr/"', html)
+
     def test_ticket_entry_renders_result_history_details(self):
         html = Path("docs/ticket-entry.html").read_text(encoding="utf-8")
 
