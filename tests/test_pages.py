@@ -45,8 +45,12 @@ class PagesHtmlTest(unittest.TestCase):
     def test_ticket_entry_loads_scraper_status_metadata(self):
         html = Path("docs/ticket-entry.html").read_text(encoding="utf-8")
 
+        self.assertIn("const scraperStatusApiUrl", html)
         self.assertIn("const scraperStatusRawUrl", html)
         self.assertIn("data/scraper-status.yml", html)
+        self.assertIn("function decodeBase64Utf8", html)
+        self.assertIn("function loadScraperStatusYaml", html)
+        self.assertIn("api.github.com/repos/asher8554/DHLottery/contents/data/scraper-status.yml", html)
         self.assertIn("function parseScraperStatusYaml", html)
         self.assertIn("function scraperSourceLabel", html)
         self.assertIn("function loadScraperStatus", html)

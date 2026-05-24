@@ -547,3 +547,12 @@
 - [x] pull과 push에 대상 브랜치를 명시한다.
 - [x] 전체 테스트와 정적 검증을 실행한다.
 - [x] 변경사항을 커밋하고 원격에 푸시한다.
+
+## 2026-05-24 Pages 스크래퍼 상태 캐시 회피
+
+- [x] raw URL과 GitHub API의 `scraper-status.yml` 시각 차이를 확인한다.
+- [x] Pages가 GitHub API를 우선 사용한다는 계약 테스트를 먼저 추가한다.
+- [x] 테스트 실패를 확인한다.
+- [x] `loadScraperStatus`가 GitHub Contents API를 우선 읽고 raw URL로 fallback하게 한다.
+- [x] 전체 테스트와 Pages 스크립트 검증을 실행한다.
+- [x] 변경사항을 커밋하고 원격에 푸시한다.

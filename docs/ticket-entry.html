@@ -738,6 +738,7 @@
   <script>
     const ticketsRawUrl = "https://raw.githubusercontent.com/asher8554/DHLottery/main/data/tickets.yml";
     const accountRawUrl = "https://raw.githubusercontent.com/asher8554/DHLottery/main/data/account.yml";
+    const scraperStatusApiUrl = "https://api.github.com/repos/asher8554/DHLottery/contents/data/scraper-status.yml?ref=main";
     const scraperStatusRawUrl = "https://raw.githubusercontent.com/asher8554/DHLottery/main/data/scraper-status.yml";
     const notificationSettingsRawUrl = "https://raw.githubusercontent.com/asher8554/DHLottery/main/data/notification-settings.yml";
     const resultHistoryRawUrl = "https://raw.githubusercontent.com/asher8554/DHLottery/main/data/result-history.yml";
@@ -813,6 +814,12 @@
         amount: amountMatch ? Number(amountMatch[1]) : null,
         updatedAt: updatedAtMatch ? updatedAtMatch[1] : "",
       };
+    }
+
+    function decodeBase64Utf8(value) {
+      const binary = atob(String(value || "").replace(/\s/g, ""));
+      const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+      return new TextDecoder("utf-8").decode(bytes);
     }
 
     function parseScraperStatusYaml(yaml) {
@@ -1425,14 +1432,32 @@
       }
     }
 
+    async function loadScraperStatusYaml() {
+      try {
+        const apiResponse = await fetch(`${scraperStatusApiUrl}&t=${Date.now()}`, {
+          cache: "no-store",
+          headers: { Accept: "application/vnd.github+json" },
+        });
+        if (apiResponse.ok) {
+          const payload = await apiResponse.json();
+          if (payload && payload.content) {
+            return decodeBase64Utf8(payload.content);
+          }
+        }
+      } catch {
+        // GitHub API가 일시적으로 실패하면 raw 파일로 한 번 더 시도합니다.
+      }
+
+      const rawResponse = await fetch(`${scraperStatusRawUrl}?t=${Date.now()}`, { cache: "no-store" });
+      if (!rawResponse.ok) {
+        throw new Error(`${rawResponse.status} ${rawResponse.statusText}`);
+      }
+      return rawResponse.text();
+    }
+
     async function loadScraperStatus() {
       try {
-        const response = await fetch(`${scraperStatusRawUrl}?t=${Date.now()}`, { cache: "no-store" });
-        if (!response.ok) {
-          throw new Error(`${response.status} ${response.statusText}`);
-        }
-
-        const status = parseScraperStatusYaml(await response.text());
+        const status = parseScraperStatusYaml(await loadScraperStatusYaml());
         if (!status.updatedAt) {
           renderScraperRunStatus(currentAccountUpdatedAt);
           return;

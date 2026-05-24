@@ -638,3 +638,11 @@
 - 재발 원인은 이전 시놀로지 저장소가 detached HEAD와 남은 rebase 상태를 가지고 있었고, 스크립트가 스크래핑 후에야 `git pull --rebase`를 실행해 push 단계에서 멈춘 점이다.
 - `scripts/scrape-ledger-and-push.sh`는 이제 스크래핑 전에 rebase 잔여 상태를 확인하고, 현재 브랜치가 아니면 `main`으로 전환한 뒤 `git pull --rebase origin main`을 먼저 실행한다.
 - 스크래핑 후에도 `git pull --rebase origin main`, `git push origin main`처럼 대상 브랜치를 명시해 upstream 설정에 덜 의존하게 했다.
+
+## 2026-05-24 Pages 스크래퍼 상태 캐시 회피
+
+- 사용자는 Pages에서 여전히 `시놀로지 실행 성공` 시간이 16:30으로 보인다고 보고했다.
+- GitHub API의 `data/scraper-status.yml`은 `updated_at: "2026-05-24T07:50:47Z"`로 최신이지만, `raw.githubusercontent.com` URL은 같은 시점에 `updated_at: "2026-05-24T07:30:37Z"`를 반환했다.
+- 원인은 Pages가 raw URL을 읽고 있고, GitHub raw 캐시가 최신 커밋보다 늦게 갱신되는 상황으로 판단했다.
+- 해결은 `data/scraper-status.yml`만 GitHub Contents API를 우선 사용해 읽고, API 실패 시에만 기존 raw URL로 fallback하는 방식으로 한정한다.
+- 검증은 Pages 계약 테스트 포함 전체 unittest 76개 통과, HTML inline script 구문 검사 통과, `git diff --check` 통과, GitHub Contents API가 최신 `updated_at: "2026-05-24T07:50:47Z"`를 반환하는 것으로 진행했다.

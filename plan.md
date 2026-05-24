@@ -446,3 +446,12 @@
    검증은 스크립트 계약 테스트와 `bash -n`으로 진행한다.
 3. pull과 push 대상 브랜치를 명시해 upstream 설정이나 detached 상태에 덜 취약하게 만든다.
    검증은 전체 unittest와 정적 검증으로 진행한다.
+
+## 2026-05-24 Pages 스크래퍼 상태 캐시 회피
+
+목표는 GitHub raw 캐시가 늦게 갱신될 때도 Pages의 `스크래퍼 실행` 시간이 최신 시놀로지 실행 시각을 보여주게 하는 것이다.
+
+1. `data/scraper-status.yml`은 GitHub Contents API를 우선 사용해 읽는다.
+   검증은 Pages 계약 테스트와 실제 GitHub API 응답 확인으로 진행한다.
+2. GitHub API가 실패할 때는 기존 raw URL을 fallback으로 유지한다.
+   검증은 HTML 스크립트 구문 검사와 전체 unittest로 진행한다.
