@@ -20,7 +20,10 @@ class SentState:
         state_path = Path(path)
         if not state_path.exists():
             return cls(path=state_path, sent={})
-        data = json.loads(state_path.read_text(encoding="utf-8"))
+        try:
+            data = json.loads(state_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            return cls(path=state_path, sent={})
         sent = data.get("sent", {}) if isinstance(data, dict) else {}
         if not isinstance(sent, dict):
             sent = {}
@@ -39,7 +42,9 @@ class SentState:
     def save(self) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         data = {"sent": self.sent}
-        self.path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        tmp_path = self.path.with_name(f"{self.path.name}.tmp")
+        tmp_path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        tmp_path.replace(self.path)
 
 
 def fingerprint_ticket(payload: dict[str, Any], salt: str = "") -> str:
@@ -47,4 +52,3 @@ def fingerprint_ticket(payload: dict[str, Any], salt: str = "") -> str:
     if salt:
         return hmac.new(salt.encode("utf-8"), raw, hashlib.sha256).hexdigest()
     return hashlib.sha256(raw).hexdigest()
-

@@ -103,7 +103,10 @@ def _parse_lotto_ticket(item: dict[str, Any]) -> LottoTicket:
     numbers = item.get("numbers")
     if not isinstance(numbers, list) or len(numbers) != 6:
         raise ValueError("로또 numbers는 숫자 6개 목록이어야 합니다.")
-    parsed = tuple(int(number) for number in numbers)
+    try:
+        parsed = tuple(int(number) for number in numbers)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("로또 numbers는 숫자 6개 목록이어야 합니다.") from exc
     if len(set(parsed)) != 6 or any(number < 1 or number > 45 for number in parsed):
         raise ValueError("로또 numbers는 1부터 45까지의 중복 없는 숫자 6개여야 합니다.")
 
@@ -115,7 +118,10 @@ def _parse_lotto_ticket(item: dict[str, Any]) -> LottoTicket:
 
 
 def _parse_pension_ticket(item: dict[str, Any]) -> PensionTicket:
-    group = int(item.get("group"))
+    try:
+        group = int(item.get("group"))
+    except (TypeError, ValueError) as exc:
+        raise ValueError("연금복권 group은 1부터 5까지여야 합니다.") from exc
     number = str(item.get("number", "")).strip()
     if group < 1 or group > 5:
         raise ValueError("연금복권 group은 1부터 5까지여야 합니다.")

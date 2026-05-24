@@ -750,3 +750,15 @@
 
 - 2026-05-17 구간의 `변경사항을 커밋하고 원격에 푸시한다` 항목 4개는 실제 잔여 구현이 아니라 기록 누락으로 확인했다.
 - 현재 `origin/main`은 해당 과거 작업들을 포함하고 있고, 로컬 `main`은 최근 두 기능 커밋만 앞서 있는 상태였다.
+
+## 2026-05-24 유지보수 안정성 리뷰
+
+- 기준선 검증은 `python -m unittest discover -s tests`, `python -m compileall dhlottery_checker`, `git diff --check`로 확인했다.
+- 주요 리스크는 외부 HTTP 호출 자체보다 사용자 입력 YAML과 로컬 상태 파일 손상 시 CLI가 스택트레이스로 끝날 수 있는 점이다.
+- `docs/ticket-entry.html`, `dhlottery_checker/runner.py`, `dhlottery_checker/ledger_scraper.py`는 크기가 커졌지만, 지금 당장 분리하면 기능 회귀 위험이 더 커서 이번 보수에서는 구조 분리를 하지 않는다.
+- P2 보수 범위는 구매번호 설정 검증 메시지 정리, 검사 CLI의 입력 오류 종료 코드 정리, 중복 알림 상태 JSON 손상 복구, 상태 저장 원자성 보강으로 제한한다.
+- 새 의존성은 추가하지 않는다.
+- TDD 확인 결과 `tests.test_config`, `_run_check` focused 테스트, `tests.test_state`가 기존 구현에서 각각 실패했고, 보수 후 focused 테스트가 통과했다.
+- 설정 오류는 `로또 numbers`, `연금복권 group`처럼 입력 필드를 알 수 있는 메시지로 정리한다.
+- 상태 파일 JSON이 깨진 경우 중복 알림 상태만 빈 값으로 복구한다. 이 경우 같은 결과가 다시 알림될 수는 있지만, 검사 실행이 중단되는 것보다 안전하다.
+- 전체 검증은 96개 unittest 통과, `python -m compileall dhlottery_checker` 통과, `git diff --check` 통과로 확인했다.

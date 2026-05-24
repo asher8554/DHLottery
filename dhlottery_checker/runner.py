@@ -253,7 +253,11 @@ def _run_prune_sent_tickets(args: argparse.Namespace) -> int:
 
 
 def _run_check(args: argparse.Namespace) -> int:
-    config = load_ticket_config(args.tickets)
+    try:
+        config = load_ticket_config(args.tickets)
+    except ValueError as exc:
+        print(f"구매번호 설정 오류. {exc}", file=sys.stderr)
+        return 2
     state = None if args.no_state else SentState.load(args.state)
     salt = os.environ.get("STATE_HASH_SALT", "")
 

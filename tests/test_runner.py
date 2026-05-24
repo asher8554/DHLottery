@@ -547,6 +547,14 @@ class RunnerTest(unittest.TestCase):
 
         send_kakao.assert_called_once()
 
+    def test_check_returns_input_error_for_invalid_ticket_config(self):
+        with patch("dhlottery_checker.runner.load_ticket_config", side_effect=ValueError("bad ticket")):
+            with patch("builtins.print") as print_mock:
+                result = _run_check(self._args(force_notify=False))
+
+        self.assertEqual(result, 2)
+        self.assertIn("구매번호 설정 오류", print_mock.call_args.args[0])
+
     def _args(
         self,
         force_notify: bool,
