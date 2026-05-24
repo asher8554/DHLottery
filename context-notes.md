@@ -581,3 +581,14 @@
 - `due_games`가 `lotto,pension`처럼 복수이거나 수동 실행이면 `--game all`을 유지한다.
 - 새 테스트 `tests/test_workflows.py`는 workflow가 `due_games` output을 읽고 `--game "$game_arg"`를 넘기는 계약을 확인한다.
 - 검증은 focused workflow 테스트, 전체 unittest 69개, workflow YAML 파싱, `git diff --check`로 진행했다.
+
+## 2026-05-24 Ouroboros setup refresh
+
+- User requested `ooo setup` in a Codex desktop session.
+- Assumption: refresh/verify the existing Codex setup rather than run the Claude Code-only wizard flow.
+- The setup skill says standalone Codex users should use `ouroboros setup --runtime codex`; this run will prefer that path and verify the resulting config/skills.
+- Initial setup rerun failed because Windows CP949 output could not encode Rich's Unicode checkmark. Minimal reproduction was `python -c "print('✓')"`.
+- Rerun succeeded with `PYTHONUTF8=1` and `PYTHONIOENCODING=utf-8`.
+- Verified `C:\Users\asher\.ouroboros\config.yaml` has `runtime_backend: codex` and `backend: codex`.
+- Verified `C:\Users\asher\.codex\config.toml` contains the Ouroboros MCP server and task profiles.
+- Verified 20 `ouroboros-*` Codex skills are installed and `ouroboros --version` reports 0.39.0.

@@ -495,3 +495,10 @@
 - [x] `check-results.yml`에서 `--game` 인자를 도래한 게임에 맞춘다.
 - [x] 전체 테스트와 정적 검증을 실행한다.
 - [x] 변경사항을 커밋한다.
+
+## 2026-05-24 Ouroboros setup refresh
+
+- [x] Confirm the Codex-compatible Ouroboros setup path.
+- [x] Detect local Python, uvx, and Ouroboros availability.
+- [x] Run or verify `ouroboros setup --runtime codex`.
+- [x] Verify resulting config and installed skills.
