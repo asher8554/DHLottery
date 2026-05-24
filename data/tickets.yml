@@ -1,0 +1,89 @@
+lotto:
+  tickets:
+  - label: 로또 1226회 A
+    round: 1226
+    numbers:
+    - 10
+    - 11
+    - 13
+    - 30
+    - 35
+    - 36
+  - label: 로또 1226회 B
+    round: 1226
+    numbers:
+    - 3
+    - 4
+    - 8
+    - 28
+    - 34
+    - 42
+  - label: 로또 1226회 C
+    round: 1226
+    numbers:
+    - 3
+    - 10
+    - 28
+    - 30
+    - 41
+    - 43
+  - label: 로또 1226회 D
+    round: 1226
+    numbers:
+    - 22
+    - 30
+    - 31
+    - 34
+    - 35
+    - 38
+  - label: 로또 1226회 E
+    round: 1226
+    numbers:
+    - 2
+    - 6
+    - 11
+    - 13
+    - 16
+    - 17
+pension:
+  tickets:
+  - label: 연금복권 317회 1
+    round: 317
+    group: 1
+    number: '160446'
+  - label: 연금복권 317회 2
+    round: 317
+    group: 2
+    number: '160446'
+  - label: 연금복권 317회 3
+    round: 317
+    group: 3
+    number: '160446'
+  - label: 연금복권 317회 4
+    round: 317
+    group: 4
+    number: '160446'
+  - label: 연금복권 317회 5
+    round: 317
+    group: 5
+    number: '160446'
+  - label: 연금복권 316회 1
+    round: 316
+    group: 1
+    number: '877478'
+  - label: 연금복권 316회 2
+    round: 316
+    group: 2
+    number: '877478'
+  - label: 연금복권 316회 3
+    round: 316
+    group: 3
+    number: '877478'
+  - label: 연금복권 316회 4
+    round: 316
+    group: 4
+    number: '877478'
+  - label: 연금복권 316회 5
+    round: 316
+    group: 5
+    number: '877478'
