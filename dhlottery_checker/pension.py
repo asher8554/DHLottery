@@ -19,6 +19,17 @@ PENSION_PRIZE_LABELS = {
     "보너스": "월 100만원 x 10년",
 }
 
+PENSION_RANK_PRIORITY = {
+    "1등": 1,
+    "2등": 2,
+    "보너스": 3,
+    "3등": 4,
+    "4등": 5,
+    "5등": 6,
+    "6등": 7,
+    "7등": 8,
+}
+
 
 class ResultNotReady(RuntimeError):
     pass
@@ -60,6 +71,7 @@ def fetch_pension_winning(round_no: int) -> PensionWinning:
 
 
 def check_pension(group: int, number: str, winning: PensionWinning) -> tuple[PensionMatch, ...]:
+    _validate_pension_input(group, number, winning)
     matches: list[PensionMatch] = []
 
     if group == winning.group and number == winning.number:
@@ -75,11 +87,34 @@ def check_pension(group: int, number: str, winning: PensionWinning) -> tuple[Pen
     if number == winning.bonus_number:
         matches.append(_match("보너스"))
 
-    return tuple(matches)
+    return _highest_matches(matches)
 
 
 def _match(rank_label: str) -> PensionMatch:
     return PensionMatch(rank_label=rank_label, amount_label=PENSION_PRIZE_LABELS[rank_label])
+
+
+def _highest_matches(matches: list[PensionMatch]) -> tuple[PensionMatch, ...]:
+    if not matches:
+        return ()
+    return (min(matches, key=lambda match: PENSION_RANK_PRIORITY[match.rank_label]),)
+
+
+def _validate_pension_input(group: int, number: str, winning: PensionWinning) -> None:
+    if not isinstance(group, int) or group < 1 or group > 5:
+        raise ValueError("group은 1부터 5까지여야 합니다.")
+    if not _is_six_digit_number(number):
+        raise ValueError("number는 6자리 숫자 문자열이어야 합니다.")
+    if winning.group < 1 or winning.group > 5:
+        raise ValueError("winning.group은 1부터 5까지여야 합니다.")
+    if not _is_six_digit_number(winning.number):
+        raise ValueError("winning.number는 6자리 숫자 문자열이어야 합니다.")
+    if not _is_six_digit_number(winning.bonus_number):
+        raise ValueError("winning.bonus_number는 6자리 숫자 문자열이어야 합니다.")
+
+
+def _is_six_digit_number(value: str) -> bool:
+    return isinstance(value, str) and len(value) == 6 and value.isdigit()
 
 
 def _winning_from_item(item: dict[str, object]) -> PensionWinning:
@@ -96,4 +131,3 @@ def _format_yyyymmdd(value: str) -> str:
     if len(value) == 8 and value.isdigit():
         return f"{value[:4]}-{value[4:6]}-{value[6:]}"
     return value
-
