@@ -52,6 +52,26 @@ class PagesHtmlTest(unittest.TestCase):
         self.assertIn("@media (max-width: 860px)", html)
         self.assertNotIn("output-panel", html)
 
+    def test_ticket_summary_splits_lotto_and_pension_columns(self):
+        html = Path("docs/ticket-entry.html").read_text(encoding="utf-8")
+
+        self.assertIn(".ticket-summary.split", html)
+        self.assertIn(".ticket-column", html)
+        self.assertIn("function createTicketColumn", html)
+        self.assertIn('ticketSummary.className = shouldSplit ? "ticket-summary split" : "ticket-summary";', html)
+        self.assertIn("appendTicketRow(lottoColumn", html)
+        self.assertIn("appendTicketRow(pensionColumn", html)
+
+    def test_result_history_splits_lotto_and_pension_columns(self):
+        html = Path("docs/ticket-entry.html").read_text(encoding="utf-8")
+
+        self.assertIn(".history-list.split", html)
+        self.assertIn(".history-column", html)
+        self.assertIn("function appendHistoryColumn", html)
+        self.assertIn('resultHistoryList.className = shouldSplit ? "history-list split" : "history-list";', html)
+        self.assertIn('appendHistoryColumn("lotto"', html)
+        self.assertIn('appendHistoryColumn("pension"', html)
+
     def test_ticket_entry_surfaces_scraper_run_status(self):
         html = Path("docs/ticket-entry.html").read_text(encoding="utf-8")
 

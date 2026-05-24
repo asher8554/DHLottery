@@ -365,6 +365,20 @@
       gap: 8px;
     }
 
+    .ticket-summary.split,
+    .history-list.split {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      align-items: start;
+    }
+
+    .ticket-column,
+    .history-column {
+      display: grid;
+      gap: 8px;
+      align-content: start;
+      min-width: 0;
+    }
+
     .history-list {
       display: grid;
       gap: 8px;
@@ -463,6 +477,7 @@
       display: grid;
       grid-template-columns: auto 1fr;
       gap: 8px;
+      min-width: 0;
       color: var(--text);
       font-size: 14px;
       font-weight: 800;
@@ -477,6 +492,10 @@
       border-radius: 999px;
       background: var(--soft);
       color: var(--primary);
+    }
+
+    .ticket-number {
+      min-width: 0;
     }
 
     .yaml-details {
@@ -531,6 +550,11 @@
       }
 
       .schedule-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .ticket-summary.split,
+      .history-list.split {
         grid-template-columns: 1fr;
       }
     }
@@ -1305,7 +1329,13 @@
       return match ? match[1] : String(fallback);
     }
 
-    function appendTicketRow(slotText, numberText) {
+    function createTicketColumn() {
+      const column = document.createElement("div");
+      column.className = "ticket-column";
+      return column;
+    }
+
+    function appendTicketRow(container, slotText, numberText) {
       const row = document.createElement("div");
       row.className = "ticket-row";
 
@@ -1314,22 +1344,68 @@
       slot.textContent = slotText;
 
       const numbers = document.createElement("span");
+      numbers.className = "ticket-number";
       numbers.textContent = numberText;
 
       row.appendChild(slot);
       row.appendChild(numbers);
-      ticketSummary.appendChild(row);
+      container.appendChild(row);
     }
 
     function renderTickets(tickets) {
       ticketSummary.innerHTML = "";
+      const shouldSplit = tickets.lotto.length > 0 && tickets.pension.length > 0;
+      ticketSummary.className = shouldSplit ? "ticket-summary split" : "ticket-summary";
+      const lottoColumn = createTicketColumn();
+      const pensionColumn = createTicketColumn();
+
       tickets.lotto.forEach((ticket, index) => {
-        appendTicketRow(`로또 ${slotFromLabel(ticket.label, index + 1)}`, `${ticket.round}회 ${ticket.numbers.join("  ")}`);
+        appendTicketRow(lottoColumn, `로또 ${slotFromLabel(ticket.label, index + 1)}`, `${ticket.round}회 ${ticket.numbers.join("  ")}`);
       });
       tickets.pension.forEach((ticket, index) => {
         const slot = slotFromLabel(ticket.label, index + 1);
-        appendTicketRow(`연금 ${slot}`, `${ticket.round}회 ${ticket.group}조 ${ticket.number}`);
+        appendTicketRow(pensionColumn, `연금 ${slot}`, `${ticket.round}회 ${ticket.group}조 ${ticket.number}`);
       });
+      if (tickets.lotto.length) {
+        ticketSummary.appendChild(lottoColumn);
+      }
+      if (tickets.pension.length) {
+        ticketSummary.appendChild(pensionColumn);
+      }
+    }
+
+    function createHistoryCard(entry) {
+      const card = document.createElement("div");
+      card.className = "history-card";
+
+      const summary = document.createElement("div");
+      summary.className = "history-summary";
+      summary.textContent = historySummary(entry);
+      card.appendChild(summary);
+
+      const winningText = historyWinningText(entry);
+      if (winningText) {
+        const winning = document.createElement("div");
+        winning.className = "history-winning";
+        winning.textContent = winningText;
+        card.appendChild(winning);
+      }
+
+      if (Array.isArray(entry.tickets) && entry.tickets.length) {
+        const tickets = document.createElement("div");
+        tickets.className = "history-ticket-list";
+        entry.tickets.forEach((ticket, index) => appendHistoryTicketBadge(tickets, entry, ticket, index));
+        card.appendChild(tickets);
+      }
+
+      return card;
+    }
+
+    function appendHistoryColumn(game, entries) {
+      const column = document.createElement("div");
+      column.className = `history-column history-column-${game}`;
+      entries.forEach((entry) => column.appendChild(createHistoryCard(entry)));
+      resultHistoryList.appendChild(column);
     }
 
     function renderResultHistory(entries) {
@@ -1338,6 +1414,7 @@
       resultHistoryCount.textContent = entries.length ? `(${entries.length}건)` : "(없음)";
 
       if (!entries.length) {
+        resultHistoryList.className = "history-list";
         const empty = document.createElement("div");
         empty.className = "history-row history-empty";
         empty.textContent = "아직 저장된 당첨결과 이력이 없습니다.";
@@ -1345,32 +1422,20 @@
         return;
       }
 
-      entries.slice(0, 20).forEach((entry) => {
-        const card = document.createElement("div");
-        card.className = "history-card";
+      const visibleEntries = entries.slice(0, 20);
+      const lottoEntries = visibleEntries.filter((entry) => entry.game === "lotto");
+      const pensionEntries = visibleEntries.filter((entry) => entry.game === "pension");
+      const otherEntries = visibleEntries.filter((entry) => entry.game !== "lotto" && entry.game !== "pension");
+      const shouldSplit = lottoEntries.length > 0 && pensionEntries.length > 0 && otherEntries.length === 0;
+      resultHistoryList.className = shouldSplit ? "history-list split" : "history-list";
 
-        const summary = document.createElement("div");
-        summary.className = "history-summary";
-        summary.textContent = historySummary(entry);
-        card.appendChild(summary);
+      if (shouldSplit) {
+        appendHistoryColumn("lotto", lottoEntries);
+        appendHistoryColumn("pension", pensionEntries);
+        return;
+      }
 
-        const winningText = historyWinningText(entry);
-        if (winningText) {
-          const winning = document.createElement("div");
-          winning.className = "history-winning";
-          winning.textContent = winningText;
-          card.appendChild(winning);
-        }
-
-        if (Array.isArray(entry.tickets) && entry.tickets.length) {
-          const tickets = document.createElement("div");
-          tickets.className = "history-ticket-list";
-          entry.tickets.forEach((ticket, index) => appendHistoryTicketBadge(tickets, entry, ticket, index));
-          card.appendChild(tickets);
-        }
-
-        resultHistoryList.appendChild(card);
-      });
+      visibleEntries.forEach((entry) => resultHistoryList.appendChild(createHistoryCard(entry)));
     }
 
     function renderEmpty(message) {
@@ -1378,6 +1443,7 @@
       currentTickets = { lotto: [], pension: [] };
       yamlOutput.textContent = "";
       ticketSummary.innerHTML = "";
+      ticketSummary.className = "ticket-summary";
       ticketCount.textContent = "0개";
       setButtonsEnabled(false);
       setStatus(message, "");
