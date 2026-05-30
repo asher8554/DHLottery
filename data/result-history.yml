@@ -1,4 +1,46 @@
 history:
+- checked_at: '2026-05-31T01:02:47+09:00'
+  game: lotto
+  round: 1226
+  title: 로또 1226회
+  total_count: 5
+  winning_count: 1
+  losing_count: 4
+  prizes:
+  - rank: 5등
+    count: 1
+    amount: 5,000원
+  summary: 2026.05.31 로또 1226회 미당첨 4개, 당첨 5등 1개
+  winning:
+    numbers:
+    - 4
+    - 6
+    - 13
+    - 17
+    - 26
+    - 28
+    bonus: 41
+  tickets:
+  - label: A
+    won: false
+    result: 미당첨
+    match_count: 1
+  - label: B
+    won: false
+    result: 미당첨
+    match_count: 2
+  - label: C
+    won: false
+    result: 미당첨
+    match_count: 1
+  - label: D
+    won: false
+    result: 미당첨
+    match_count: 0
+  - label: E
+    won: true
+    result: 5등 5,000원
+    match_count: 3
 - checked_at: '2026-05-24T15:18:13+09:00'
   game: pension
   round: 316
