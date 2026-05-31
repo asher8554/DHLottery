@@ -799,3 +799,12 @@
 - 브라우저 검증 결과 생성 결과 첫 자식은 `history-block`이고, 최근 당첨결과는 2건 표시되며 과거 당첨기록은 기본 닫힘 상태에서 클릭 후 열렸다.
 - 같은 검증에서 과거 기록 안에 `미당첨` 문구가 유지되는 것을 확인했다.
 - 검증은 focused Pages 테스트 3개, `tests.test_pages` 22개, 전체 unittest 100개, `python -m compileall dhlottery_checker`, HTML inline script 문법 검사, `git diff --check`, 브라우저 렌더로 진행했다.
+
+## 2026-05-31 예치금 경고 부드러운 배경 펄스
+
+- 사용자 피드백은 `충전 필요` 배경 깜박임이 너무 끊겨 보여 성능저하처럼 느껴진다는 것이다.
+- 원인은 `animation: balance-alert-background 0.8s steps(2, start) infinite`가 배경색을 즉시 전환하기 때문이다.
+- 방향은 글자 색과 굵기, 배지 크기는 유지하고, 배경 강조만 `::before` 가상 요소의 opacity 펄스로 부드럽게 처리하는 것이다.
+- opacity 애니메이션은 작은 배지에서 부드럽고 브라우저가 처리하기 쉬워 현재 요구에 맞다.
+- 구현 후 브라우저에서 `충전 필요` 텍스트는 `opacity: 1`, `font-weight: 900`이고, `::before`가 `balance-alert-background 1.6s ease-in-out infinite`로 움직이는 것을 확인했다.
+- 검증은 focused Pages 테스트, HTML inline script 문법 검사, 전체 unittest 100개, `python -m compileall dhlottery_checker`, `git diff --check`, 브라우저 렌더로 진행했다.

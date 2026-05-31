@@ -201,23 +201,36 @@
     .stat-value.balance-low {
       display: inline-flex;
       align-items: center;
+      position: relative;
       min-height: 26px;
       padding: 2px 8px;
       border-radius: 8px;
       background-color: var(--bad-alert-bg);
       color: var(--bad);
       font-weight: 900;
-      animation: balance-alert-background 0.8s steps(2, start) infinite;
+      overflow: hidden;
+    }
+
+    .stat-value.balance-low::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background-color: var(--bad-alert-bg-strong);
+      opacity: 0;
+      pointer-events: none;
+      animation: balance-alert-background 1.6s ease-in-out infinite;
+      will-change: opacity;
     }
 
     @keyframes balance-alert-background {
       0%,
       100% {
-        background-color: var(--bad-alert-bg);
+        opacity: 0;
       }
 
       50% {
-        background-color: var(--bad-alert-bg-strong);
+        opacity: 1;
       }
     }
 
@@ -759,8 +772,9 @@
     }
 
     @media (prefers-reduced-motion: reduce) {
-      .stat-value.balance-low {
+      .stat-value.balance-low::before {
         animation: none;
+        opacity: 0.65;
       }
     }
   </style>
