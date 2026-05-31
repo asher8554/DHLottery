@@ -658,3 +658,10 @@
    검증은 focused Pages 테스트가 기존 구현에서 실패하는 것으로 진행한다.
 3. 화면 렌더링에서 완료 회차만 제외하고 원본 YAML과 이력, 누적 금액 계산은 기존 의미를 유지한다.
    검증은 focused 테스트, 전체 unittest, HTML 스크립트 구문 검사, 브라우저 렌더, `git diff --check`로 진행한다.
+## 2026-05-31 아키텍처 깊이와 유지보수성 개선
+
+목표는 현재 Python 패키지와 Pages HTML이 깊은 Module 구조인지 확인하고, 유지보수 마찰을 줄이는 것이다.
+
+1. 구조 탐색. 검증은 파일 크기, import 관계, 테스트 표면, CLI 흐름 확인으로 한다.
+2. 후보 보고서 작성. 검증은 temp HTML 파일 생성과 후보별 before/after 정리로 한다.
+3. 저위험 개선 구현. 검증은 focused 테스트, 전체 unittest, `python -m compileall dhlottery_checker`, `git diff --check`로 한다.

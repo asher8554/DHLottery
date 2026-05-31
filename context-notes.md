@@ -852,3 +852,13 @@
 - 원본 YAML 보기와 최근 당첨결과 카드는 그대로 유지한다. 누적 복권금액은 결과 이력 수량과 아직 보이는 구매번호 수량만 더해 중복 집계하지 않게 했다.
 - 로컬 브라우저 렌더에서 하단 구매번호 목록은 0행, `구매번호`는 `로또 0개, 연금복권 0개`, 상태 문구는 `결과가 나온 구매번호는 숨겼습니다.`로 표시됐다.
 - 검증은 focused Pages 테스트 4개, 전체 unittest 106개, `python -m compileall dhlottery_checker`, HTML inline script 1개 구문 검사, `git diff --check`, 로컬 브라우저 렌더로 진행했다.
+## 2026-05-31 아키텍처 깊이와 유지보수성 개선
+
+- 사용자는 현재 프로젝트가 깊은 모듈 구조인지, 유지보수 관점에서 부족한 점이 있는지 분석하고 개선하길 요청했다.
+- `CONTEXT.md`와 `docs/adr/`는 현재 발견되지 않았다. 기존 `plan.md`, `checklist.md`, `context-notes.md`를 작업 로그로 사용한다.
+- 우선 코드 구조를 읽고 얕은 Module 후보를 찾는다. 이후 리스크가 낮고 테스트로 검증 가능한 개선만 구현한다.
+- 분석 보고서는 `C:\Users\asher\AppData\Local\Temp\architecture-review-20260531-DHLottery.html`에 작성했다.
+- `runner.py`는 CLI, 결과 조회, 상태, 이력, 메시지 포맷이 몰려 있어 가장 큰 유지보수 마찰 지점이다.
+- 이번 개선은 저위험인 메시지 포맷 분리로 제한했다. `Outcome`은 `outcome.py`로, 요약·상세·발표 전 알림 문구는 `messages.py`로 옮겼다.
+- 기존 테스트 호환을 위해 `runner.py`의 `_format_messages`, `_is_result_not_ready` 같은 private 이름은 import alias로 유지했다.
+- 검증은 `python -m unittest tests.test_runner`, `python -m unittest discover -s tests`, `python -m compileall dhlottery_checker`, `git diff --check`로 통과했다.

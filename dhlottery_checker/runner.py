@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import argparse
 from collections import Counter
-from dataclasses import dataclass
 from datetime import datetime
 import json
 import os
@@ -27,12 +26,25 @@ from .config import LottoTicket, PensionTicket, load_ticket_config
 from .http import HttpError, HttpTimeoutError
 from .kakao import send_kakao_text
 from .lotto import (
-    LOTTO_RESULT_PAGE,
     ResultNotReady as LottoResultNotReady,
     check_lotto,
     fetch_latest_lotto_round,
     fetch_lotto_winning,
     format_lotto_numbers,
+)
+from .messages import (
+    format_detail_message as _format_detail_message,
+    format_messages as _format_messages,
+    format_pending_message as _format_pending_message,
+    format_report as _format_report,
+    format_summary_message as _format_summary_message,
+    is_result_not_ready as _is_result_not_ready,
+)
+from .outcome import (
+    Outcome,
+    group_outcomes as _group_outcomes,
+    group_title as _group_title,
+    short_label as _short_label,
 )
 from .pension import (
     ResultNotReady as PensionResultNotReady,
@@ -45,28 +57,7 @@ from .state import SentState, fingerprint_ticket
 from .ticket_import import parse_lotto_ticket_text, write_lotto_tickets
 
 
-PENSION_RESULT_PAGE = "https://www.dhlottery.co.kr/pt720/result"
 RESULT_HISTORY_LIMIT = 80
-
-
-@dataclass(frozen=True)
-class Outcome:
-    game: str
-    round: int
-    label: str
-    text: str
-    fingerprint: str
-    resolved: bool
-    won: bool = False
-    result_label: str = ""
-    match_count: int | None = None
-    summary_text: str = ""
-    detail_header: str = ""
-    detail_text: str = ""
-    winning_numbers: tuple[int, ...] = ()
-    bonus_number: int | str | None = None
-    winning_group: int | None = None
-    winning_number: str = ""
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -780,107 +771,7 @@ def _write_status_json(path: str | None, **status: int | bool | str) -> None:
     target.write_text(json.dumps(status, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
-def _format_summary_message(outcomes: list[Outcome]) -> str:
-    lines = ["[동행복권 결과 요약]"]
-    groups = _group_outcomes(outcomes)
-    winning_lines = []
-    for group in groups:
-        won_count = sum(1 for outcome in group if outcome.won)
-        losing_count = len(group) - won_count
-        lines.append(f"{_group_title(group[0])}. 당첨 {won_count}개, 미당첨 {losing_count}개.")
-        if won_count:
-            winning_text = ", ".join(
-                outcome.summary_text or f"{outcome.label} {outcome.result_label}"
-                for outcome in group
-                if outcome.won
-            )
-            winning_lines.append(f"당첨. {winning_text}.")
-    lines.extend(winning_lines)
-    lines.append("")
-    lines.extend(_result_link_lines(groups))
-    return "\n".join(lines)
-
-
-def _format_detail_message(outcomes: list[Outcome]) -> str:
-    lines = ["동행복권 결과 상세"]
-    shown_rules: set[tuple[str, int]] = set()
-    current_header = ""
-    for outcome in outcomes:
-        if outcome.detail_header and outcome.detail_header != current_header:
-            lines.append(outcome.detail_header)
-            current_header = outcome.detail_header
-        rule_key = (outcome.game, outcome.round)
-        if outcome.game == "lotto" and rule_key not in shown_rules:
-            lines.append("로또는 3개부터 당첨입니다.")
-            shown_rules.add(rule_key)
-        lines.append(outcome.detail_text or outcome.text)
-    return "\n".join(lines)
-
-
-def _format_pending_message(outcomes: list[Outcome]) -> str:
-    groups = _group_outcomes(outcomes)
-    lines = ["[동행복권 결과 요약]"]
-    for group in groups:
-        if any(_is_result_not_ready(outcome) for outcome in group):
-            lines.append(f"{_group_title(group[0])}. 아직 당첨결과 발표 전입니다.")
-        else:
-            lines.append(f"{_group_title(group[0])}. 결과 조회 실패. 다음 실행에서 다시 시도합니다.")
-    lines.append("")
-    lines.extend(_result_link_lines(groups))
-    if any(_is_result_not_ready(outcome) for outcome in outcomes):
-        lines.append("")
-        lines.append("발표 후 다시 검사하면 당첨 여부를 알려드립니다.")
-    return "\n".join(lines)
-
-
-def _is_result_not_ready(outcome: Outcome) -> bool:
-    return "결과 대기 중입니다" in outcome.text
-
-
 def _pending_reason(exc: Exception, result_not_ready_type: type[Exception]) -> str:
     if isinstance(exc, (result_not_ready_type, HttpTimeoutError)):
         return "결과 대기 중입니다"
     return "결과 조회 실패. 다음 실행에서 다시 시도합니다"
-
-
-def _group_outcomes(outcomes: list[Outcome]) -> list[list[Outcome]]:
-    groups: list[list[Outcome]] = []
-    indexes: dict[tuple[str, int], int] = {}
-    for outcome in outcomes:
-        key = (outcome.game, outcome.round)
-        if key not in indexes:
-            indexes[key] = len(groups)
-            groups.append([])
-        groups[indexes[key]].append(outcome)
-    return groups
-
-
-def _group_title(outcome: Outcome) -> str:
-    if outcome.game == "lotto":
-        return f"로또 {outcome.round}회"
-    if outcome.game == "pension":
-        return f"연금복권 {outcome.round}회"
-    return f"{outcome.game} {outcome.round}회"
-
-
-def _result_link_lines(groups: list[list[Outcome]]) -> list[str]:
-    lines = []
-    for group in groups:
-        representative = group[0]
-        if representative.game == "lotto":
-            lines.append(f"{_group_title(representative)} {LOTTO_RESULT_PAGE}")
-        elif representative.game == "pension":
-            lines.append(f"{_group_title(representative)} {PENSION_RESULT_PAGE}")
-    return lines
-
-
-def _short_label(label: str, game: str, round_no: int) -> str:
-    prefixes = []
-    if game == "lotto":
-        prefixes.append(f"로또 {round_no}회 ")
-    if game == "pension":
-        prefixes.append(f"연금복권 {round_no}회 ")
-    for prefix in prefixes:
-        if label.startswith(prefix):
-            return label[len(prefix):]
-    return label
