@@ -808,3 +808,13 @@
 - opacity 애니메이션은 작은 배지에서 부드럽고 브라우저가 처리하기 쉬워 현재 요구에 맞다.
 - 구현 후 브라우저에서 `충전 필요` 텍스트는 `opacity: 1`, `font-weight: 900`이고, `::before`가 `balance-alert-background 1.6s ease-in-out infinite`로 움직이는 것을 확인했다.
 - 검증은 focused Pages 테스트, HTML inline script 문법 검사, 전체 unittest 100개, `python -m compileall dhlottery_checker`, `git diff --check`, 브라우저 렌더로 진행했다.
+
+## 2026-05-31 예치금 금액 부족 강조
+
+- 사용자 요청은 충전 필요 상태일 때 `예치금` 금액 자체도 시각적으로 잘 보이게 배경 강조를 추가하는 것이다.
+- 부족 상태 판정은 이미 `account.amount <= balanceAlertThreshold`로 계산된다.
+- 상태 문구는 부드러운 배경 펄스를 유지한다. 금액까지 움직이면 시각 잡음이 늘 수 있으므로 금액은 정적인 붉은 배경 배지로 강조한다.
+- 실패나 동기화 전 상태에서는 예치금 금액 강조 클래스를 제거해야 한다.
+- 브라우저 렌더에서 예치금 `50,000원`은 `stat-value balance-amount-low`, 붉은 배경, inset 강조선, `font-weight: 900`으로 표시됐다.
+- 같은 렌더에서 `충전 필요`는 기존 `balance-alert-background` ease-in-out 펄스를 유지했다.
+- 검증은 focused Pages 테스트 2개, HTML inline script 문법 검사, 전체 unittest 101개, `python -m compileall dhlottery_checker`, `git diff --check`, 브라우저 렌더로 진행했다.

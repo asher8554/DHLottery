@@ -151,6 +151,15 @@ class PagesHtmlTest(unittest.TestCase):
         self.assertIn('balanceStatus.classList.toggle("balance-low", isLowBalance);', html)
         self.assertIn('balanceStatus.classList.toggle("balance-ok", !isLowBalance);', html)
 
+    def test_low_balance_amount_gets_background_emphasis(self):
+        html = Path("docs/ticket-entry.html").read_text(encoding="utf-8")
+
+        self.assertIn(".stat-value.balance-amount-low", html)
+        self.assertIn("box-shadow: inset 0 0 0 1px var(--bad-alert-bg-strong);", html)
+        self.assertIn('balanceAmount.classList.toggle("balance-amount-low", isLowBalance);', html)
+        self.assertIn('balanceAmount.classList.remove("balance-amount-low");', html)
+        self.assertIn('balanceStatus.textContent = isLowBalance ? "충전 필요" : "정상";', html)
+
     def test_ticket_entry_calculates_money_summary_from_history_and_tickets(self):
         html = Path("docs/ticket-entry.html").read_text(encoding="utf-8")
 
