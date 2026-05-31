@@ -781,3 +781,11 @@
 - 연금복권 317회는 검사기로 확인한 결과 당첨 0개, 미당첨 5개이고 당첨번호는 3조 827917, 보너스 각조 719917이다.
 - 브라우저 렌더 확인 결과 최근 당첨결과는 2건이고 로또 1226회, 연금복권 317회 미당첨 5개가 표시됐다.
 - 같은 렌더에서 예치금 상태는 `stat-value balance-low`, `animation-name: balance-alert-blink`, `animation-duration: 0.8s`, `font-weight: 900`으로 확인됐다.
+
+## 2026-05-31 예치금 경고 배경 깜박임 개선
+
+- 사용자는 `충전 필요` 글씨 자체가 깜박이는 것이 디자인적으로 좋아 보이지 않는다고 했다.
+- 새 방향은 글자를 고정된 붉은 굵은 텍스트로 두고, 글자 뒤 배경만 옅은 경고 배지처럼 깜박이게 하는 것이다.
+- 기존 통계 행 높이와 우측 정렬은 유지한다. 새 패널이나 큰 레이아웃 변경은 하지 않는다.
+- 구현은 `--bad-alert-bg`, `--bad-alert-bg-strong` 토큰을 추가하고, `balance-alert-background` keyframes가 `background-color`만 바꾸는 방식이다.
+- 브라우저 렌더 확인 결과 `충전 필요`는 `opacity: 1`, `animation-name: balance-alert-background`, `animation-duration: 0.8s`, `padding: 2px 8px`, `border-radius: 8px`로 표시됐다.

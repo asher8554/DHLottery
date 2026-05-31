@@ -116,12 +116,16 @@ class PagesHtmlTest(unittest.TestCase):
         self.assertIn(".stat-value.money-prize {\n      color: var(--money-prize);", html)
         self.assertIn(".stat-value.money-cost {\n      color: var(--money-cost);", html)
 
-    def test_low_balance_status_blinks(self):
+    def test_low_balance_status_blinks_background(self):
         html = Path("docs/ticket-entry.html").read_text(encoding="utf-8")
 
-        self.assertIn("@keyframes balance-alert-blink", html)
+        self.assertIn("--bad-alert-bg:", html)
+        self.assertIn("--bad-alert-bg-strong:", html)
+        self.assertIn("@keyframes balance-alert-background", html)
         self.assertIn(".stat-value.balance-low", html)
-        self.assertIn("animation: balance-alert-blink 0.8s steps(2, start) infinite;", html)
+        self.assertIn("background-color: var(--bad-alert-bg);", html)
+        self.assertIn("animation: balance-alert-background 0.8s steps(2, start) infinite;", html)
+        self.assertNotIn("opacity: 0.25;", html)
         self.assertIn("@media (prefers-reduced-motion: reduce)", html)
         self.assertIn('balanceStatus.classList.toggle("balance-low", isLowBalance);', html)
         self.assertIn('balanceStatus.classList.toggle("balance-ok", !isLowBalance);', html)

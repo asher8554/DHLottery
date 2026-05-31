@@ -19,6 +19,8 @@
       --primary-text: #ffffff;
       --good: #157a51;
       --bad: #b42318;
+      --bad-alert-bg: rgba(180, 35, 24, 0.1);
+      --bad-alert-bg-strong: rgba(180, 35, 24, 0.24);
       --money-prize: var(--good);
       --money-cost: #9a6700;
       --yaml-bg: #101828;
@@ -39,6 +41,8 @@
       --primary-text: #ffffff;
       --good: #67d79d;
       --bad: #ff9188;
+      --bad-alert-bg: rgba(255, 145, 136, 0.1);
+      --bad-alert-bg-strong: rgba(255, 145, 136, 0.26);
       --money-prize: var(--good);
       --money-cost: #f4c95d;
       --yaml-bg: #0b1118;
@@ -195,19 +199,25 @@
     }
 
     .stat-value.balance-low {
+      display: inline-flex;
+      align-items: center;
+      min-height: 26px;
+      padding: 2px 8px;
+      border-radius: 8px;
+      background-color: var(--bad-alert-bg);
       color: var(--bad);
       font-weight: 900;
-      animation: balance-alert-blink 0.8s steps(2, start) infinite;
+      animation: balance-alert-background 0.8s steps(2, start) infinite;
     }
 
-    @keyframes balance-alert-blink {
+    @keyframes balance-alert-background {
       0%,
       100% {
-        opacity: 1;
+        background-color: var(--bad-alert-bg);
       }
 
       50% {
-        opacity: 0.25;
+        background-color: var(--bad-alert-bg-strong);
       }
     }
 
