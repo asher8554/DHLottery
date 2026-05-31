@@ -190,6 +190,27 @@
       color: var(--money-cost);
     }
 
+    .stat-value.balance-ok {
+      color: var(--good);
+    }
+
+    .stat-value.balance-low {
+      color: var(--bad);
+      font-weight: 900;
+      animation: balance-alert-blink 0.8s steps(2, start) infinite;
+    }
+
+    @keyframes balance-alert-blink {
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.25;
+      }
+    }
+
     .scraper-status {
       display: inline-flex;
       align-items: center;
@@ -706,6 +727,12 @@
       }
 
     }
+
+    @media (prefers-reduced-motion: reduce) {
+      .stat-value.balance-low {
+        animation: none;
+      }
+    }
   </style>
 </head>
 <body>
@@ -890,9 +917,9 @@
         </div>
         <div class="panel-body">
           <details class="foldout" open>
-            <summary>지난 당첨결과 이력 <span id="resultHistoryCount" class="history-count">-</span></summary>
+            <summary>최근 당첨결과 <span id="resultHistoryCount" class="history-count">-</span></summary>
             <div class="foldout-body">
-              <div id="resultHistoryList" class="history-list" aria-label="지난 당첨결과 이력"></div>
+              <div id="resultHistoryList" class="history-list" aria-label="최근 당첨결과"></div>
             </div>
           </details>
           <div id="ticketSummary" class="ticket-summary" aria-label="구매번호 목록"></div>
@@ -1634,22 +1661,36 @@
       resultHistoryList.appendChild(column);
     }
 
+    function latestResultHistoryEntries(entries) {
+      const seenGames = new Set();
+      const latest = [];
+      for (const entry of entries) {
+        const game = entry.game || "";
+        if (!game || seenGames.has(game)) {
+          continue;
+        }
+        seenGames.add(game);
+        latest.push(entry);
+      }
+      return latest;
+    }
+
     function renderResultHistory(entries) {
       currentHistory = entries;
       renderMoneySummary();
       resultHistoryList.innerHTML = "";
-      resultHistoryCount.textContent = entries.length ? `(${entries.length}건)` : "(없음)";
+      const visibleEntries = latestResultHistoryEntries(entries).slice(0, 20);
+      resultHistoryCount.textContent = visibleEntries.length ? `(${visibleEntries.length}건)` : "(없음)";
 
-      if (!entries.length) {
+      if (!visibleEntries.length) {
         resultHistoryList.className = "history-list";
         const empty = document.createElement("div");
         empty.className = "history-row history-empty";
-        empty.textContent = "아직 저장된 당첨결과 이력이 없습니다.";
+        empty.textContent = "아직 저장된 최근 당첨결과가 없습니다.";
         resultHistoryList.appendChild(empty);
         return;
       }
 
-      const visibleEntries = entries.slice(0, 20);
       const lottoEntries = visibleEntries.filter((entry) => entry.game === "lotto");
       const pensionEntries = visibleEntries.filter((entry) => entry.game === "pension");
       const otherEntries = visibleEntries.filter((entry) => entry.game !== "lotto" && entry.game !== "pension");
@@ -1725,14 +1766,15 @@
         const isLowBalance = account.amount <= balanceAlertThreshold;
         balanceAmount.textContent = formatKrw(account.amount);
         balanceStatus.textContent = isLowBalance ? "충전 필요" : "정상";
-        balanceStatus.style.color = isLowBalance ? "var(--bad)" : "var(--good)";
+        balanceStatus.classList.toggle("balance-low", isLowBalance);
+        balanceStatus.classList.toggle("balance-ok", !isLowBalance);
         balanceUpdatedAt.textContent = formatDateTime(account.updatedAt);
         currentAccountUpdatedAt = account.updatedAt;
         renderScraperRunStatus(currentAccountUpdatedAt);
       } catch {
         balanceAmount.textContent = "동기화 전";
         balanceStatus.textContent = "-";
-        balanceStatus.style.color = "";
+        balanceStatus.classList.remove("balance-low", "balance-ok");
         balanceUpdatedAt.textContent = "-";
         currentAccountUpdatedAt = "";
         renderScraperRunStatus("");

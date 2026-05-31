@@ -96,7 +96,7 @@ Pages 화면은 [docs/ticket-entry.html](docs/ticket-entry.html)에 있습니다
 배포 후 주소는 <https://asher8554.github.io/DHLottery/> 입니다.
 직접 입력 화면이 아니라 GitHub에 저장된 `data/tickets.yml`을 읽어 생성 결과와 구매번호 요약을 표시합니다.
 스크래퍼 푸시 후 화면에서 `새로고침`을 누르면 최신 구매번호를 다시 불러옵니다.
-당첨 검사가 완료된 회차는 `data/result-history.yml`에 번호 없이 요약 이력으로 저장되고, Pages의 `지난 당첨결과 이력` 영역에서 확인할 수 있습니다.
+당첨 검사가 완료된 회차는 `data/result-history.yml`에 번호 없이 요약 이력으로 저장되고, Pages의 `최근 당첨결과` 영역에서 게임별 최신 이력만 확인할 수 있습니다.
 다크모드 토글을 제공하고, 선택한 화면 모드는 같은 브라우저에 저장됩니다.
 
 웹에서 당첨 검사를 바로 실행하려면 GitHub fine-grained token을 입력합니다.

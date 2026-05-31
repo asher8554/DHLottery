@@ -72,6 +72,15 @@ class PagesHtmlTest(unittest.TestCase):
         self.assertIn('appendHistoryColumn("lotto"', html)
         self.assertIn('appendHistoryColumn("pension"', html)
 
+    def test_result_history_shows_latest_completed_entries(self):
+        html = Path("docs/ticket-entry.html").read_text(encoding="utf-8")
+
+        self.assertIn("<summary>최근 당첨결과", html)
+        self.assertIn('aria-label="최근 당첨결과"', html)
+        self.assertIn("function latestResultHistoryEntries(entries)", html)
+        self.assertIn("const visibleEntries = latestResultHistoryEntries(entries).slice(0, 20);", html)
+        self.assertIn("아직 저장된 최근 당첨결과가 없습니다.", html)
+
     def test_result_history_uses_smaller_text_scale(self):
         html = Path("docs/ticket-entry.html").read_text(encoding="utf-8")
 
@@ -106,6 +115,16 @@ class PagesHtmlTest(unittest.TestCase):
         self.assertIn("--money-cost: #f4c95d;", html)
         self.assertIn(".stat-value.money-prize {\n      color: var(--money-prize);", html)
         self.assertIn(".stat-value.money-cost {\n      color: var(--money-cost);", html)
+
+    def test_low_balance_status_blinks(self):
+        html = Path("docs/ticket-entry.html").read_text(encoding="utf-8")
+
+        self.assertIn("@keyframes balance-alert-blink", html)
+        self.assertIn(".stat-value.balance-low", html)
+        self.assertIn("animation: balance-alert-blink 0.8s steps(2, start) infinite;", html)
+        self.assertIn("@media (prefers-reduced-motion: reduce)", html)
+        self.assertIn('balanceStatus.classList.toggle("balance-low", isLowBalance);', html)
+        self.assertIn('balanceStatus.classList.toggle("balance-ok", !isLowBalance);', html)
 
     def test_ticket_entry_calculates_money_summary_from_history_and_tickets(self):
         html = Path("docs/ticket-entry.html").read_text(encoding="utf-8")

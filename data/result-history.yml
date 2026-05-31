@@ -1,4 +1,33 @@
 history:
+- checked_at: '2026-05-31T20:53:27+09:00'
+  game: pension
+  round: 317
+  title: 연금복권 317회
+  total_count: 5
+  winning_count: 0
+  losing_count: 5
+  prizes: []
+  summary: 2026.05.31 연금복권 317회 미당첨 5개
+  winning:
+    group: 3
+    number: '827917'
+    bonus_number: '719917'
+  tickets:
+  - label: '1'
+    won: false
+    result: 미당첨
+  - label: '2'
+    won: false
+    result: 미당첨
+  - label: '3'
+    won: false
+    result: 미당첨
+  - label: '4'
+    won: false
+    result: 미당첨
+  - label: '5'
+    won: false
+    result: 미당첨
 - checked_at: '2026-05-31T01:02:47+09:00'
   game: lotto
   round: 1226
