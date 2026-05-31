@@ -68,18 +68,34 @@ class PagesHtmlTest(unittest.TestCase):
         self.assertIn(".history-list.split", html)
         self.assertIn(".history-column", html)
         self.assertIn("function appendHistoryColumn", html)
-        self.assertIn('resultHistoryList.className = shouldSplit ? "history-list split" : "history-list";', html)
-        self.assertIn('appendHistoryColumn("lotto"', html)
-        self.assertIn('appendHistoryColumn("pension"', html)
+        self.assertIn('container.className = shouldSplit ? "history-list split" : "history-list";', html)
+        self.assertIn('appendHistoryColumn(container, "lotto"', html)
+        self.assertIn('appendHistoryColumn(container, "pension"', html)
 
     def test_result_history_shows_latest_completed_entries(self):
         html = Path("docs/ticket-entry.html").read_text(encoding="utf-8")
 
-        self.assertIn("<summary>최근 당첨결과", html)
+        self.assertIn('<h3 id="latestResultHistoryTitle" class="history-title">최근 당첨결과</h3>', html)
+        self.assertIn('id="latestResultHistoryList"', html)
         self.assertIn('aria-label="최근 당첨결과"', html)
+        self.assertIn('const latestResultHistoryCount = document.querySelector("#latestResultHistoryCount");', html)
+        self.assertIn('const latestResultHistoryList = document.querySelector("#latestResultHistoryList");', html)
         self.assertIn("function latestResultHistoryEntries(entries)", html)
-        self.assertIn("const visibleEntries = latestResultHistoryEntries(entries).slice(0, 20);", html)
+        self.assertIn("const latestEntries = latestResultHistoryEntries(entries);", html)
+        self.assertIn("renderHistoryEntryList(latestResultHistoryList, latestEntries, \"아직 저장된 최근 당첨결과가 없습니다.\");", html)
         self.assertIn("아직 저장된 최근 당첨결과가 없습니다.", html)
+
+    def test_result_history_shows_three_past_entries_in_foldout(self):
+        html = Path("docs/ticket-entry.html").read_text(encoding="utf-8")
+
+        self.assertIn("<summary>과거 당첨기록", html)
+        self.assertIn('aria-label="과거 당첨기록"', html)
+        self.assertIn("function pastResultHistoryEntries(entries, latestEntries)", html)
+        self.assertIn("const latestSet = new Set(latestEntries);", html)
+        self.assertIn("return entries.filter((entry) => !latestSet.has(entry)).slice(0, 3);", html)
+        self.assertIn("const pastEntries = pastResultHistoryEntries(entries, latestEntries);", html)
+        self.assertIn("renderHistoryEntryList(resultHistoryList, pastEntries, \"아직 볼 수 있는 과거 당첨기록이 없습니다.\");", html)
+        self.assertIn("ticket.result || \"결과 없음\"", html)
 
     def test_result_history_uses_smaller_text_scale(self):
         html = Path("docs/ticket-entry.html").read_text(encoding="utf-8")

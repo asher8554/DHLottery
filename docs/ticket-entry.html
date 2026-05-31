@@ -427,6 +427,26 @@
       gap: 8px;
     }
 
+    .history-block {
+      display: grid;
+      gap: 8px;
+    }
+
+    .history-block-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 8px;
+      min-height: 26px;
+    }
+
+    .history-title {
+      margin: 0;
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 900;
+    }
+
     .history-row {
       min-height: 38px;
       padding: 8px 10px;
@@ -926,10 +946,17 @@
           <h2 id="output-title">생성 결과</h2>
         </div>
         <div class="panel-body">
-          <details class="foldout" open>
-            <summary>최근 당첨결과 <span id="resultHistoryCount" class="history-count">-</span></summary>
+          <div class="history-block" aria-labelledby="latestResultHistoryTitle">
+            <div class="history-block-header">
+              <h3 id="latestResultHistoryTitle" class="history-title">최근 당첨결과</h3>
+              <span id="latestResultHistoryCount" class="history-count">-</span>
+            </div>
+            <div id="latestResultHistoryList" class="history-list" aria-label="최근 당첨결과"></div>
+          </div>
+          <details class="foldout">
+            <summary>과거 당첨기록 <span id="resultHistoryCount" class="history-count">-</span></summary>
             <div class="foldout-body">
-              <div id="resultHistoryList" class="history-list" aria-label="최근 당첨결과"></div>
+              <div id="resultHistoryList" class="history-list" aria-label="과거 당첨기록"></div>
             </div>
           </details>
           <div id="ticketSummary" class="ticket-summary" aria-label="구매번호 목록"></div>
@@ -974,6 +1001,8 @@
     const totalPrizeAmount = document.querySelector("#totalPrizeAmount");
     const totalTicketCost = document.querySelector("#totalTicketCost");
     const ticketSummary = document.querySelector("#ticketSummary");
+    const latestResultHistoryCount = document.querySelector("#latestResultHistoryCount");
+    const latestResultHistoryList = document.querySelector("#latestResultHistoryList");
     const resultHistoryCount = document.querySelector("#resultHistoryCount");
     const resultHistoryList = document.querySelector("#resultHistoryList");
     const yamlOutput = document.querySelector("#yamlOutput");
@@ -1664,11 +1693,11 @@
       return card;
     }
 
-    function appendHistoryColumn(game, entries) {
+    function appendHistoryColumn(container, game, entries) {
       const column = document.createElement("div");
       column.className = `history-column history-column-${game}`;
       entries.forEach((entry) => column.appendChild(createHistoryCard(entry)));
-      resultHistoryList.appendChild(column);
+      container.appendChild(column);
     }
 
     function latestResultHistoryEntries(entries) {
@@ -1685,35 +1714,46 @@
       return latest;
     }
 
+    function pastResultHistoryEntries(entries, latestEntries) {
+      const latestSet = new Set(latestEntries);
+      return entries.filter((entry) => !latestSet.has(entry)).slice(0, 3);
+    }
+
+    function renderHistoryEntryList(container, entries, emptyMessage) {
+      container.innerHTML = "";
+      if (!entries.length) {
+        container.className = "history-list";
+        const empty = document.createElement("div");
+        empty.className = "history-row history-empty";
+        empty.textContent = emptyMessage;
+        container.appendChild(empty);
+        return;
+      }
+
+      const lottoEntries = entries.filter((entry) => entry.game === "lotto");
+      const pensionEntries = entries.filter((entry) => entry.game === "pension");
+      const otherEntries = entries.filter((entry) => entry.game !== "lotto" && entry.game !== "pension");
+      const shouldSplit = lottoEntries.length > 0 && pensionEntries.length > 0 && otherEntries.length === 0;
+      container.className = shouldSplit ? "history-list split" : "history-list";
+
+      if (shouldSplit) {
+        appendHistoryColumn(container, "lotto", lottoEntries);
+        appendHistoryColumn(container, "pension", pensionEntries);
+        return;
+      }
+
+      entries.forEach((entry) => container.appendChild(createHistoryCard(entry)));
+    }
+
     function renderResultHistory(entries) {
       currentHistory = entries;
       renderMoneySummary();
-      resultHistoryList.innerHTML = "";
-      const visibleEntries = latestResultHistoryEntries(entries).slice(0, 20);
-      resultHistoryCount.textContent = visibleEntries.length ? `(${visibleEntries.length}건)` : "(없음)";
-
-      if (!visibleEntries.length) {
-        resultHistoryList.className = "history-list";
-        const empty = document.createElement("div");
-        empty.className = "history-row history-empty";
-        empty.textContent = "아직 저장된 최근 당첨결과가 없습니다.";
-        resultHistoryList.appendChild(empty);
-        return;
-      }
-
-      const lottoEntries = visibleEntries.filter((entry) => entry.game === "lotto");
-      const pensionEntries = visibleEntries.filter((entry) => entry.game === "pension");
-      const otherEntries = visibleEntries.filter((entry) => entry.game !== "lotto" && entry.game !== "pension");
-      const shouldSplit = lottoEntries.length > 0 && pensionEntries.length > 0 && otherEntries.length === 0;
-      resultHistoryList.className = shouldSplit ? "history-list split" : "history-list";
-
-      if (shouldSplit) {
-        appendHistoryColumn("lotto", lottoEntries);
-        appendHistoryColumn("pension", pensionEntries);
-        return;
-      }
-
-      visibleEntries.forEach((entry) => resultHistoryList.appendChild(createHistoryCard(entry)));
+      const latestEntries = latestResultHistoryEntries(entries);
+      const pastEntries = pastResultHistoryEntries(entries, latestEntries);
+      latestResultHistoryCount.textContent = latestEntries.length ? `(${latestEntries.length}건)` : "(없음)";
+      resultHistoryCount.textContent = pastEntries.length ? `(${pastEntries.length}건)` : "(없음)";
+      renderHistoryEntryList(latestResultHistoryList, latestEntries, "아직 저장된 최근 당첨결과가 없습니다.");
+      renderHistoryEntryList(resultHistoryList, pastEntries, "아직 볼 수 있는 과거 당첨기록이 없습니다.");
     }
 
     function renderEmpty(message) {

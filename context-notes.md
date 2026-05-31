@@ -789,3 +789,13 @@
 - 기존 통계 행 높이와 우측 정렬은 유지한다. 새 패널이나 큰 레이아웃 변경은 하지 않는다.
 - 구현은 `--bad-alert-bg`, `--bad-alert-bg-strong` 토큰을 추가하고, `balance-alert-background` keyframes가 `background-color`만 바꾸는 방식이다.
 - 브라우저 렌더 확인 결과 `충전 필요`는 `opacity: 1`, `animation-name: balance-alert-background`, `animation-duration: 0.8s`, `padding: 2px 8px`, `border-radius: 8px`로 표시됐다.
+
+## 2026-05-31 최근 당첨결과 고정과 과거 기록 접힘
+
+- 사용자 요청은 최근 당첨결과를 생성 결과 첫 번째에 고정하고, 과거 기록 3회분을 접었다 펼 수 있게 보여주는 것이다.
+- 최근 당첨결과는 기존 `latestResultHistoryEntries` 기준을 유지한다. 게임별 최신 완료 결과가 보이면 로또와 연금복권이 동시에 확인된다.
+- 과거 기록은 최신 고정 항목과 중복되면 혼란이 생기므로 최신 항목을 제외한 다음 3건만 표시한다.
+- 미당첨 표기는 `historySummary`와 `appendHistoryTicketBadge`가 이미 처리하므로 새 표시 체계를 만들지 않고 기존 카드 렌더링을 재사용한다.
+- 브라우저 검증 결과 생성 결과 첫 자식은 `history-block`이고, 최근 당첨결과는 2건 표시되며 과거 당첨기록은 기본 닫힘 상태에서 클릭 후 열렸다.
+- 같은 검증에서 과거 기록 안에 `미당첨` 문구가 유지되는 것을 확인했다.
+- 검증은 focused Pages 테스트 3개, `tests.test_pages` 22개, 전체 unittest 100개, `python -m compileall dhlottery_checker`, HTML inline script 문법 검사, `git diff --check`, 브라우저 렌더로 진행했다.
