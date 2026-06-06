@@ -1,4 +1,43 @@
 history:
+- checked_at: '2026-06-06T20:56:41+09:00'
+  game: lotto
+  round: 1227
+  title: 로또 1227회
+  total_count: 5
+  winning_count: 0
+  losing_count: 5
+  prizes: []
+  summary: 2026.06.06 로또 1227회 미당첨 5개
+  winning:
+    numbers:
+    - 1
+    - 14
+    - 16
+    - 34
+    - 41
+    - 44
+    bonus: 13
+  tickets:
+  - label: A
+    won: false
+    result: 미당첨
+    match_count: 0
+  - label: B
+    won: false
+    result: 미당첨
+    match_count: 1
+  - label: C
+    won: false
+    result: 미당첨
+    match_count: 1
+  - label: D
+    won: false
+    result: 미당첨
+    match_count: 1
+  - label: E
+    won: false
+    result: 미당첨
+    match_count: 2
 - checked_at: '2026-06-04T22:24:37+09:00'
   game: pension
   round: 318
