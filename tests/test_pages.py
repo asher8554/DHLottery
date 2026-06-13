@@ -68,9 +68,25 @@ class PagesHtmlTest(unittest.TestCase):
         self.assertIn(".history-list.split", html)
         self.assertIn(".history-column", html)
         self.assertIn("function appendHistoryColumn", html)
+        self.assertIn("function appendHistoryColumnsInEntryOrder", html)
         self.assertIn('container.className = shouldSplit ? "history-list split" : "history-list";', html)
-        self.assertIn('appendHistoryColumn(container, "lotto"', html)
-        self.assertIn('appendHistoryColumn(container, "pension"', html)
+        self.assertIn("appendHistoryColumnsInEntryOrder(container, entries);", html)
+
+    def test_result_history_split_keeps_latest_entry_order(self):
+        html = Path("docs/ticket-entry.html").read_text(encoding="utf-8")
+
+        self.assertIn("function appendHistoryColumnsInEntryOrder(container, entries)", html)
+        self.assertIn("const gameOrder = [];", html)
+        self.assertIn("gameOrder.forEach((game) => appendHistoryColumn(container, game, entriesByGame.get(game)));", html)
+        self.assertNotIn('appendHistoryColumn(container, "lotto", lottoEntries);', html)
+        self.assertNotIn('appendHistoryColumn(container, "pension", pensionEntries);', html)
+
+    def test_latest_result_history_prioritizes_winning_entries(self):
+        html = Path("docs/ticket-entry.html").read_text(encoding="utf-8")
+
+        self.assertIn("function latestResultSortScore(entry)", html)
+        self.assertIn("return Number(entry.winning_count || 0);", html)
+        self.assertIn("latest.sort((left, right) => latestResultSortScore(right) - latestResultSortScore(left));", html)
 
     def test_result_history_shows_latest_completed_entries(self):
         html = Path("docs/ticket-entry.html").read_text(encoding="utf-8")

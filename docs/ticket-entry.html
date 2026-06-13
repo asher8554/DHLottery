@@ -1726,6 +1726,26 @@
       container.appendChild(column);
     }
 
+    function appendHistoryColumnsInEntryOrder(container, entries) {
+      const entriesByGame = new Map();
+      const gameOrder = [];
+
+      entries.forEach((entry) => {
+        const game = entry.game || "";
+        if (!entriesByGame.has(game)) {
+          entriesByGame.set(game, []);
+          gameOrder.push(game);
+        }
+        entriesByGame.get(game).push(entry);
+      });
+
+      gameOrder.forEach((game) => appendHistoryColumn(container, game, entriesByGame.get(game)));
+    }
+
+    function latestResultSortScore(entry) {
+      return Number(entry.winning_count || 0);
+    }
+
     function latestResultHistoryEntries(entries) {
       const seenGames = new Set();
       const latest = [];
@@ -1737,6 +1757,7 @@
         seenGames.add(game);
         latest.push(entry);
       }
+      latest.sort((left, right) => latestResultSortScore(right) - latestResultSortScore(left));
       return latest;
     }
 
@@ -1763,8 +1784,7 @@
       container.className = shouldSplit ? "history-list split" : "history-list";
 
       if (shouldSplit) {
-        appendHistoryColumn(container, "lotto", lottoEntries);
-        appendHistoryColumn(container, "pension", pensionEntries);
+        appendHistoryColumnsInEntryOrder(container, entries);
         return;
       }
 
