@@ -841,3 +841,14 @@
 - 최신 결과 영역에서는 당첨 건을 먼저 보이게 하는 것이 사용자 기대에 더 맞다. 당첨 건이 여러 개거나 모두 미당첨이면 기존 이력 순서를 유지한다.
 - 로컬 브라우저 렌더에서 첫 카드는 `2026.06.13 연금복권 319회 당첨 7등 5개`이고, 두 번째 카드는 `2026.06.13 로또 1228회 미당첨 5개`로 표시됐다.
 - 검증은 focused Pages 테스트 3개, 전체 unittest 105개, `python -m compileall dhlottery_checker`, HTML inline script 1개 구문 검사, `git diff --check`, 로컬 브라우저 렌더로 진행했다.
+
+## 2026-06-13 완료 회차 구매번호 숨김
+
+- 사용자 기대는 당첨결과가 나온 회차의 구매번호가 하단 `구매번호 목록`에 다시 보이지 않는 것이다.
+- 현재 Pages는 `loadTickets`에서 `data/tickets.yml`을 파싱한 뒤 `renderTickets(tickets)`를 바로 호출해 원본 구매번호를 그대로 렌더한다.
+- `result-history.yml`에 같은 `(game, round)`가 있어도 `renderTickets`에는 그 정보가 전달되지 않는다.
+- CLI에는 결과 이력 기반 `prune-sent-tickets --history data/result-history.yml` 정리가 있지만, Pages 화면은 원격 파일 갱신 타이밍이나 알림 실패와 무관하게 이력 기준으로 숨겨야 한다.
+- 구현은 `completedTicketRoundKeys`, `visibleTickets`, `renderCurrentTickets`를 추가해 `currentHistory`에 있는 회차를 하단 구매번호 목록에서 제외한다.
+- 원본 YAML 보기와 최근 당첨결과 카드는 그대로 유지한다. 누적 복권금액은 결과 이력 수량과 아직 보이는 구매번호 수량만 더해 중복 집계하지 않게 했다.
+- 로컬 브라우저 렌더에서 하단 구매번호 목록은 0행, `구매번호`는 `로또 0개, 연금복권 0개`, 상태 문구는 `결과가 나온 구매번호는 숨겼습니다.`로 표시됐다.
+- 검증은 focused Pages 테스트 4개, 전체 unittest 106개, `python -m compileall dhlottery_checker`, HTML inline script 1개 구문 검사, `git diff --check`, 로컬 브라우저 렌더로 진행했다.

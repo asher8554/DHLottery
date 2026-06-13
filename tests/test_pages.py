@@ -62,6 +62,22 @@ class PagesHtmlTest(unittest.TestCase):
         self.assertIn("appendTicketRow(lottoColumn", html)
         self.assertIn("appendTicketRow(pensionColumn", html)
 
+    def test_ticket_summary_hides_rounds_already_in_result_history(self):
+        html = Path("docs/ticket-entry.html").read_text(encoding="utf-8")
+
+        self.assertIn("function completedTicketRoundKeys(entries)", html)
+        self.assertIn("function ticketRoundKey(game, round)", html)
+        self.assertIn("function visibleTickets(tickets, entries = currentHistory)", html)
+        self.assertIn('ticketRoundKey("lotto", ticket.round)', html)
+        self.assertIn('ticketRoundKey("pension", ticket.round)', html)
+        self.assertIn("function renderCurrentTickets()", html)
+        self.assertIn("renderTickets(visible);", html)
+        self.assertIn("function updateTicketLoadStatus(visibleCount, totalCount)", html)
+        self.assertIn('setStatus("결과가 나온 구매번호는 숨겼습니다.", "good");', html)
+        self.assertIn("renderCurrentTickets();", html)
+        self.assertIn("ticketTotalCount(visibleTickets(currentTickets, currentHistory)) === 0", html)
+        self.assertNotIn("renderTickets(tickets);", html)
+
     def test_result_history_splits_lotto_and_pension_columns(self):
         html = Path("docs/ticket-entry.html").read_text(encoding="utf-8")
 

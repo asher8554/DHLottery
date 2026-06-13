@@ -1410,7 +1410,7 @@
       return (historyCount + ticketTotalCount(tickets)) * ticketPriceKrw;
     }
 
-    function renderMoneySummary(entries = currentHistory, tickets = currentTickets) {
+    function renderMoneySummary(entries = currentHistory, tickets = visibleTickets(currentTickets, entries)) {
       totalPrizeAmount.textContent = formatKrw(totalPrizeAmountKrw(entries));
       totalTicketCost.textContent = formatKrw(totalTicketCostKrw(entries, tickets));
     }
@@ -1670,6 +1670,30 @@
       container.appendChild(row);
     }
 
+    function ticketRoundKey(game, round) {
+      const normalizedRound = Number(round);
+      return game && Number.isFinite(normalizedRound) ? `${game}:${normalizedRound}` : "";
+    }
+
+    function completedTicketRoundKeys(entries) {
+      const completedRounds = new Set();
+      entries.forEach((entry) => {
+        const key = ticketRoundKey(entry.game, entry.round);
+        if (key) {
+          completedRounds.add(key);
+        }
+      });
+      return completedRounds;
+    }
+
+    function visibleTickets(tickets, entries = currentHistory) {
+      const completedRounds = completedTicketRoundKeys(entries);
+      return {
+        lotto: tickets.lotto.filter((ticket) => !completedRounds.has(ticketRoundKey("lotto", ticket.round))),
+        pension: tickets.pension.filter((ticket) => !completedRounds.has(ticketRoundKey("pension", ticket.round))),
+      };
+    }
+
     function renderTickets(tickets) {
       ticketSummary.innerHTML = "";
       const shouldSplit = tickets.lotto.length > 0 && tickets.pension.length > 0;
@@ -1690,6 +1714,26 @@
       if (tickets.pension.length) {
         ticketSummary.appendChild(pensionColumn);
       }
+    }
+
+    function renderCurrentTickets() {
+      const visible = visibleTickets(currentTickets, currentHistory);
+      ticketCount.textContent = `로또 ${visible.lotto.length}개, 연금복권 ${visible.pension.length}개`;
+      renderMoneySummary(currentHistory, visible);
+      renderTickets(visible);
+      setButtonsEnabled(ticketTotalCount(visible) > 0);
+      return visible;
+    }
+
+    function updateTicketLoadStatus(visibleCount, totalCount) {
+      if (totalCount <= 0) {
+        return;
+      }
+      if (visibleCount > 0) {
+        setStatus(`${visibleCount}개 구매번호를 불러왔습니다.`, "good");
+        return;
+      }
+      setStatus("결과가 나온 구매번호는 숨겼습니다.", "good");
     }
 
     function createHistoryCard(entry) {
@@ -1793,7 +1837,8 @@
 
     function renderResultHistory(entries) {
       currentHistory = entries;
-      renderMoneySummary();
+      const visible = renderCurrentTickets();
+      updateTicketLoadStatus(ticketTotalCount(visible), ticketTotalCount(currentTickets));
       const latestEntries = latestResultHistoryEntries(entries);
       const pastEntries = pastResultHistoryEntries(entries, latestEntries);
       latestResultHistoryCount.textContent = latestEntries.length ? `(${latestEntries.length}건)` : "(없음)";
@@ -1835,11 +1880,12 @@
         currentYaml = yaml.trimEnd() + "\n";
         currentTickets = tickets;
         yamlOutput.textContent = currentYaml;
-        ticketCount.textContent = `로또 ${tickets.lotto.length}개, 연금복권 ${tickets.pension.length}개`;
-        renderMoneySummary();
-        renderTickets(tickets);
-        setButtonsEnabled(totalCount > 0);
-        setStatus(totalCount > 0 ? `${totalCount}개 구매번호를 불러왔습니다.` : "구매번호 형식을 확인하지 못했습니다.", totalCount > 0 ? "good" : "bad");
+        const visibleCount = ticketTotalCount(renderCurrentTickets());
+        if (totalCount > 0) {
+          updateTicketLoadStatus(visibleCount, totalCount);
+        } else {
+          setStatus("구매번호 형식을 확인하지 못했습니다.", "bad");
+        }
       } catch (error) {
         renderEmpty("구매번호를 불러오지 못했습니다.");
         setStatus(`구매번호 로드 실패. ${error.message}`, "bad");
@@ -2119,7 +2165,7 @@
       } catch (error) {
         setStatus(`GitHub 요청 실패. ${error.message}`, "bad");
       } finally {
-        runCheck.disabled = currentTickets.lotto.length + currentTickets.pension.length === 0;
+        runCheck.disabled = ticketTotalCount(visibleTickets(currentTickets, currentHistory)) === 0;
       }
     }
 

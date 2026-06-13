@@ -647,3 +647,14 @@
    검증은 focused Pages 테스트가 기존 구현에서 실패하는 것으로 진행한다.
 3. 렌더링 순서만 최소 수정한다.
    검증은 focused 테스트, 전체 unittest, HTML 스크립트 구문 검사, 브라우저 렌더, `git diff --check`로 진행한다.
+
+## 2026-06-13 완료 회차 구매번호 숨김
+
+목표는 당첨결과 이력에 이미 들어간 회차의 구매번호가 하단 `구매번호 목록`에 다시 보이지 않게 하는 것이다.
+
+1. `data/tickets.yml`과 `data/result-history.yml`의 관계, Pages 렌더링 흐름을 확인한다.
+   검증은 `renderTickets`, `renderResultHistory`, `currentHistory` 호출 순서 비교로 진행한다.
+2. 결과 이력에 있는 `(game, round)` 티켓을 구매번호 목록에서 제외한다는 계약 테스트를 먼저 추가한다.
+   검증은 focused Pages 테스트가 기존 구현에서 실패하는 것으로 진행한다.
+3. 화면 렌더링에서 완료 회차만 제외하고 원본 YAML과 이력, 누적 금액 계산은 기존 의미를 유지한다.
+   검증은 focused 테스트, 전체 unittest, HTML 스크립트 구문 검사, 브라우저 렌더, `git diff --check`로 진행한다.
