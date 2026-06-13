@@ -1,4 +1,36 @@
 history:
+- checked_at: '2026-06-13T21:35:07+09:00'
+  game: pension
+  round: 319
+  title: 연금복권 319회
+  total_count: 5
+  winning_count: 5
+  losing_count: 0
+  prizes:
+  - rank: 7등
+    count: 5
+    amount: 1천원
+  summary: 2026.06.13 연금복권 319회 당첨 7등 5개
+  winning:
+    group: 3
+    number: '201327'
+    bonus_number: '632035'
+  tickets:
+  - label: '1'
+    won: true
+    result: 7등 1천원
+  - label: '2'
+    won: true
+    result: 7등 1천원
+  - label: '3'
+    won: true
+    result: 7등 1천원
+  - label: '4'
+    won: true
+    result: 7등 1천원
+  - label: '5'
+    won: true
+    result: 7등 1천원
 - checked_at: '2026-06-06T20:56:41+09:00'
   game: lotto
   round: 1227

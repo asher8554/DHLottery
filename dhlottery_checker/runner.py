@@ -271,20 +271,26 @@ def _run_check(args: argparse.Namespace) -> int:
     pending_to_notify = pending_not_ready if args.notify_pending else []
     sent_resolved_count = 0
     sent_pending_count = 0
+    notification_error = ""
 
     messages = _format_messages(unsent, outcomes)
     notification_messages = _format_messages(unsent, pending_to_notify)
     print("\n\n".join(messages))
 
     if args.notify and not args.dry_run and (unsent or pending_to_notify):
-        for message in notification_messages:
-            send_kakao_text(message)
-        sent_resolved_count = len(unsent)
-        sent_pending_count = len(pending_to_notify)
-        if state is not None:
-            for outcome in unsent:
-                state.mark_sent(outcome.fingerprint, outcome.game, outcome.round)
-            state.save()
+        try:
+            for message in notification_messages:
+                send_kakao_text(message)
+        except Exception as exc:
+            notification_error = str(exc)
+            print(f"카카오 알림 발송 실패. {exc}", file=sys.stderr)
+        else:
+            sent_resolved_count = len(unsent)
+            sent_pending_count = len(pending_to_notify)
+            if state is not None:
+                for outcome in unsent:
+                    state.mark_sent(outcome.fingerprint, outcome.game, outcome.round)
+                state.save()
     elif state is not None and not Path(args.state).exists():
         state.save()
 
@@ -305,9 +311,10 @@ def _run_check(args: argparse.Namespace) -> int:
         sent_pending_count=sent_pending_count,
         removable_resolved_fingerprints=[outcome.fingerprint for outcome in removable_resolved],
         clear_tickets=bool(removable_resolved) and len(pending) == 0,
+        notification_error=notification_error,
     )
     write_result_history(args.history, resolved)
-    return 0
+    return 1 if notification_error else 0
 
 
 def _removable_resolved_outcomes(
@@ -765,7 +772,7 @@ def _format_report(unsent: list[Outcome], all_outcomes: list[Outcome]) -> str:
     return "\n\n".join(_format_messages(unsent, all_outcomes))
 
 
-def _write_status_json(path: str | None, **status: int | bool) -> None:
+def _write_status_json(path: str | None, **status: int | bool | str) -> None:
     if not path:
         return
     target = Path(path)

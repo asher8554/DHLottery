@@ -818,3 +818,16 @@
 - 브라우저 렌더에서 예치금 `50,000원`은 `stat-value balance-amount-low`, 붉은 배경, inset 강조선, `font-weight: 900`으로 표시됐다.
 - 같은 렌더에서 `충전 필요`는 기존 `balance-alert-background` ease-in-out 펄스를 유지했다.
 - 검증은 focused Pages 테스트 2개, HTML inline script 문법 검사, 전체 unittest 101개, `python -m compileall dhlottery_checker`, `git diff --check`, 브라우저 렌더로 진행했다.
+
+## 2026-06-13 연금복권 319회 결과 표시 점검
+
+- 원격 `data/tickets.yml`에는 연금복권 319회 1조부터 5조까지 `780537` 구매번호가 있었다.
+- 원격 `data/result-history.yml`의 최신 연금복권 이력은 318회라서 Pages가 319회를 시각화하지 못했다.
+- GitHub Actions 로그상 2026-06-11 20:47 KST 수동 검사에서 연금복권 319회 조회와 등수 계산은 성공했다.
+- 같은 로그에서 카카오 토큰 갱신이 `invalid_grant`, `KOE322`, `expired_or_invalid_refresh_token`으로 실패했고, 기존 검사기는 그 예외 때문에 결과 이력 저장 단계까지 가지 못했다.
+- 예약 실행도 2026-06-11 20:13 KST에는 `outside_schedule`로 스킵됐다. 현재 30분 허용 창은 GitHub schedule 지연을 견디기 부족할 수 있다.
+- 이번 수정은 결과 조회가 성공한 경우 카카오 발송 실패와 별개로 `data/result-history.yml`과 상태 JSON을 남기는 데 집중한다.
+- 카카오 실패 시 workflow는 결과 이력만 커밋하고 구매번호 정리는 하지 않는다. 토큰을 고친 뒤 알림 재시도 여지를 남기기 위해서다.
+- 현재 319회 결과는 당첨번호 3조 201327, 보너스 각조 632035이고, 저장된 1조부터 5조 `780537`은 모두 7등 1천원으로 계산됐다.
+- 로컬 브라우저 렌더에서 최근 당첨결과에 `2026.06.13 연금복권 319회 당첨 7등 5개`, `당첨번호 3조 201327`, `7등 1천원` 배지가 표시되고 콘솔 경고와 오류는 없었다.
+- 최종 검증은 focused 테스트 2개, 전체 unittest 103개, `python -m compileall dhlottery_checker`, HTML inline script 1개 구문 검사, `git diff --check`로 진행했다.

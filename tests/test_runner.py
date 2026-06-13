@@ -317,6 +317,47 @@ class RunnerTest(unittest.TestCase):
         self.assertFalse(status["clear_tickets"])
         self.assertEqual(status["removable_resolved_fingerprints"], ["done-ticket"])
 
+    def test_kakao_failure_still_writes_result_history_and_status(self):
+        history_path = Path(self.temp_dir.name) / "result-history.yml"
+        status_path = Path(self.temp_dir.name) / "check-status.json"
+        outcome = Outcome(
+            "pension",
+            319,
+            "연금복권 319회 1",
+            "연금복권 319회 1. 7등 1천원.",
+            "pension-319",
+            True,
+            won=True,
+            result_label="7등 1천원",
+            summary_text="1 1조 780537 7등 1천원",
+            detail_header="연금복권 319회 당첨번호 3조 201327, 보너스 각조 632035",
+            detail_text="1. 7등 1천원. 내 번호 1조 780537.",
+            winning_group=3,
+            winning_number="201327",
+            bonus_number="632035",
+        )
+
+        with patch("dhlottery_checker.runner.load_ticket_config", return_value=SimpleNamespace(lotto=[], pension=[])):
+            with patch("dhlottery_checker.runner._build_outcomes", return_value=[outcome]):
+                with patch("dhlottery_checker.runner.send_kakao_text", side_effect=HttpError("invalid token")):
+                    with patch("builtins.print"):
+                        result = _run_check(
+                            self._args(
+                                force_notify=True,
+                                status_json=str(status_path),
+                                history=str(history_path),
+                            )
+                        )
+
+        self.assertEqual(result, 1)
+        history = yaml.safe_load(history_path.read_text(encoding="utf-8"))
+        self.assertEqual(history["history"][0]["round"], 319)
+        self.assertEqual(history["history"][0]["winning_count"], 1)
+        status = json.loads(status_path.read_text(encoding="utf-8"))
+        self.assertEqual(status["resolved_count"], 1)
+        self.assertEqual(status["sent_resolved_count"], 0)
+        self.assertIn("invalid token", status["notification_error"])
+
     def test_prune_sent_tickets_removes_only_completed_entries(self):
         ticket_path = Path(self.temp_dir.name) / "tickets.yml"
         status_path = Path(self.temp_dir.name) / "check-status.json"
@@ -560,6 +601,7 @@ class RunnerTest(unittest.TestCase):
         force_notify: bool,
         status_json: str | None = None,
         notify_pending: bool = False,
+        history: str | None = None,
     ) -> argparse.Namespace:
         return argparse.Namespace(
             tickets="unused.yml",
@@ -571,7 +613,7 @@ class RunnerTest(unittest.TestCase):
             force_notify=force_notify,
             notify_pending=notify_pending,
             status_json=status_json,
-            history=None,
+            history=history,
         )
 
     def _balance_args(self, account_path: Path) -> argparse.Namespace:

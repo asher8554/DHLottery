@@ -98,6 +98,7 @@ jobs:
           exit "$missing"
 
       - name: Check results and send Kakao message
+        id: check-results
         if: ${{ steps.ticket-file.outputs.has_tickets == 'true' && steps.notification_schedule.outputs.should_run == 'true' }}
         env:
           FORCE_NOTIFY: ${{ inputs.force_notify || 'false' }}
@@ -137,13 +138,17 @@ jobs:
           fi
 
       - name: Commit result history and completed ticket cleanup
-        if: ${{ steps.ticket-file.outputs.has_tickets == 'true' && steps.notification_schedule.outputs.should_run == 'true' }}
+        if: ${{ always() && steps.ticket-file.outputs.has_tickets == 'true' && steps.notification_schedule.outputs.should_run == 'true' }}
         shell: bash
         run: |
-          python -m dhlottery_checker prune-sent-tickets --tickets data/tickets.yml --status-json .state/check-status.json --history data/result-history.yml
+          if [ "${{ steps.check-results.outcome }}" = "success" ]; then
+            python -m dhlottery_checker prune-sent-tickets --tickets data/tickets.yml --status-json .state/check-status.json --history data/result-history.yml
+            git add data/tickets.yml data/result-history.yml
+          else
+            git add data/result-history.yml
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/tickets.yml data/result-history.yml
           if git diff --cached --quiet; then
             echo "No result history or completed ticket entries to commit."
           else
