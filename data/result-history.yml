@@ -1,5 +1,44 @@
 history:
-- checked_at: '2026-06-13T21:35:07+09:00'
+- checked_at: '2026-06-13T21:44:13+09:00'
+  game: lotto
+  round: 1228
+  title: 로또 1228회
+  total_count: 5
+  winning_count: 0
+  losing_count: 5
+  prizes: []
+  summary: 2026.06.13 로또 1228회 미당첨 5개
+  winning:
+    numbers:
+    - 24
+    - 29
+    - 30
+    - 31
+    - 35
+    - 44
+    bonus: 1
+  tickets:
+  - label: A
+    won: false
+    result: 미당첨
+    match_count: 2
+  - label: B
+    won: false
+    result: 미당첨
+    match_count: 1
+  - label: C
+    won: false
+    result: 미당첨
+    match_count: 0
+  - label: D
+    won: false
+    result: 미당첨
+    match_count: 0
+  - label: E
+    won: false
+    result: 미당첨
+    match_count: 0
+- checked_at: '2026-06-13T21:44:13+09:00'
   game: pension
   round: 319
   title: 연금복권 319회
