@@ -58,6 +58,7 @@ from .ticket_import import parse_lotto_ticket_text, write_lotto_tickets
 
 
 RESULT_HISTORY_LIMIT = 80
+KAKAO_TOKEN_EXPIRED_MARKERS = ("KOE322", "expired_or_invalid_refresh_token")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -273,8 +274,11 @@ def _run_check(args: argparse.Namespace) -> int:
             for message in notification_messages:
                 send_kakao_text(message)
         except Exception as exc:
-            notification_error = str(exc)
-            print(f"카카오 알림 발송 실패. {exc}", file=sys.stderr)
+            notification_error = _notification_error_message(exc)
+            annotation = _github_actions_error_annotation(notification_error)
+            if annotation:
+                print(annotation, file=sys.stderr)
+            print(f"카카오 알림 발송 실패. {notification_error}", file=sys.stderr)
         else:
             sent_resolved_count = len(unsent)
             sent_pending_count = len(pending_to_notify)
@@ -769,6 +773,30 @@ def _write_status_json(path: str | None, **status: int | bool | str) -> None:
     target = Path(path)
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(json.dumps(status, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def _notification_error_message(exc: Exception) -> str:
+    message = str(exc)
+    if _is_kakao_refresh_token_expired(message):
+        return (
+            "카카오톡 토큰 만료. GitHub repository secret KAKAO_REFRESH_TOKEN을 "
+            f"새 refresh token으로 갱신하세요. 원본 오류. {message}"
+        )
+    return message
+
+
+def _is_kakao_refresh_token_expired(message: str) -> bool:
+    return all(marker in message for marker in KAKAO_TOKEN_EXPIRED_MARKERS)
+
+
+def _github_actions_error_annotation(message: str) -> str:
+    if not _is_kakao_refresh_token_expired(message) and "카카오톡 토큰 만료" not in message:
+        return ""
+    return f"::error title=카카오톡 토큰 만료::{_escape_github_actions_command(message)}"
+
+
+def _escape_github_actions_command(value: str) -> str:
+    return value.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
 
 
 def _pending_reason(exc: Exception, result_not_ready_type: type[Exception]) -> str:

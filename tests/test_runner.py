@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import io
 import json
 from pathlib import Path
 import tempfile
@@ -357,6 +358,37 @@ class RunnerTest(unittest.TestCase):
         self.assertEqual(status["resolved_count"], 1)
         self.assertEqual(status["sent_resolved_count"], 0)
         self.assertIn("invalid token", status["notification_error"])
+
+    def test_kakao_expired_refresh_token_reports_secret_rotation_action(self):
+        status_path = Path(self.temp_dir.name) / "check-status.json"
+        outcome = Outcome(
+            "pension",
+            319,
+            "연금복권 319회 1",
+            "연금복권 319회 1. 7등 1천원.",
+            "pension-319",
+            True,
+            won=True,
+            result_label="7등 1천원",
+        )
+        kakao_error = HttpError(
+            "HTTP POST 요청에 실패했습니다. https://kauth.kakao.com/oauth/token. "
+            "상태 코드 400, error=invalid_grant, error_code=KOE322, "
+            "description=expired_or_invalid_refresh_token"
+        )
+
+        with patch("dhlottery_checker.runner.load_ticket_config", return_value=SimpleNamespace(lotto=[], pension=[])):
+            with patch("dhlottery_checker.runner._build_outcomes", return_value=[outcome]):
+                with patch("dhlottery_checker.runner.send_kakao_text", side_effect=kakao_error):
+                    with patch("sys.stderr", new_callable=io.StringIO) as stderr:
+                        with patch("sys.stdout", new_callable=io.StringIO):
+                            result = _run_check(self._args(force_notify=True, status_json=str(status_path)))
+
+        self.assertEqual(result, 1)
+        status = json.loads(status_path.read_text(encoding="utf-8"))
+        self.assertIn("카카오톡 토큰 만료", status["notification_error"])
+        self.assertIn("KAKAO_REFRESH_TOKEN", status["notification_error"])
+        self.assertIn("::error title=카카오톡 토큰 만료::", stderr.getvalue())
 
     def test_prune_sent_tickets_removes_only_completed_entries(self):
         ticket_path = Path(self.temp_dir.name) / "tickets.yml"
