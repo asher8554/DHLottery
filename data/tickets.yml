@@ -1,69 +1,22 @@
-lotto:
-  tickets:
-  - label: 로또 1228회 A
-    round: 1228
-    numbers:
-    - 6
-    - 11
-    - 28
-    - 30
-    - 34
-    - 35
-  - label: 로또 1228회 B
-    round: 1228
-    numbers:
-    - 3
-    - 7
-    - 13
-    - 24
-    - 25
-    - 28
-  - label: 로또 1228회 C
-    round: 1228
-    numbers:
-    - 2
-    - 4
-    - 6
-    - 19
-    - 32
-    - 33
-  - label: 로또 1228회 D
-    round: 1228
-    numbers:
-    - 8
-    - 9
-    - 13
-    - 25
-    - 34
-    - 41
-  - label: 로또 1228회 E
-    round: 1228
-    numbers:
-    - 2
-    - 8
-    - 10
-    - 12
-    - 26
-    - 37
 pension:
   tickets:
-  - label: 연금복권 319회 1
-    round: 319
+  - label: 연금복권 320회 1
+    round: 320
     group: 1
-    number: '780537'
-  - label: 연금복권 319회 2
-    round: 319
+    number: '878606'
+  - label: 연금복권 320회 2
+    round: 320
     group: 2
-    number: '780537'
-  - label: 연금복권 319회 3
-    round: 319
+    number: '878606'
+  - label: 연금복권 320회 3
+    round: 320
     group: 3
-    number: '780537'
-  - label: 연금복권 319회 4
-    round: 319
+    number: '878606'
+  - label: 연금복권 320회 4
+    round: 320
     group: 4
-    number: '780537'
-  - label: 연금복권 319회 5
-    round: 319
+    number: '878606'
+  - label: 연금복권 320회 5
+    round: 320
     group: 5
-    number: '780537'
+    number: '878606'
