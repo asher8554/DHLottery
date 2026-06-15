@@ -1,3 +1,50 @@
+lotto:
+  tickets:
+  - label: 로또 1229회 A
+    round: 1229
+    numbers:
+    - 2
+    - 4
+    - 10
+    - 27
+    - 37
+    - 42
+  - label: 로또 1229회 B
+    round: 1229
+    numbers:
+    - 4
+    - 9
+    - 13
+    - 31
+    - 39
+    - 45
+  - label: 로또 1229회 C
+    round: 1229
+    numbers:
+    - 2
+    - 4
+    - 17
+    - 26
+    - 29
+    - 32
+  - label: 로또 1229회 D
+    round: 1229
+    numbers:
+    - 5
+    - 6
+    - 17
+    - 24
+    - 27
+    - 42
+  - label: 로또 1229회 E
+    round: 1229
+    numbers:
+    - 13
+    - 19
+    - 20
+    - 38
+    - 41
+    - 45
 pension:
   tickets:
   - label: 연금복권 320회 1
