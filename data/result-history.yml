@@ -1,4 +1,72 @@
 history:
+- checked_at: '2026-06-29T20:54:37+09:00'
+  game: lotto
+  round: 1230
+  title: 로또 1230회
+  total_count: 5
+  winning_count: 0
+  losing_count: 5
+  prizes: []
+  summary: 2026.06.29 로또 1230회 미당첨 5개
+  winning:
+    numbers:
+    - 3
+    - 8
+    - 9
+    - 22
+    - 28
+    - 42
+    bonus: 45
+  tickets:
+  - label: A
+    won: false
+    result: 미당첨
+    match_count: 0
+  - label: B
+    won: false
+    result: 미당첨
+    match_count: 1
+  - label: C
+    won: false
+    result: 미당첨
+    match_count: 1
+  - label: D
+    won: false
+    result: 미당첨
+    match_count: 0
+  - label: E
+    won: false
+    result: 미당첨
+    match_count: 0
+- checked_at: '2026-06-29T20:54:37+09:00'
+  game: pension
+  round: 321
+  title: 연금복권 321회
+  total_count: 5
+  winning_count: 0
+  losing_count: 5
+  prizes: []
+  summary: 2026.06.29 연금복권 321회 미당첨 5개
+  winning:
+    group: 5
+    number: '686709'
+    bonus_number: '326599'
+  tickets:
+  - label: '1'
+    won: false
+    result: 미당첨
+  - label: '2'
+    won: false
+    result: 미당첨
+  - label: '3'
+    won: false
+    result: 미당첨
+  - label: '4'
+    won: false
+    result: 미당첨
+  - label: '5'
+    won: false
+    result: 미당첨
 - checked_at: '2026-06-21T12:39:12+09:00'
   game: lotto
   round: 1229
